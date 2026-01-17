@@ -35,9 +35,28 @@ $ARGUMENTS
 
 **NEVER timeout or skip ahead.** Each validation step MUST complete fully before moving to next step.
 
+## CRITICAL: No Fabricated Results
+
+**You MUST actually run commands and report real output. NEVER:**
+- ❌ Assume tests pass because test files exist
+- ❌ Assume lint passes because TypeScript compiles
+- ❌ Report pass counts without running the actual command
+- ❌ Use `tsc` or `npm run build` as a substitute for linting
+- ❌ Infer results from code inspection
+
+**You MUST:**
+- ✅ Run the actual lint/test command
+- ✅ Capture real output (pass/fail counts, error messages)
+- ✅ Report "skipped" if a command doesn't exist
+- ✅ Show the actual command you ran and its output
+
 ## Project-Specific Commands
 
-**IMPORTANT**: Check `.session/project-context/technical-context.md` for project-specific test and lint commands. The examples below are common patterns but may need adjustment.
+**IMPORTANT**: Check `.session/project-context/technical-context.md` for project-specific test and lint commands. If not defined there, check `package.json` scripts, `Makefile`, or equivalent.
+
+**If commands are not configured:**
+- Report the check as "skipped" with reason "No [lint/test] command configured"
+- Do NOT mark as "pass" - absence of a command is not the same as passing
 
 ## Validation Checklist (Sequential - DO NOT SKIP)
 
@@ -45,16 +64,29 @@ Run each check, WAIT for completion, store results. Continue even if failures oc
 
 ### 1. Lint Check
 
+**CRITICAL: Actually Execute Commands**
+- You MUST run actual commands and capture real output
+- DO NOT assume or fabricate results based on file existence
+- If a command doesn't exist, report "skipped" with reason
+- If a command fails, report the actual error
+
 ```bash
-# Run project-specific lint command (examples):
-# make lint           # If Makefile
-# npm run lint        # Node.js
+# First, check if lint command exists in package.json or Makefile
+# Then run project-specific lint command (examples):
+# npm run lint        # Node.js (check package.json scripts first)
+# make lint           # If Makefile has lint target
 # pylint app/         # Python
 # go vet ./...        # Go
 ```
 
-**Pass criteria**: No errors reported  
-**Fail**: Record details, continue to next check
+**IMPORTANT**: 
+- TypeScript compilation (`tsc`) is NOT linting - it's type checking
+- If no lint script exists, report status as "skipped" with "No lint script configured"
+- DO NOT substitute `tsc` or `npm run build` for linting
+
+**Pass criteria**: Lint command exists AND reports no errors  
+**Skip criteria**: No lint command configured (report as "skipped", not "pass")
+**Fail**: Record actual lint errors, continue to next check
 
 
 ### 1.5. Check Workflow Compatibility
@@ -86,20 +118,28 @@ Only development workflow requires validation before PR.
 ### 2. Unit Tests
 
 ```bash
-# Run project-specific test command (examples):
-# make test           # If Makefile
-# npm test            # Node.js
+# First, verify test command exists and what it is
+# Check package.json scripts, Makefile, or pyproject.toml
+# Then run project-specific test command (examples):
+# npm test            # Node.js (verify script exists first)
+# make test           # If Makefile has test target
 # pytest tests/unit/  # Python
 # go test ./...       # Go
 ```
 
-**CRITICAL**: Use `initial_wait: 120` minimum. If still running, use `read_bash` with delay: 30 until complete.
+**CRITICAL**: 
+- Use `initial_wait: 120` minimum
+- If still running, use `read_bash` with delay: 30 until complete
+- Capture ACTUAL test output - do not estimate or fabricate numbers
+- If no test command exists, report as "skipped"
 
 **Pass criteria**: 
-- All tests pass
+- Test command exists AND runs successfully
+- All tests pass (capture actual pass/fail counts from output)
 - Coverage meets project requirements (if applicable)
 
-**Fail**: Record failure count, continue
+**Skip criteria**: No test command configured (report as "skipped", not "pass")
+**Fail**: Record actual failure count from test output, continue
 
 ### 3. Integration Tests (if applicable)
 

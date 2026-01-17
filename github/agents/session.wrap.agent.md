@@ -152,13 +152,45 @@ git push
 
 ### 6. Clean Up Branches
 
+**CRITICAL**: Only delete remote branches that have been MERGED. Feature branches may span multiple sessions.
+
 ```bash
-# Delete merged local branches
+# Get the session's feature branch name from state.json
+SESSION_BRANCH=$(cat .session/sessions/{id}/state.json | jq -r '.branch // empty')
+
+# Only attempt deletion if we have a branch and it's not main
+if [ -n "$SESSION_BRANCH" ] && [ "$SESSION_BRANCH" != "main" ]; then
+    
+    # SAFETY CHECK: Only delete if branch is merged into main
+    # This prevents deleting active feature branches that span multiple sessions
+    if git branch --merged main | grep -q "$SESSION_BRANCH"; then
+        echo "Branch '$SESSION_BRANCH' is merged into main"
+        
+        # Delete local branch if exists
+        git branch -d "$SESSION_BRANCH" 2>/dev/null || true
+        
+        # Delete remote branch if exists
+        if git ls-remote --heads origin "$SESSION_BRANCH" | grep -q "$SESSION_BRANCH"; then
+            echo "Deleting remote branch: $SESSION_BRANCH"
+            git push origin --delete "$SESSION_BRANCH"
+        fi
+    else
+        echo "⚠️  Branch '$SESSION_BRANCH' is NOT merged - keeping it"
+        echo "   (Feature branches spanning multiple sessions are preserved)"
+    fi
+fi
+
+# Clean up any other merged local branches
 git branch --merged main | grep -v "^\*\|main" | xargs -r git branch -d
 
-# Prune remote tracking branches
+# Prune stale remote tracking branches
 git fetch --prune
 ```
+
+**Safety Rules**:
+- ✅ Delete branch only if merged into main
+- ✅ Feature branches spanning multiple sessions are preserved
+- ❌ NEVER delete unmerged branches
 
 ### 7. Finalize Session
 
@@ -178,6 +210,23 @@ This marks the session complete by:
 - Session data is preserved in `.session/sessions/{id}/`
 
 **No Handoff After Wrap**: session.wrap is the terminal agent in the workflow. It documents and archives the session, then clears the ACTIVE_SESSION sentinel. The next session starts fresh with `/session.start`.
+
+## CRITICAL: Only Create Specified Files
+
+**DO NOT create extra files not specified in this prompt.**
+
+The ONLY files you should create or modify are:
+1. `{session_dir}/notes.md` - Update with summary
+2. `{session_dir}/tasks.md` - Mark tasks complete
+3. `CHANGELOG.md` - Add session entry
+4. `docs/reports/daily/YYYY-MM/daily-summary-{SESSION_ID}.md` - Create daily summary
+
+**DO NOT create:**
+- ❌ WRAP_SUMMARY.md
+- ❌ SESSION_COMPLETE.md
+- ❌ Any other summary/report files not listed above
+
+The session state is tracked in `state.json` by the wrap script - no additional files needed.
 
 ## Session Type Considerations
 
