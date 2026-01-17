@@ -4,7 +4,7 @@ handoffs:
   - label: Wrap Session
     agent: session.wrap
     prompt: Document and close session
-    send: true
+    send: false
 ---
 
 # session.finalize
@@ -200,7 +200,7 @@ After finalization, **auto-suggest** `/session.wrap`:
 → `/session.wrap`
 ```
 
-**Handoff**: `send: true` - suggest next step automatically
+**Handoff**: `send: false` - suggest next step but wait for user confirmation
 
 **Handoff Reasoning**: session.finalize completes all post-merge issue management (closing phase issues, updating parent issue, syncing tasks to GitHub). The final step is session.wrap, which documents the session in CHANGELOG.md and daily summary, then archives the session. This separation ensures issue management is complete before documentation.
 

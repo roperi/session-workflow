@@ -4,7 +4,7 @@ handoffs:
   - label: Finalize Issues & Phase
     agent: session.finalize
     prompt: Update issues and close phase (run after PR merged)
-    send: true
+    send: false
 ---
 
 # session.publish
@@ -137,7 +137,27 @@ After successful PR creation/update:
 
 **Suggest next step**: `/session.finalize` (after PR merged to main)
 
-**Handoff**: `send: true` - auto-suggest but don't auto-execute (user confirms after merge)
+**Handoff**: `send: false` - suggest but wait for user (user must merge PR first)
+
+## CRITICAL: PR Merge Rules
+
+**🚨 NEVER bypass these rules:**
+
+1. **CI Must Pass Before Merge**
+   - DO NOT merge a PR before CI completes successfully
+   - User must monitor CI in GitHub UI
+   - Code review agents (if any) must review first
+
+2. **Check PR Status Before Merging**
+   ```bash
+   # User should check:
+   gh pr view <number> --json statusCheckRollup,reviews
+   # Verify CI status: "SUCCESS"
+   ```
+
+3. **After Merge**
+   - User runs `/session.finalize` to close issues
+   - session.finalize handles issue management
 
 ## What NOT to Do
 
@@ -145,6 +165,7 @@ After successful PR creation/update:
 - ❌ Don't suggest `/session.start` or `/session.wrap` immediately
 - ❌ Don't monitor CI (that's user's responsibility in GitHub UI)
 - ❌ Don't auto-merge PRs
+- ❌ Don't auto-chain to session.finalize (PR must be merged first)
 
 ## Usage
 
