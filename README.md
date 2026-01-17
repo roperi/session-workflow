@@ -2,6 +2,8 @@
 
 A lightweight, portable session management system for AI-assisted development. Provides context continuity across AI sessions and structured work tracking.
 
+**📖 Full documentation: [GUIDE.md](GUIDE.md)**
+
 ## Quick Install
 
 ```bash
@@ -16,53 +18,49 @@ cd your-project
 ../session-workflow/install.sh
 ```
 
-## What It Does
+## What Gets Installed
 
-When AI context windows reset, work continuity is lost. Session workflow solves this by:
+```
+your-repo/
+├── AGENTS.md                    # AI bootstrap (created if missing)
+├── .github/
+│   ├── copilot_instructions.md  # Copilot config (created if missing)
+│   ├── agents/session.*.agent.md
+│   └── prompts/session.*.prompt.md
+└── .session/
+    ├── scripts/bash/            # Workflow scripts
+    ├── templates/               # Note templates  
+    ├── docs/                    # Quick reference
+    ├── project-context/         # Customize for your project!
+    │   ├── constitution-summary.md
+    │   └── technical-context.md
+    └── sessions/                # Per-session data (gitignored)
+```
 
-1. **Tracking session state** - What's in progress, what's done
-2. **Handoff notes** - Context for the next AI session
-3. **Git hygiene** - Ensures clean state before session ends
-4. **Project context** - Quick orientation for new sessions
+## Post-Install
 
-## Usage
+1. **Customize** `.session/project-context/technical-context.md` with your stack, build/test commands
+2. **Customize** `.session/project-context/constitution-summary.md` with quality standards
+3. **Review** `AGENTS.md` for any project-specific additions
 
-### Start a Session
+## Quick Start
 
 ```bash
-# Work on a GitHub issue
+# Development workflow (full 7-agent chain)
 /session.start --issue 123
 
 # Unstructured work
-/session.start --goal "Implement caching"
+/session.start --goal "Fix performance bug"
 
-# Quick question (advisory mode)
+# Experiment (no PR)
+/session.start --experiment --goal "Test Redis caching"
+
+# Quick question (no code)
 /session.start --advisory --goal "How should I structure the API?"
 
-# Experimental work
-/session.start --experiment --goal "Test Redis performance"
-```
-
-### During Work
-
-- Update `notes.md` with progress and decisions
-- Update `tasks.md` as you complete tasks
-- Commit code regularly
-
-### End a Session
-
-```bash
+# End session
 /session.wrap
 ```
-
-## Session Types
-
-| Type | Command | Use Case |
-|------|---------|----------|
-| **GitHub Issue** | `--issue 123` | Bugs, features with GitHub issues |
-| **Unstructured** | `--goal "text"` | Ad-hoc work, maintenance |
-| **Advisory** | `--advisory --goal` | Quick questions, no code changes |
-| **Experiment** | `--experiment --goal` | Prototypes, investigations |
 
 ## Workflow Types
 
@@ -71,56 +69,6 @@ When AI context windows reset, work continuity is lost. Session workflow solves 
 | **Development** | start → plan → execute → validate → publish → finalize → wrap | Features, bug fixes |
 | **Advisory** | start → wrap | Quick questions |
 | **Experiment** | start → execute → wrap | Prototypes, spikes |
-
-## File Structure
-
-After installation:
-
-```
-your-repo/
-├── .session/
-│   ├── scripts/bash/        # Workflow scripts
-│   ├── templates/           # Note templates
-│   ├── docs/                # Documentation
-│   ├── project-context/     # Your project's context (customize this!)
-│   │   ├── constitution-summary.md
-│   │   └── technical-context.md
-│   └── sessions/            # Per-session data (gitignored)
-└── .github/
-    ├── agents/              # AI agent definitions
-    │   └── session.*.agent.md
-    └── prompts/             # Slash commands
-        └── session.*.prompt.md
-```
-
-## Customization
-
-After installation, customize these files for your project:
-
-### `.session/project-context/constitution-summary.md`
-
-Add your project's quality standards:
-- Code style guidelines
-- Testing requirements
-- Documentation standards
-
-### `.session/project-context/technical-context.md`
-
-Add your project's technical details:
-- Tech stack
-- Project structure
-- Development commands
-- Key patterns
-
-## Updating
-
-To update to the latest version:
-
-```bash
-curl -sSL https://raw.githubusercontent.com/roperi/session-workflow/main/update.sh | bash
-```
-
-This updates scripts, agents, and prompts but preserves your `project-context/` customizations.
 
 ## Slash Commands
 
@@ -133,6 +81,24 @@ This updates scripts, agents, and prompts but preserves your `project-context/` 
 | `/session.publish` | Create/update pull request |
 | `/session.finalize` | Post-merge issue management |
 | `/session.wrap` | Document and close session |
+
+## Arguments
+
+All agents support:
+- `--comment "text"` - Provide specific instructions
+- `--resume` - Continue from where you left off
+
+```bash
+/session.execute --resume --comment "Continue from task 5"
+```
+
+## Updating
+
+```bash
+curl -sSL https://raw.githubusercontent.com/roperi/session-workflow/main/update.sh | bash
+```
+
+Preserves your `project-context/` customizations.
 
 ## Requirements
 

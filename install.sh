@@ -88,13 +88,74 @@ install_templates() {
 }
 
 install_docs() {
-    info "Installing documentation..."
+    info "Installing session docs..."
     
+    # Only install internal session docs (quick reference)
     mkdir -p .session/docs
     download_file "${REPO_URL}/session/docs/README.md" ".session/docs/README.md"
     download_file "${REPO_URL}/session/docs/testing.md" ".session/docs/testing.md"
     
-    success "Documentation installed"
+    success "Session docs installed"
+}
+
+install_bootstrap() {
+    info "Installing AI bootstrap files..."
+    
+    # Create .github directory
+    mkdir -p .github
+    
+    # Install AGENTS.md if it doesn't exist
+    if [[ ! -f "AGENTS.md" ]]; then
+        download_file "${REPO_URL}/stubs/AGENTS.md" "AGENTS.md"
+        success "Created AGENTS.md"
+    else
+        # Append session workflow section if not already present
+        if ! grep -q "Session Workflow" AGENTS.md 2>/dev/null; then
+            echo "" >> AGENTS.md
+            echo "## Session Workflow" >> AGENTS.md
+            echo "" >> AGENTS.md
+            echo "This project uses session workflow for AI context continuity." >> AGENTS.md
+            echo "See \`.session/docs/README.md\` for quick reference." >> AGENTS.md
+            echo "" >> AGENTS.md
+            echo "**Commands:**" >> AGENTS.md
+            echo "- \`/session.start --issue N\` - Start development session" >> AGENTS.md
+            echo "- \`/session.start --goal \"text\"\` - Start unstructured session" >> AGENTS.md
+            echo "- \`/session.start --experiment --goal \"text\"\` - Start experiment" >> AGENTS.md
+            echo "- \`/session.start --advisory --goal \"text\"\` - Quick question" >> AGENTS.md
+            echo "- \`/session.wrap\` - End session" >> AGENTS.md
+            success "Updated AGENTS.md with session workflow section"
+        else
+            warn "AGENTS.md already has session workflow section, skipping"
+        fi
+    fi
+    
+    # Install copilot_instructions.md if it doesn't exist
+    if [[ ! -f ".github/copilot_instructions.md" ]]; then
+        download_file "${REPO_URL}/stubs/copilot_instructions.md" ".github/copilot_instructions.md"
+        success "Created .github/copilot_instructions.md"
+    else
+        # Append session workflow section if not already present
+        if ! grep -q "Session Workflow" .github/copilot_instructions.md 2>/dev/null; then
+            echo "" >> .github/copilot_instructions.md
+            echo "## Session Workflow" >> .github/copilot_instructions.md
+            echo "" >> .github/copilot_instructions.md
+            echo "This project uses session workflow for AI context continuity." >> .github/copilot_instructions.md
+            echo "" >> .github/copilot_instructions.md
+            echo "**Commands:**" >> .github/copilot_instructions.md
+            echo "- \`/session.start --issue N\` - Start development session" >> .github/copilot_instructions.md
+            echo "- \`/session.start --goal \"text\"\` - Unstructured work" >> .github/copilot_instructions.md
+            echo "- \`/session.start --experiment --goal \"text\"\` - Experiment/spike" >> .github/copilot_instructions.md
+            echo "- \`/session.start --advisory --goal \"text\"\` - Quick question" >> .github/copilot_instructions.md
+            echo "- \`/session.wrap\` - End session" >> .github/copilot_instructions.md
+            echo "" >> .github/copilot_instructions.md
+            echo "**Project context:**" >> .github/copilot_instructions.md
+            echo "- \`.session/project-context/technical-context.md\` - Stack, build/test commands" >> .github/copilot_instructions.md
+            echo "- \`.session/project-context/constitution-summary.md\` - Quality standards" >> .github/copilot_instructions.md
+            success "Updated .github/copilot_instructions.md with session workflow section"
+        else
+            warn ".github/copilot_instructions.md already has session workflow section, skipping"
+        fi
+    fi
 }
 
 install_project_context() {
@@ -219,6 +280,7 @@ main() {
     install_scripts
     install_templates
     install_docs
+    install_bootstrap
     install_project_context
     install_agents
     install_prompts
@@ -232,8 +294,8 @@ main() {
     echo ""
     echo "Next steps:"
     echo "  1. Customize .session/project-context/ for your project"
-    echo "  2. Start a session: /session.start --goal 'Your goal'"
-    echo "  3. See docs: .session/docs/README.md"
+    echo "  2. Review AGENTS.md and .github/copilot_instructions.md"
+    echo "  3. Start a session: /session.start --goal 'Your goal'"
     echo ""
     echo "Quick start:"
     echo "  /session.start --issue 123       # Work on GitHub issue"
