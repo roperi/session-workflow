@@ -87,10 +87,25 @@ your-repo/
 All agents support:
 - `--comment "text"` - Provide specific instructions
 - `--resume` - Continue from where you left off
+- `--force` - Skip workflow validation (use with caution)
 
 ```bash
 /session.execute --resume --comment "Continue from task 5"
 ```
+
+## Session Continuity
+
+If the CLI crashes or is killed mid-workflow, the next invocation detects this and guides you to resume:
+
+```
+⚠️ INTERRUPTED SESSION DETECTED
+Previous session was interrupted during: validate
+
+RECOMMENDED ACTION:
+Run: /session.validate --resume
+```
+
+This prevents accidental data loss from skipped workflow steps.
 
 ## Updating
 

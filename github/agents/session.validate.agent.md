@@ -11,6 +11,8 @@ handoffs:
 
 **Purpose**: Validates completed session work before publishing to PR/issues.
 
+**IMPORTANT**: Read `.github/agents/session.common.agent.md` for shared workflow rules.
+
 ## User Input
 
 ```text
@@ -19,17 +21,41 @@ $ARGUMENTS
 
 **Argument Support**:
 - `--comment "text"`: Specific validation instructions (e.g., "Skip integration tests", "Only lint")
-- `--resume`: Re-run only failed checks from previous validation
+- `--resume`: Re-run only failed checks from previous validation, or resume interrupted validation
 
 **Behavior**:
 - **If `--resume` flag present**: 
   - Check validation output from previous run
   - Only re-execute checks that failed
   - Skip checks that passed
+  - Also used to resume interrupted validation sessions
 - **If `--comment` provided**: 
   - May skip certain validation steps per instruction
   - Use as override for normal validation flow
 - **Default**: Run full validation suite
+
+## ⚠️ CRITICAL: Workflow State Tracking
+
+**ON ENTRY** (before running any validation):
+```bash
+source .session/scripts/bash/session-common.sh
+SESSION_ID=$(get_active_session)
+
+# Mark validation as in-progress (for interrupt recovery)
+set_workflow_step "$SESSION_ID" "validate" "in_progress"
+```
+
+**ON SUCCESSFUL COMPLETION**:
+```bash
+set_workflow_step "$SESSION_ID" "validate" "completed"
+```
+
+**ON FAILURE**:
+```bash
+set_workflow_step "$SESSION_ID" "validate" "failed"
+```
+
+This tracking enables session continuity - if the CLI is killed during validation, the next session can detect it and resume properly.
 
 ## CRITICAL: Validation Must Complete Before Proceeding
 

@@ -624,3 +624,203 @@ check_workflow_allowed() {
     echo -e "${YELLOW}This agent is for: ${allowed_workflows[*]}${NC}" >&2
     return 1
 }
+
+# ============================================================================
+# Workflow State Tracking (Session Continuity)
+# ============================================================================
+
+# Valid workflow transitions
+declare -A WORKFLOW_TRANSITIONS=(
+    ["none"]="start"
+    ["start"]="plan execute"
+    ["plan"]="execute"
+    ["execute"]="validate execute"
+    ["validate"]="publish execute"
+    ["publish"]="finalize"
+    ["finalize"]="wrap"
+    ["wrap"]=""
+)
+
+set_workflow_step() {
+    # Track workflow step state for session continuity
+    # Args: session_id, step_name, status (in_progress|completed|failed)
+    # 
+    # This enables detection of interrupted sessions across CLI restarts.
+    # If a step is "in_progress" when a new CLI session starts, the 
+    # previous session was interrupted.
+    
+    local session_id="$1"
+    local step_name="$2"
+    local status="$3"
+    local timestamp=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
+    
+    local session_dir="${SESSIONS_DIR}/${session_id}"
+    local state_file="${session_dir}/state.json"
+    
+    if [[ ! -d "$session_dir" ]]; then
+        echo -e "${RED}ERROR: Session directory not found: $session_dir${NC}" >&2
+        return 1
+    fi
+    
+    # Create or update state.json
+    if [[ -f "$state_file" ]]; then
+        # Update existing state
+        local tmp_file=$(mktemp)
+        jq --arg step "$step_name" \
+           --arg status "$status" \
+           --arg updated "$timestamp" \
+           --arg started "$timestamp" \
+           '. + {
+               current_step: $step,
+               step_status: $status,
+               step_updated_at: $updated
+           } | if .step_status == "in_progress" then . + {step_started_at: $started} else . end' \
+           "$state_file" > "$tmp_file" && mv "$tmp_file" "$state_file"
+    else
+        # Create new state file
+        cat > "$state_file" << STATEJSON
+{
+    "current_step": "$step_name",
+    "step_status": "$status",
+    "step_started_at": "$timestamp",
+    "step_updated_at": "$timestamp"
+}
+STATEJSON
+    fi
+    
+    echo -e "${GREEN}✓ Workflow step: $step_name ($status)${NC}"
+}
+
+get_workflow_step() {
+    # Get current workflow step and status
+    # Args: session_id
+    # Returns: JSON with current_step and step_status
+    
+    local session_id="$1"
+    local session_dir="${SESSIONS_DIR}/${session_id}"
+    local state_file="${session_dir}/state.json"
+    
+    if [[ -f "$state_file" ]]; then
+        jq '{current_step, step_status, step_started_at, step_updated_at}' "$state_file"
+    else
+        echo '{"current_step": "none", "step_status": "none"}'
+    fi
+}
+
+check_interrupted_session() {
+    # Check if the previous session was interrupted
+    # Args: session_id
+    # Returns: 0 if interrupted, 1 if not
+    
+    local session_id="$1"
+    local state=$(get_workflow_step "$session_id")
+    local status=$(echo "$state" | jq -r '.step_status // "none"')
+    
+    if [[ "$status" == "in_progress" ]]; then
+        local step=$(echo "$state" | jq -r '.current_step')
+        echo -e "${YELLOW}⚠️ INTERRUPTED SESSION DETECTED${NC}"
+        echo -e "Previous session was interrupted during: ${BLUE}$step${NC}"
+        echo ""
+        return 0
+    fi
+    return 1
+}
+
+check_workflow_transition() {
+    # Check if transitioning to a step is valid
+    # Args: session_id, target_step
+    # Returns: 0 if valid, 1 if invalid
+    
+    local session_id="$1"
+    local target_step="$2"
+    
+    local state=$(get_workflow_step "$session_id")
+    local current_step=$(echo "$state" | jq -r '.current_step // "none"')
+    local current_status=$(echo "$state" | jq -r '.step_status // "none"')
+    
+    # If current step is in_progress, can't transition
+    if [[ "$current_status" == "in_progress" ]]; then
+        echo -e "${RED}ERROR: Cannot transition to '$target_step'${NC}"
+        echo -e "Step '$current_step' is still in progress."
+        echo ""
+        echo "Either:"
+        echo "  1. Complete the current step: /session.$current_step --resume"
+        echo "  2. Force transition (data loss risk): --force flag"
+        return 1
+    fi
+    
+    # Check if transition is valid
+    local valid_next="${WORKFLOW_TRANSITIONS[$current_step]:-}"
+    
+    if [[ -z "$valid_next" && "$current_step" != "none" ]]; then
+        echo -e "${RED}ERROR: Session workflow complete - no more steps${NC}"
+        return 1
+    fi
+    
+    # Check if target is in valid next steps
+    if [[ " $valid_next " =~ " $target_step " ]]; then
+        return 0
+    else
+        echo -e "${RED}ERROR: Invalid workflow transition${NC}"
+        echo "Current step: $current_step ($current_status)"
+        echo "Requested: $target_step"
+        echo "Valid next steps: $valid_next"
+        return 1
+    fi
+}
+
+check_uncommitted_changes() {
+    # Check for uncommitted changes that might be lost
+    # Returns: 0 if clean, 1 if dirty with details
+    
+    if git diff --quiet && git diff --cached --quiet; then
+        return 0
+    fi
+    
+    echo -e "${YELLOW}⚠️ UNCOMMITTED CHANGES DETECTED${NC}"
+    echo ""
+    git status --short
+    echo ""
+    echo "These changes are NOT in any commit/PR."
+    echo "They may be lost if you proceed."
+    return 1
+}
+
+format_workflow_guidance() {
+    # Format user-friendly guidance for workflow issues
+    # Args: current_step, target_step, status
+    
+    local current_step="$1"
+    local target_step="$2"
+    local status="$3"
+    
+    echo "═══════════════════════════════════════════════════════════"
+    echo "  WORKFLOW STATE ISSUE"
+    echo "═══════════════════════════════════════════════════════════"
+    echo ""
+    echo "  Current:   $current_step ($status)"
+    echo "  Requested: $target_step"
+    echo ""
+    echo "  Workflow sequence:"
+    echo "  start → plan → execute → validate → publish → finalize → wrap"
+    echo ""
+    
+    if [[ "$status" == "in_progress" ]]; then
+        echo "  ⚠️ Previous session was interrupted during '$current_step'"
+        echo ""
+        echo "  RECOMMENDED ACTION:"
+        echo "  Run: /session.$current_step --resume"
+        echo ""
+    else
+        echo "  ❌ Cannot skip to '$target_step' from '$current_step'"
+        echo ""
+        echo "  REQUIRED ACTION:"
+        local valid_next="${WORKFLOW_TRANSITIONS[$current_step]:-}"
+        local next_step=$(echo "$valid_next" | cut -d' ' -f1)
+        echo "  Run: /session.$next_step"
+        echo ""
+    fi
+    
+    echo "  Use --force to override (may cause data loss)"
+    echo "═══════════════════════════════════════════════════════════"
+}

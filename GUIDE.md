@@ -388,6 +388,32 @@ git add -A && git commit -m "wip"
 /session.start --issue 123
 ```
 
+### Interrupted Session / CLI Restart
+
+If the CLI crashes or is killed mid-workflow, the next invocation detects this:
+
+```
+⚠️ INTERRUPTED SESSION DETECTED
+Previous session was interrupted during: validate
+
+RECOMMENDED ACTION:
+Run: /session.validate --resume
+```
+
+**How it works:**
+- Each agent marks its step as `in_progress` on entry
+- If step is still `in_progress` when new CLI starts, previous session was interrupted
+- Workflow state is stored in `state.json`
+
+**Recovery:**
+```bash
+# Resume the interrupted step
+/session.[step] --resume
+
+# Or force skip (may cause data loss)
+/session.[next-step] --force
+```
+
 ### Agent creates unexpected files
 
 Agent prompts have explicit file allowlists. If this happens:
@@ -402,7 +428,60 @@ Agent prompts require actual command execution. If fabrication occurs:
 
 ---
 
+## Session Continuity
+
+The workflow tracks state across CLI restarts to prevent data loss.
+
+### State Machine
+
+```
+start → plan → execute → validate → publish → finalize → wrap
+```
+
+Each step must complete before the next can begin. The system enforces this by:
+1. Tracking step status (`in_progress`, `completed`, `failed`)
+2. Validating transitions between steps
+3. Detecting interrupted sessions
+
+### How It Protects Your Work
+
+**Scenario**: You run `/session.validate`, it's running tests, and the CLI crashes.
+
+**Without continuity tracking**:
+- You restart CLI and run `/session.finalize`
+- Finalize runs, potentially skipping incomplete validation
+- Uncommitted changes may be stashed/lost
+
+**With continuity tracking**:
+- You restart CLI and run `/session.finalize`
+- System detects `validate` is still `in_progress`
+- Error message guides you to run `/session.validate --resume` first
+- Your work is protected
+
+### State Storage
+
+State is stored in `.session/sessions/[id]/state.json`:
+
+```json
+{
+  "current_step": "validate",
+  "step_status": "in_progress",
+  "step_started_at": "2026-01-18T10:30:00Z",
+  "step_updated_at": "2026-01-18T10:30:00Z"
+}
+```
+
+---
+
 ## Version History
+
+### 2.1.0 (2026-01)
+- Added session continuity across CLI restarts
+- Added workflow state tracking (in_progress/completed/failed)
+- Added interrupted session detection and recovery guidance
+- Added pre-flight safety checks to session.finalize
+- Added `--force` flag to override workflow validation
+- Added session.common.agent.md for shared workflow rules
 
 ### 2.0.0 (2026-01)
 - Added workflow types (development, advisory, experiment, smart)
