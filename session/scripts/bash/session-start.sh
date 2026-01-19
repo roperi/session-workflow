@@ -38,6 +38,7 @@ OPTIONS:
     --development     Shorthand for --workflow development
     --advisory        Shorthand for --workflow advisory
     --experiment      Shorthand for --workflow experiment
+    --resume          Resume an active session (including interrupted)
     --json            Output JSON for AI consumption
     -h, --help        Show this help
 
@@ -486,18 +487,55 @@ main() {
     # Check for active session
     local active_session
     active_session=$(get_active_session)
-    
+
     if [[ -n "$active_session" ]]; then
-        # Extract date from session ID (YYYY-MM-DD from YYYY-MM-DD-N)
+        local session_dir
+        session_dir=$(get_session_dir "$active_session")
+
+        if [[ ! -d "$session_dir" ]]; then
+            if $JSON_OUTPUT; then
+                echo "{\"status\": \"error\", \"message\": \"Active session directory not found: ${session_dir}\", \"hint\": \"Clear .session/ACTIVE_SESSION or start a new session\"}"
+            else
+                print_error "Active session directory not found: ${session_dir}"
+                echo ""
+                echo "To fix:"
+                echo "  1. Clear:  rm .session/ACTIVE_SESSION"
+                echo "  2. Start:  .session/scripts/bash/session-start.sh --issue XXX"
+                echo ""
+            fi
+            exit 1
+        fi
+
+        if [[ -f "$session_dir/state.json" ]]; then
+            local step_status
+            step_status=$(jq -r '.step_status // "unknown"' "$session_dir/state.json" 2>/dev/null || echo "unknown")
+            if [[ "$step_status" == "in_progress" || "$step_status" == "starting" ]]; then
+                if $JSON_OUTPUT; then
+                    output_json "$active_session" "true"
+                else
+                    output_human "$active_session" "true"
+                fi
+                exit 0
+            fi
+        fi
+
+        if [[ "${RESUME_MODE:-false}" == "true" ]]; then
+            if $JSON_OUTPUT; then
+                output_json "$active_session" "true"
+            else
+                output_human "$active_session" "true"
+            fi
+            exit 0
+        fi
+
         local session_date
         session_date=$(echo "$active_session" | cut -d'-' -f1,2,3)
         local today
         today=$(date +%Y-%m-%d)
-        
-        # Check if session is from a previous day (stale)
+
         if [[ "$session_date" != "$today" ]]; then
             if $JSON_OUTPUT; then
-                echo "{\"status\": \"error\", \"message\": \"Stale session detected: ${active_session} is from ${session_date} but today is ${today}\", \"hint\": \"Run: rm .session/ACTIVE_SESSION && /session.start --issue XXX\"}"
+                echo "{\"status\": \"error\", \"message\": \"Stale session detected: ${active_session} is from ${session_date} but today is ${today}\", \"hint\": \"Run: /session.start --resume (or rm .session/ACTIVE_SESSION for a new session)\"}"
             else
                 print_error "Stale session detected!"
                 echo ""
@@ -508,14 +546,13 @@ main() {
                 print_warning "The previous session was not properly closed."
                 echo ""
                 echo "To fix:"
-                echo "  1. Clear stale session: rm .session/ACTIVE_SESSION"
-                echo "  2. Start new session:   .session/scripts/bash/session-start.sh --issue XXX"
+                echo "  1. Resume:    .session/scripts/bash/session-start.sh --resume"
+                echo "  2. Or clear:  rm .session/ACTIVE_SESSION"
                 echo ""
             fi
             exit 1
         fi
-        
-        # Resume existing session (same-day continuation)
+
         if $JSON_OUTPUT; then
             output_json "$active_session" "true"
         else

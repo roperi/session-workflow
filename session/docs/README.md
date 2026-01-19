@@ -52,13 +52,16 @@ When AI context windows reset, work continuity is lost. The session workflow sol
 ## Session Lifecycle
 
 ```
-┌─────────────┐     ┌─────────────┐     ┌─────────────┐
-│   START     │────▶│   EXECUTE   │────▶│    WRAP     │
-│             │     │             │     │             │
-│ Load context│     │ Do work     │     │ Validate    │
-│ Create files│     │ Update notes│     │ Clean state │
-└─────────────┘     └─────────────┘     └─────────────┘
+start → plan → execute → validate → publish → finalize → wrap
 ```
+
+Manual handoffs:
+- publish → finalize (after PR merge)
+- finalize → wrap (user confirms)
+
+Resume behavior:
+- If a step was interrupted (state.json shows in_progress/starting), rerun that step with `--resume`.
+- To resume an older session, run `/session.start --resume`.
 
 ### 1. Start (`/session.start`)
 
@@ -99,7 +102,6 @@ Post-wrap actions (handled by prompt):
 - Update CHANGELOG.md if user-facing changes
 - Update tasks.md with completion status
 - Commit documentation changes
-
 ---
 
 ## File Structure
@@ -136,8 +138,12 @@ AI guidance prompts are available in `.github/prompts/`:
 | Prompt | Purpose |
 |--------|---------|
 | `/session.start` | Initialize or resume a session |
-| `/session.execute` | Task execution guidance with constitution compliance |
-| `/session.wrap` | Finalize session with validation |
+| `/session.plan` | Generate task list |
+| `/session.execute` | Execute tasks with TDD focus |
+| `/session.validate` | Run quality checks and tests |
+| `/session.publish` | Create/update pull request |
+| `/session.finalize` | Post-merge issue management |
+| `/session.wrap` | Document and close session |
 
 ---
 

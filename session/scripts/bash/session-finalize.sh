@@ -32,7 +32,8 @@ if [ ! -f "$ACTIVE_SESSION_FILE" ]; then
     exit 1
 fi
 
-SESSION_DIR=$(cat "$ACTIVE_SESSION_FILE")
+SESSION_ID=$(cat "$ACTIVE_SESSION_FILE")
+SESSION_DIR=$(get_session_dir "$SESSION_ID")
 SESSION_INFO="$SESSION_DIR/session-info.json"
 
 if [ ! -f "$SESSION_INFO" ]; then
@@ -41,7 +42,7 @@ if [ ! -f "$SESSION_INFO" ]; then
 fi
 
 # Parse session metadata
-SESSION_TYPE=$(jq -r '.session.type' "$SESSION_INFO")
+SESSION_TYPE=$(jq -r '.type' "$SESSION_INFO")
 ISSUE_NUMBER=$(jq -r '.issue_number // empty' "$SESSION_INFO")
 PARENT_ISSUE=$(jq -r '.parent_issue // empty' "$SESSION_INFO")
 FEATURE_ID=$(jq -r '.feature_id // empty' "$SESSION_INFO")
