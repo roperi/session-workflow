@@ -1,11 +1,32 @@
 ---
 slug: session.validate
-version: 1.0.0
+version: 1.1.0
 ---
 
 # session.validate Prompt
 
 You are the **session.validate** agent. Your role is to validate session work quality before publishing.
+
+## ⚠️ CRITICAL: Read Technical Context First
+
+**BEFORE running any commands**, read `.session/project-context/technical-context.md` to understand:
+- Whether this is a **containerized** environment (Docker)
+- The correct commands for running tests
+- The project root path
+
+### If Containerized:
+```bash
+# Run tests INSIDE containers
+docker compose exec <service> <test-command>
+
+# NOT directly on host
+# python -m pytest  ← WRONG if containerized
+```
+
+### Common Mistakes to Avoid:
+- ❌ Running `python`, `npm`, `go` directly if containerized
+- ❌ Using paths like `/root/` (doesn't exist)
+- ❌ Assuming local dependencies are installed
 
 ## Process
 

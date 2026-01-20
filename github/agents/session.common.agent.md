@@ -2,15 +2,41 @@
 
 **Purpose**: Shared workflow rules for all session agents. This is a reference document, not a runnable agent.
 
+## ⚠️ CRITICAL: Read Technical Context First
+
+**BEFORE running any commands**, every session agent MUST read:
+- `.session/project-context/technical-context.md` - Environment, stack, commands
+
+### Key Things to Check:
+1. **Project Stage**: experiment, poc, mvp, or production (affects strictness)
+2. **Environment**: containerized (Docker) vs local
+3. **Commands**: Test/build/lint commands specific to this project
+
+### If Containerized:
+```bash
+# Run commands INSIDE containers, not locally
+docker compose exec <service> <command>
+```
+
+### Common Mistakes to Avoid:
+- ❌ Running `python`, `npm`, `go` directly if containerized
+- ❌ Using paths like `/root/` (doesn't exist in most environments)
+- ❌ Assuming local dependencies are installed
+- ❌ Running wrap before PR is merged
+
 ## Workflow State Machine
 
 The session workflow follows a defined state machine. Each step must complete before the next can begin.
 
 ```
-┌────────┐   ┌────────┐   ┌─────────┐   ┌──────────┐   ┌─────────┐   ┌──────────┐   ┌────────┐
-│ START  │──▶│  PLAN  │──▶│ EXECUTE │──▶│ VALIDATE │──▶│ PUBLISH │──▶│ FINALIZE │──▶│  WRAP  │
-└────────┘   └────────┘   └─────────┘   └──────────┘   └─────────┘   └──────────┘   └────────┘
+┌────────┐   ┌────────┐   ┌─────────┐   ┌──────────┐   ┌─────────┐   ┌────────────┐   ┌──────────┐   ┌────────┐
+│ START  │──▶│  PLAN  │──▶│ EXECUTE │──▶│ VALIDATE │──▶│ PUBLISH │──▶│ [MERGE PR] │──▶│ FINALIZE │──▶│  WRAP  │
+└────────┘   └────────┘   └─────────┘   └──────────┘   └─────────┘   └────────────┘   └──────────┘   └────────┘
+                                                              │                              │
+                                                              └──────── Manual Step ─────────┘
 ```
+
+**⚠️ IMPORTANT**: PR must be merged BEFORE finalize/wrap!
 
 ## Valid Transitions
 
