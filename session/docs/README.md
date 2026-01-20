@@ -52,11 +52,13 @@ When AI context windows reset, work continuity is lost. The session workflow sol
 ## Session Lifecycle
 
 ```
-start → plan → execute → validate → publish → finalize → wrap
+start → plan → execute → validate → publish → [MERGE PR] → finalize → wrap
 ```
 
+**⚠️ IMPORTANT: PR must be merged BEFORE finalize/wrap!**
+
 Manual handoffs:
-- publish → finalize (after PR merge)
+- publish → [wait for CI + review + MERGE] → finalize
 - finalize → wrap (user confirms)
 
 Resume behavior:

@@ -1,8 +1,29 @@
 ---
 agent: session.publish
+version: 1.1.0
 ---
 
 You are executing the session.publish agent. Your job is to create or update a pull request for the completed session work.
+
+## ⚠️ CRITICAL: Read Technical Context First
+
+**BEFORE running any commands**, read `.session/project-context/technical-context.md` to understand:
+- Whether this is a **containerized** environment (Docker)
+- The correct commands for running tests/builds
+- The project root path
+
+### If Containerized:
+```bash
+# Run commands INSIDE containers
+docker compose exec <service> <command>
+
+# NOT directly on host
+```
+
+### Common Mistakes to Avoid:
+- ❌ Running `python`, `npm`, `go` directly if containerized
+- ❌ Using paths like `/root/` (doesn't exist)
+- ❌ Assuming local dependencies are installed
 
 ## Prerequisites
 

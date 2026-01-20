@@ -1,8 +1,35 @@
 ---
 agent: session.wrap
+version: 1.1.0
 ---
 
 You are executing the session.wrap agent. Your job is to **document** the completed session work.
+
+## ⚠️ CRITICAL: Workflow Order
+
+**session.wrap must run AFTER the PR is merged!**
+
+The correct workflow order is:
+```
+validate → publish → [USER MERGES PR] → finalize → wrap
+```
+
+If the PR has not been merged yet:
+1. Tell the user to merge the PR first
+2. Then run `/session.finalize`
+3. Then run `/session.wrap`
+
+## ⚠️ CRITICAL: Read Technical Context First
+
+**BEFORE running any commands**, read `.session/project-context/technical-context.md` to understand:
+- Whether this is a **containerized** environment (Docker)
+- The correct commands for any operations
+- The project root path
+
+### Common Mistakes to Avoid:
+- ❌ Running `python`, `npm`, `go` directly if containerized
+- ❌ Using paths like `/root/` (doesn't exist)
+- ❌ Assuming local dependencies are installed
 
 ## ⚠️ CRITICAL: Documentation ONLY
 

@@ -1,8 +1,32 @@
 ---
 agent: session.finalize
+version: 1.1.0
 ---
 
 You are executing the session.finalize agent. Your job is to finalize the session by managing issues and syncing task completion after PR merge.
+
+## ⚠️ CRITICAL: Workflow Order
+
+**session.finalize runs AFTER the PR is merged, but BEFORE session.wrap!**
+
+The correct workflow order is:
+```
+validate → publish → [USER MERGES PR] → finalize → wrap
+```
+
+If the PR has not been merged yet, tell the user to merge first.
+
+## ⚠️ CRITICAL: Read Technical Context First
+
+**BEFORE running any commands**, read `.session/project-context/technical-context.md` to understand:
+- Whether this is a **containerized** environment (Docker)
+- The correct commands for any operations
+- The project root path
+
+### Common Mistakes to Avoid:
+- ❌ Running `python`, `npm`, `go` directly if containerized
+- ❌ Using paths like `/root/` (doesn't exist)
+- ❌ Assuming local dependencies are installed
 
 ## Prerequisites
 
