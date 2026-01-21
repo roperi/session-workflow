@@ -94,22 +94,16 @@ Verify this agent is appropriate for the workflow:
 # Source common functions
 source .session/scripts/bash/session-common.sh
 
-# Check if planning is allowed for this workflow
-if ! check_workflow_allowed "$SESSION_ID" "development"; then
-    echo "❌ session.plan is only for development workflow"
-    echo "For spike sessions, skip directly to /session.execute"
-    exit 1
-fi
-
-echo "✓ Workflow check passed - proceeding with planning"
+# Both development and spike workflows use planning
+WORKFLOW=$(jq -r '.workflow' "$SESSION_DIR/session-info.json")
+echo "Workflow: $WORKFLOW"
 ```
 
-**Allowed workflows**: development only
+**Allowed workflows**: development, spike (both need planning!)
 
-**Blocked workflows**:
-- **spike**: Direct execution without formal plan (use /session.execute)
-
-If blocked, the session should have routed to session.execute from session.start.
+**Workflow difference**:
+- **development**: plan → execute → validate → publish → finalize → wrap
+- **spike**: plan → execute → wrap (skips PR steps, NOT planning)
 
 ### 2. Determine Session Type
 

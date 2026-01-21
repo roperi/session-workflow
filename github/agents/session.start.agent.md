@@ -6,12 +6,6 @@ handoffs:
     agent: session.plan
     prompt: Generate task list for this session
     send: true
-    condition: workflow is development
-  - label: Execute Tasks
-    agent: session.execute
-    prompt: Execute spike tasks
-    send: true
-    condition: workflow is spike
 ---
 
 ## User Input
@@ -95,19 +89,9 @@ WORKFLOW=$(jq -r '.workflow' "$SESSION_DIR/session-info.json")
 echo "Workflow: $WORKFLOW"
 ```
 
-**Workflow determines handoff** (only 2 options):
-- **development** (default): Hand off to session.plan (full workflow)
-- **spike**: Hand off to session.execute (skip planning, no PR)
-
-For **spike** workflow:
-```
-✅ Spike session initialized
-
-This is an exploratory session for research/prototyping.
-No PR expected. Findings will be documented.
-
-Ready for execution → /session.execute
-```
+**Both workflows go to session.plan:**
+- **development**: Full chain (plan → execute → validate → publish → finalize → wrap)
+- **spike**: Light chain (plan → execute → wrap) - skips PR steps, not planning!
 
 ### 4. Load Project Context
 
@@ -192,17 +176,17 @@ Context loaded:
 - Session notes: {notes-path}
 - Tasks file: {tasks-path or spec-path}
 
-Ready for next step → /session.plan (or /session.execute for spike)
+Ready for next step → /session.plan
 ```
 
-The CLI will automatically present the handoff based on the frontmatter condition.
+The CLI will automatically present the handoff to session.plan (for both workflows).
 
-**Handoff Reasoning**: session.start only initializes session infrastructure. Next agent depends on workflow: plan for development (to generate tasks), execute for spike (to start exploration).
+**Handoff Reasoning**: session.start only initializes session infrastructure. Both development and spike workflows need planning - the difference is spike skips PR steps (validate, publish, finalize), not planning.
 
 ## Notes
 
 - **Single responsibility**: Initialize session infrastructure only
 - **No task generation**: That's session.plan's job
 - **No task execution**: That's session.execute's job
-- **Two workflows only**: development (default) or spike
-- **No auto-detection**: User explicitly chooses workflow with --spike flag
+- **Two workflows**: development (full) or spike (no PR)
+- **Both need planning**: Spike skips PR steps, not planning

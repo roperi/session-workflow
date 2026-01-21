@@ -103,7 +103,7 @@ Use for:
 
 ### 2. Spike
 
-**Chain**: `start → execute → wrap`
+**Chain**: `start → plan → execute → wrap`
 
 Use for:
 - Research and exploration
@@ -114,7 +114,7 @@ Use for:
 /session.start --spike "Benchmark Redis vs Memcached"
 ```
 
-**Note**: No auto-detection. You must explicitly use `--spike` when needed.
+**Note**: Spike still includes planning - it only skips PR steps (validate, publish, finalize).
 
 ---
 

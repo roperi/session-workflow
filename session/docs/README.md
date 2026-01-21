@@ -44,9 +44,9 @@ When AI context windows reset, work continuity is lost. The session workflow sol
 | Workflow | Flag | Agent Chain | Use Case |
 |----------|------|-------------|----------|
 | **Development** | (default) | start → plan → execute → validate → publish → finalize → wrap | Features, bugs, anything needing PR |
-| **Spike** | `--spike` | start → execute → wrap | Research, exploration, prototyping |
+| **Spike** | `--spike` | start → plan → execute → wrap | Research, exploration, prototyping |
 
-**No auto-detection.** User explicitly chooses `--spike` when needed; otherwise development is assumed.
+**Both workflows include planning.** Spike only skips the PR-related steps (validate, publish, finalize).
 
 ---
 
@@ -81,7 +81,7 @@ start → execute → wrap
 | Command | Purpose |
 |---------|---------|
 | `/session.start` | Initialize or resume a session |
-| `/session.plan` | Generate task list (development only) |
+| `/session.plan` | Generate task list (both workflows) |
 | `/session.execute` | Execute tasks with TDD |
 | `/session.validate` | Quality checks before PR (development only) |
 | `/session.publish` | Create/update pull request (development only) |
@@ -209,6 +209,7 @@ git add -A && git commit -m "wip"
 - Goal is now a positional argument: `/session.start "Fix the bug"`
 - Renamed `--experiment` to `--spike` for clarity
 - Removed auto-detection ("smart" workflow) - user explicitly chooses
+- **Both workflows include planning** - spike only skips PR steps
 
 ### 2.0.0 (2026-01)
 - Added workflow types (development, advisory, experiment, smart)

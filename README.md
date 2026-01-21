@@ -65,7 +65,9 @@ your-repo/
 | Workflow | Flag | Agent Chain | Use Case |
 |----------|------|-------------|----------|
 | **Development** | (default) | start → plan → execute → validate → publish → finalize → wrap | Features, bug fixes |
-| **Spike** | `--spike` | start → execute → wrap | Research, prototyping |
+| **Spike** | `--spike` | start → plan → execute → wrap | Research, prototyping |
+
+**Both workflows include planning.** Spike only skips PR steps (validate, publish, finalize).
 
 ## Slash Commands
 
