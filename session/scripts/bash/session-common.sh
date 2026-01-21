@@ -548,56 +548,24 @@ get_validation_fixes() {
 }
 
 # ============================================================================
-# Workflow Detection (#676)
+# Workflow Detection (#676) - SIMPLIFIED v2.1
 # ============================================================================
 
 detect_workflow() {
-    # Detect the effective workflow for a session
+    # Get workflow from session-info.json (no auto-detection)
     # Args: session_id
-    # Returns: development|advisory|experiment
+    # Returns: development|spike
     
     local session_id="$1"
     local session_dir
     session_dir=$(get_session_dir "$session_id")
     local info_file="${session_dir}/session-info.json"
     
-    # Read workflow from session-info.json (defaults to "smart" if missing)
+    # Read workflow from session-info.json (defaults to "development")
     local workflow
-    workflow=$(jq -r '.workflow // "smart"' "$info_file" 2>/dev/null || echo "smart")
+    workflow=$(jq -r '.workflow // "development"' "$info_file" 2>/dev/null || echo "development")
     
-    # If not "smart", return as-is (explicit workflow was set)
-    if [[ "$workflow" != "smart" ]]; then
-        echo "$workflow"
-        return
-    fi
-    
-    # Smart detection logic
-    local tasks_file="${session_dir}/tasks.md"
-    local has_commits=false
-    
-    # Check if this session has any git commits
-    # (commits made after session creation)
-    local session_start
-    session_start=$(jq -r '.created_at' "$info_file" 2>/dev/null || echo "")
-    
-    if [[ -n "$session_start" ]]; then
-        if git log --since="$session_start" --oneline 2>/dev/null | grep -q .; then
-            has_commits=true
-        fi
-    fi
-    
-    # Detection rules (in priority order):
-    # 1. Has tasks.md → development workflow
-    # 2. Has commits but no tasks → experiment workflow
-    # 3. Otherwise → advisory workflow
-    
-    if [[ -f "$tasks_file" ]]; then
-        echo "development"
-    elif [[ "$has_commits" == "true" ]]; then
-        echo "experiment"
-    else
-        echo "advisory"
-    fi
+    echo "$workflow"
 }
 
 check_workflow_allowed() {

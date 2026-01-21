@@ -2,7 +2,7 @@
 
 A lightweight session management system for AI context continuity and structured work tracking.
 
-**Status**: Production-ready  
+**Status**: Production-ready (v2.1)  
 **Location**: `.session/`
 
 ---
@@ -10,20 +10,21 @@ A lightweight session management system for AI context continuity and structured
 ## Quick Start
 
 ```bash
-# Start a session for a GitHub issue
+# Development workflow (full 7-agent chain)
 /session.start --issue 123
+/session.start "Fix performance bug"
 
-# Start a session for unstructured work
-/session.start --goal 'Fix performance bug'
+# Spike workflow (exploration, no PR)
+/session.start --spike "Research caching options"
 
 # Resume an active session
-/session.start
+/session.start --resume
 
 # Wrap a session (at end of work)
 /session.wrap
 ```
 
-**Note**: Use the `/session.*` prompts which call the underlying scripts directly.
+**Note**: Use the `/session.*` prompts which call the underlying scripts.
 
 ---
 
@@ -35,7 +36,17 @@ When AI context windows reset, work continuity is lost. The session workflow sol
 2. **Handoff notes** - Context for the next AI session
 3. **Git hygiene** - Ensures clean state before session ends
 4. **Project context** - Quick orientation for new sessions
-5. **Operational tips** - Testing, git workflow, environment reminders
+
+---
+
+## Workflow Types
+
+| Workflow | Flag | Agent Chain | Use Case |
+|----------|------|-------------|----------|
+| **Development** | (default) | start → plan → execute → validate → publish → finalize → wrap | Features, bugs, anything needing PR |
+| **Spike** | `--spike` | start → execute → wrap | Research, exploration, prototyping |
+
+**No auto-detection.** User explicitly chooses `--spike` when needed; otherwise development is assumed.
 
 ---
 
@@ -45,107 +56,87 @@ When AI context windows reset, work continuity is lost. The session workflow sol
 |------|---------|----------|
 | **GitHub Issue** | `--issue 123` | Bugs, improvements, tasks with GitHub issues |
 | **Speckit** | `--spec 001-feature` | Feature work using Speckit workflow |
-| **Unstructured** | `--goal "Description"` | Exploration, maintenance, ad-hoc work |
+| **Unstructured** | `"Goal description"` | Exploration, maintenance, ad-hoc work |
 
 ---
 
 ## Session Lifecycle
 
+### Development Workflow
 ```
 start → plan → execute → validate → publish → [MERGE PR] → finalize → wrap
 ```
 
-**⚠️ IMPORTANT: PR must be merged BEFORE finalize/wrap!**
+### Spike Workflow
+```
+start → execute → wrap
+```
 
-Manual handoffs:
-- publish → [wait for CI + review + MERGE] → finalize
-- finalize → wrap (user confirms)
+**⚠️ IMPORTANT for Development**: PR must be merged BEFORE finalize/wrap!
 
-Resume behavior:
-- If a step was interrupted (state.json shows in_progress/starting), rerun that step with `--resume`.
-- To resume an older session, run `/session.start --resume`.
+---
 
-### 1. Start (`/session.start`)
+## Slash Commands
 
-Creates or resumes a session:
-- Creates session directory in `.session/sessions/YYYY-MM-DD-N/`
-- Loads previous session context for continuity
-- Outputs JSON with project context paths and operational tips
+| Command | Purpose |
+|---------|---------|
+| `/session.start` | Initialize or resume a session |
+| `/session.plan` | Generate task list (development only) |
+| `/session.execute` | Execute tasks with TDD |
+| `/session.validate` | Quality checks before PR (development only) |
+| `/session.publish` | Create/update pull request (development only) |
+| `/session.finalize` | Post-merge issue management (development only) |
+| `/session.wrap` | Document and close session |
 
-**Output files:**
-- `session-info.json` - Session metadata (type, goal, timestamps)
-- `state.json` - Progress tracking
-- `notes.md` - Handoff notes (ALWAYS update this!)
-- `tasks.md` - Task checklist (non-Speckit sessions only)
+---
 
-**JSON output includes:**
-- `session` - Current session info and files
-- `previous_session` - Handoff notes and incomplete tasks from last session
-- `project_context` - Paths to constitution and technical context
-- `tips` - Operational tips (testing, git workflow, environment)
-- `instructions` - What to do next
+## Arguments
 
-### 2. Execute (your work)
+### session.start
 
-During the session:
-- Update `tasks.md` as you complete tasks: `- [ ]` → `- [x]`
-- Update `notes.md` with key decisions and progress
-- Commit code regularly
-- Use `/session.execute` prompt for guidance
+```bash
+# Development (default)
+/session.start --issue 123
+/session.start --spec 001-feature
+/session.start "Fix the bug in login"
 
-### 3. Wrap (`/session.wrap`)
+# Spike
+/session.start --spike "Explore WebSocket options"
 
-Finalizes the session with validation:
-- **HARD BLOCK**: Git must be clean (no uncommitted changes)
-- **SOFT WARN**: Notes should have content
-- **SOFT WARN**: "For Next Session" should be filled in
+# Resume
+/session.start --resume
+/session.start --resume --comment "Continue from task 5"
+```
 
-Post-wrap actions (handled by prompt):
-- Update CHANGELOG.md if user-facing changes
-- Update tasks.md with completion status
-- Commit documentation changes
+### All agents
+
+- `--comment "text"` - Provide specific instructions
+- `--resume` - Continue from where you left off
+- `--force` - Skip workflow validation (use with caution)
+
 ---
 
 ## File Structure
 
 ```
 .session/
-├── ACTIVE_SESSION              # Current session ID (sentinel file)
-├── project-context/            # Shared context (read-only)
-│   ├── constitution-summary.md # Quality standards quick reference
-│   └── technical-context.md    # Stack and patterns
-├── scripts/bash/               # Workflow scripts
+├── ACTIVE_SESSION              # Current session ID
+├── project-context/
+│   ├── constitution-summary.md # Quality standards
+│   └── technical-context.md    # Stack, commands
+├── scripts/bash/
+│   ├── session-common.sh
 │   ├── session-start.sh
-│   ├── session-wrap.sh
-│   └── session-common.sh
-├── templates/
-│   └── session-notes.md        # Template for notes
-├── sessions/                   # Per-session data
+│   └── session-wrap.sh
+├── sessions/
 │   └── YYYY-MM-DD-N/
 │       ├── session-info.json
 │       ├── state.json
 │       ├── notes.md
 │       └── tasks.md
 └── docs/
-    ├── README.md               # This file
-    └── testing.md              # Test cases
+    └── README.md
 ```
-
----
-
-## Prompts
-
-AI guidance prompts are available in `.github/prompts/`:
-
-| Prompt | Purpose |
-|--------|---------|
-| `/session.start` | Initialize or resume a session |
-| `/session.plan` | Generate task list |
-| `/session.execute` | Execute tasks with TDD focus |
-| `/session.validate` | Run quality checks and tests |
-| `/session.publish` | Create/update pull request |
-| `/session.finalize` | Post-merge issue management |
-| `/session.wrap` | Document and close session |
 
 ---
 
@@ -173,11 +164,11 @@ Problems encountered, unresolved issues
 
 ## Direct Script Usage
 
-If needed, scripts can be called directly:
-
 ```bash
-# Start session
+# Start session (JSON output for AI)
 .session/scripts/bash/session-start.sh --json --issue 123
+.session/scripts/bash/session-start.sh --json "Fix the bug"
+.session/scripts/bash/session-start.sh --json --spike "Research"
 
 # Wrap session
 .session/scripts/bash/session-wrap.sh --json
@@ -188,59 +179,41 @@ cat .session/ACTIVE_SESSION
 
 ---
 
-## Operational Tips (from JSON output)
-
-### Before Starting
-- Provide a brief summary of planned tasks before beginning work
-
-### Before Pushing Code
-```bash
-# Run your project's lint and test commands
-# Check .session/project-context/technical-context.md for specifics
-```
-
-### Testing
-- Check project-specific test commands in technical-context.md
-- Tail long output: `<test-command> 2>&1 | tail -50`
-- Filter failures: `gh run view <id> --log-failed 2>&1 | grep -A 20 "FAIL"`
-
-### Git Workflow
-- **ALWAYS** work on feature branches, never directly on main
-- **WAIT for CI** before merging PRs
-- Use `[skip ci]` for docs-only commits
-
----
-
-## Integration with Speckit
-
-For Speckit features:
-- Session tracks which spec you're working on
-- Tasks come from `specs/{feature}/tasks.md` (not duplicated)
-- Session provides notes for handoff between AI sessions
-
----
-
 ## Troubleshooting
 
-### "Must specify --type, --issue, --spec, or --goal"
-No active session exists and no arguments provided. Specify what you want to work on.
+### "Stale session detected"
+Previous session wasn't closed properly.
+```bash
+rm .session/ACTIVE_SESSION
+/session.start --issue 123
+```
 
 ### "Git has uncommitted changes (BLOCKING)"
-Commit or stash changes before wrapping:
 ```bash
-git add -A && git commit -m "chore: work in progress"
+git add -A && git commit -m "wip"
 /session.wrap
 ```
 
 ### "No active session"
-Start a new session with `/session.start --issue 123` or similar.
+```bash
+/session.start --issue 123
+```
 
 ---
 
-## Related Documentation
+## Version History
 
-- **Official Guide**: `docs/workflows/session-workflow.md`
-- **Plan**: `docs/planning/session-workflow/session-workflow-plan-v2.md`
-- **Tests**: `.session/docs/testing.md`
-- **Constitution**: `.session/project-context/constitution-summary.md`
-- **Technical Context**: `.session/project-context/technical-context.md`
+### 2.1.0 (2026-01)
+- **BREAKING**: Simplified to 2 workflows: development (default) and spike
+- **BREAKING**: Removed `--advisory`, `--experiment`, `--workflow`, `--goal`
+- Goal is now a positional argument: `/session.start "Fix the bug"`
+- Renamed `--experiment` to `--spike` for clarity
+- Removed auto-detection ("smart" workflow) - user explicitly chooses
+
+### 2.0.0 (2026-01)
+- Added workflow types (development, advisory, experiment, smart)
+- Added `--resume` and `--comment` flags
+- Added session continuity across CLI restarts
+
+### 1.0.0 (2025-12)
+- Initial release

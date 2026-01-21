@@ -1,6 +1,6 @@
 # Session Workflow Guide
 
-**Version**: 2.0.0  
+**Version**: 2.1.0  
 **Status**: Production-ready
 
 This is the single source of truth for session workflow. It consolidates all documentation into one reference.
@@ -67,21 +67,14 @@ cd your-project
 ```bash
 # Development workflow (full chain)
 /session.start --issue 123
+/session.start "Fix performance bug"
 
-# Unstructured work
-/session.start --goal "Fix performance bug"
-
-# Experiment (no PR)
-/session.start --experiment --goal "Test Redis caching"
-
-# Quick question (no code)
-/session.start --advisory --goal "How should I structure the API?"
+# Spike (exploration, no PR)
+/session.start --spike "Explore Redis caching"
 
 # Resume interrupted work
-/session.execute --resume
-
-# Provide guidance
-/session.plan --comment "Focus only on the API changes"
+/session.start --resume
+/session.execute --resume --comment "Continue from task 5"
 
 # After PR merged
 /session.finalize
@@ -105,46 +98,23 @@ Use for:
 
 ```bash
 /session.start --issue 123
-/session.start --development --goal "Add caching"
+/session.start "Add caching layer"
 ```
 
-### 2. Advisory
-
-**Chain**: `start → wrap`
-
-Use for:
-- Quick questions
-- Code reviews
-- Architecture discussions
-
-```bash
-/session.start --advisory --goal "Review auth approach"
-```
-
-### 3. Experiment
+### 2. Spike
 
 **Chain**: `start → execute → wrap`
 
 Use for:
-- Prototypes and spikes
-- Performance testing
+- Research and exploration
+- Prototypes
 - Work that may be discarded
 
 ```bash
-/session.start --experiment --goal "Benchmark Redis vs Memcached"
+/session.start --spike "Benchmark Redis vs Memcached"
 ```
 
-### 4. Smart (auto-detect)
-
-**Chain**: Adaptive based on activity
-
-- Creates tasks → upgrades to Development
-- Makes commits → upgrades to Experiment
-- Neither → remains Advisory
-
-```bash
-/session.start --goal "Investigate slow API"
-```
+**Note**: No auto-detection. You must explicitly use `--spike` when needed.
 
 ---
 
@@ -169,6 +139,10 @@ Use for:
                   (manual)        (manual)
 ```
 
+**Development workflow** uses all agents.
+
+**Spike workflow** uses: `start → execute → wrap` (skips plan, validate, publish, finalize)
+
 **Automatic handoffs** (`send: true`):
 - start → plan → execute → validate → publish
 
@@ -185,35 +159,39 @@ Use for:
 - Load project context
 - Create feature branch
 - Review previous session notes
-- **Handoff**: → session.plan (auto)
+- **Handoff**: → session.plan (development) or session.execute (spike)
 
 ### session.plan
 - Generate TDD-first task list
 - Or reference existing Speckit tasks
 - **Handoff**: → session.execute (auto)
+- **Only for**: development workflow
 
 ### session.execute
 - Single-task focus
 - TDD: test → implement → verify
 - Commit after each task
-- **Handoff**: → session.validate (auto)
+- **Handoff**: → session.validate (development) or session.wrap (spike)
 
 ### session.validate
 - Run lint, tests
 - Check git state
 - Offer fixes if failures
 - **Handoff**: → session.publish (auto if pass)
+- **Only for**: development workflow
 
 ### session.publish
 - Create or update PR
 - Link issues
 - **Handoff**: → session.finalize (manual)
+- **Only for**: development workflow
 
 ### session.finalize
 - Validate PR is merged
 - Close issues
 - Update parent issues
 - **Handoff**: → session.wrap (manual)
+- **Only for**: development workflow
 
 ### session.wrap
 - Update session notes
@@ -226,26 +204,27 @@ Use for:
 
 ## Arguments
 
-All agents support these flags:
-
-### `--comment "text"`
-
-Provide specific instructions to the agent.
+### session.start
 
 ```bash
-/session.plan --comment "Only plan the API changes"
-/session.execute --comment "Skip task 3, already done"
-/session.validate --comment "Focus on unit tests only"
+# Session types
+/session.start --issue 123           # GitHub issue
+/session.start --spec 001-feature    # Speckit feature
+/session.start "Fix the bug"         # Unstructured (goal as positional arg)
+
+# Workflow selection
+/session.start --spike "Research"    # Spike workflow
+
+# Resume
+/session.start --resume
+/session.start --resume --comment "Continue from task 5"
 ```
 
-### `--resume`
+### All agents
 
-Continue from where you left off (after ESC interruption).
-
-```bash
-/session.execute --resume
-/session.execute --resume --comment "Continue from task 5"
-```
+- `--comment "text"` - Provide specific instructions
+- `--resume` - Continue from where you left off
+- `--force` - Skip workflow validation (use with caution)
 
 **Support matrix:**
 
@@ -263,14 +242,14 @@ Continue from where you left off (after ESC interruption).
 
 ## Workflow Examples
 
-### Example 1: Bug Fix
+### Example 1: Bug Fix (Development)
 
 ```bash
 # Start
 /session.start --issue 456
 
 # Auto-chains through: plan → execute → validate → publish
-# You interact at each step, providing "pass" or fixing issues
+# You interact at each step
 
 # After PR merged
 /session.finalize
@@ -279,27 +258,18 @@ Continue from where you left off (after ESC interruption).
 /session.wrap
 ```
 
-### Example 2: Quick Question
+### Example 2: Research (Spike)
 
 ```bash
-/session.start --advisory --goal "Best approach for rate limiting?"
+/session.start --spike "Research WebSocket vs SSE"
 
-# AI provides guidance
-# Session auto-wraps
-```
-
-### Example 3: Experiment
-
-```bash
-/session.start --experiment --goal "Test WebSocket vs SSE"
-
-# Work through experiments
+# Work through exploration
 # No planning, no PR
 
 /session.wrap  # Document findings
 ```
 
-### Example 4: Resuming After Interruption
+### Example 3: Resuming After Interruption
 
 ```bash
 # Started working, pressed ESC mid-task
@@ -400,11 +370,6 @@ RECOMMENDED ACTION:
 Run: /session.validate --resume
 ```
 
-**How it works:**
-- Each agent marks its step as `in_progress` on entry
-- If step is still `in_progress` when new CLI starts, previous session was interrupted
-- Workflow state is stored in `state.json`
-
 **Recovery:**
 ```bash
 # Resume the interrupted step
@@ -414,82 +379,22 @@ Run: /session.validate --resume
 /session.[next-step] --force
 ```
 
-### Agent creates unexpected files
-
-Agent prompts have explicit file allowlists. If this happens:
-1. Delete the unexpected file
-2. Report the issue so the agent prompt can be fixed
-
-### Agent reports fake test results
-
-Agent prompts require actual command execution. If fabrication occurs:
-1. Re-run `/session.validate`
-2. Report the issue so anti-hallucination rules can be strengthened
-
----
-
-## Session Continuity
-
-The workflow tracks state across CLI restarts to prevent data loss.
-
-### State Machine
-
-```
-start → plan → execute → validate → publish → finalize → wrap
-```
-
-Each step must complete before the next can begin. The system enforces this by:
-1. Tracking step status (`in_progress`, `completed`, `failed`)
-2. Validating transitions between steps
-3. Detecting interrupted sessions
-
-### How It Protects Your Work
-
-**Scenario**: You run `/session.validate`, it's running tests, and the CLI crashes.
-
-**Without continuity tracking**:
-- You restart CLI and run `/session.finalize`
-- Finalize runs, potentially skipping incomplete validation
-- Uncommitted changes may be stashed/lost
-
-**With continuity tracking**:
-- You restart CLI and run `/session.finalize`
-- System detects `validate` is still `in_progress`
-- Error message guides you to run `/session.validate --resume` first
-- Your work is protected
-
-### State Storage
-
-State is stored in `.session/sessions/[id]/state.json`:
-
-```json
-{
-  "current_step": "validate",
-  "step_status": "in_progress",
-  "step_started_at": "2026-01-18T10:30:00Z",
-  "step_updated_at": "2026-01-18T10:30:00Z"
-}
-```
-
 ---
 
 ## Version History
 
 ### 2.1.0 (2026-01)
-- Added session continuity across CLI restarts
-- Added workflow state tracking (in_progress/completed/failed)
-- Added interrupted session detection and recovery guidance
-- Added pre-flight safety checks to session.finalize
-- Added `--force` flag to override workflow validation
-- Added session.common.agent.md for shared workflow rules
+- **BREAKING**: Simplified to 2 workflows: development (default) and spike
+- **BREAKING**: Removed `--advisory`, `--experiment`, `--workflow`, `--goal`
+- Goal is now a positional argument: `/session.start "Fix the bug"`
+- Renamed `--experiment` to `--spike` for clarity
+- Removed auto-detection ("smart" workflow) - user explicitly chooses
 
 ### 2.0.0 (2026-01)
 - Added workflow types (development, advisory, experiment, smart)
 - Added `--resume` and `--comment` flags
 - Added anti-hallucination rules to session.validate
-- Added file allowlist to session.wrap
-- Added remote branch cleanup with merge safety check
-- Added AGENTS.md and copilot_instructions.md bootstrap
+- Added session continuity across CLI restarts
 
 ### 1.0.0 (2025-12)
 - Initial release

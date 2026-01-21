@@ -17,7 +17,9 @@ ISSUE_NUMBER=""
 SPEC_DIR=""
 GOAL=""
 JSON_OUTPUT=false
-WORKFLOW=""
+WORKFLOW="development"  # Default workflow
+RESUME_MODE=false
+COMMENT=""
 
 # ============================================================================
 # Usage
@@ -25,53 +27,45 @@ WORKFLOW=""
 
 usage() {
     cat << EOF
-Usage: session-start.sh [OPTIONS]
+Usage: session-start.sh [OPTIONS] [GOAL]
 
 Initialize a new session or resume an active session.
 
 OPTIONS:
-    --type TYPE       Session type: speckit, github_issue, unstructured
-    --issue NUMBER    GitHub issue number (for github_issue type)
-    --spec DIR        Spec directory name (for speckit type)
-    --goal "TEXT"     Goal description (for unstructured type)
-    --workflow TYPE   Workflow type: development|advisory|experiment|smart (default: smart)
-    --development     Shorthand for --workflow development
-    --advisory        Shorthand for --workflow advisory
-    --experiment      Shorthand for --workflow experiment
+    --issue NUMBER    GitHub issue number (starts github_issue session)
+    --spec DIR        Spec directory name (starts speckit session)
+    --spike           Spike workflow: exploration/research, no PR expected
     --resume          Resume an active session (including interrupted)
+    --comment "TEXT"  Additional instructions for the session
     --json            Output JSON for AI consumption
     -h, --help        Show this help
 
+GOAL:
+    Positional argument describing the work (for unstructured sessions).
+    Not needed if --issue or --spec is provided.
+
+WORKFLOWS:
+    development (default) - Full chain: start → plan → execute → validate → publish → finalize → wrap
+    spike (--spike)       - Light chain: start → execute → wrap (no PR)
+
 EXAMPLES:
+    # GitHub issue (development workflow)
+    session-start.sh --issue 123
+
+    # Speckit feature (development workflow)
+    session-start.sh --spec 001-feature
+
+    # Unstructured work (development workflow)
+    session-start.sh "Fix performance bug in API"
+
+    # Spike/research (no PR expected)
+    session-start.sh --spike "Explore Redis caching options"
+
     # Resume active session
-    session-start.sh --json
+    session-start.sh --resume
 
-    # Resume with additional context
-    session-start.sh --resume --comment "Continue from Test 5.4"
-
-    # New Speckit session
-    session-start.sh --type speckit --spec 001-feature --json
-
-    # New GitHub issue session with instructions
-    session-start.sh --type github_issue --issue 566 --comment "Focus on DX improvements"
-
-    # Development session (shorthand)
-    session-start.sh --development --issue 662 --json
-
-    # New unstructured session
-    session-start.sh --type unstructured --goal "Bug investigation" --json
-
-    # Advisory session (quick question)
-    session-start.sh --advisory --goal "How to handle auth?" --json
-
-    # Experiment session (investigation)
-    session-start.sh --experiment --goal "Test caching options" --json
-
-    # Advisory session (quick question)
-    session-start.sh --advisory --goal "How to handle auth?" --json
-
-    # Experiment session (investigation)
-    session-start.sh --experiment --goal "Test caching options" --json
+    # Resume with context
+    session-start.sh --resume --comment "Continue from task 5"
 EOF
 }
 
@@ -82,21 +76,19 @@ EOF
 parse_args() {
     while [[ $# -gt 0 ]]; do
         case $1 in
-            --type)
-                SESSION_TYPE="$2"
-                shift 2
-                ;;
             --issue)
                 ISSUE_NUMBER="$2"
+                SESSION_TYPE="github_issue"
                 shift 2
                 ;;
             --spec)
                 SPEC_DIR="$2"
+                SESSION_TYPE="speckit"
                 shift 2
                 ;;
-            --goal)
-                GOAL="$2"
-                shift 2
+            --spike)
+                WORKFLOW="spike"
+                shift
                 ;;
             --resume)
                 RESUME_MODE=true
@@ -109,31 +101,21 @@ parse_args() {
             --json)
                 JSON_OUTPUT=true
                 shift
-            ;;
-            --workflow)
-                WORKFLOW="$2"
-                shift 2
-                ;;
-            --development)
-                WORKFLOW="development"
-                shift
-                ;;
-            --advisory)
-                WORKFLOW="advisory"
-                shift
-                ;;
-            --experiment)
-                WORKFLOW="experiment"
-                shift
                 ;;
             -h|--help)
                 usage
                 exit 0
                 ;;
-            *)
+            -*)
                 echo "Unknown option: $1" >&2
                 usage
                 exit 1
+                ;;
+            *)
+                # Positional argument = goal
+                GOAL="$1"
+                SESSION_TYPE="unstructured"
+                shift
                 ;;
         esac
     done
@@ -152,15 +134,15 @@ create_session_info() {
     local created_at
     created_at=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
     
-    # Default workflow to "smart" if not specified
-    local workflow="${WORKFLOW:-smart}"
+    # Workflow is either "development" (default) or "spike"
+    local workflow="${WORKFLOW}"
     
     # Build JSON based on type
     case $SESSION_TYPE in
         speckit)
             cat > "$info_file" << SESSIONEOF
 {
-  "schema_version": "2.0",
+  "schema_version": "2.1",
   "session_id": "${session_id}",
   "type": "speckit",
   "workflow": "${workflow}",
@@ -176,7 +158,7 @@ SESSIONEOF
             fi
             cat > "$info_file" << SESSIONEOF
 {
-  "schema_version": "2.0",
+  "schema_version": "2.1",
   "session_id": "${session_id}",
   "type": "github_issue",
   "workflow": "${workflow}",
@@ -189,7 +171,7 @@ SESSIONEOF
         unstructured)
             cat > "$info_file" << SESSIONEOF
 {
-  "schema_version": "2.0",
+  "schema_version": "2.1",
   "session_id": "${session_id}",
   "type": "unstructured",
   "workflow": "${workflow}",
@@ -563,7 +545,7 @@ main() {
     
     # Creating new session - validate type
     if [[ -z "$SESSION_TYPE" ]]; then
-        # Auto-detect or default
+        # Auto-detect type from arguments
         if [[ -n "$ISSUE_NUMBER" ]]; then
             SESSION_TYPE="github_issue"
         elif [[ -n "$SPEC_DIR" ]]; then
@@ -571,7 +553,7 @@ main() {
         elif [[ -n "$GOAL" ]]; then
             SESSION_TYPE="unstructured"
         else
-            echo "ERROR: Must specify --type, --issue, --spec, or --goal" >&2
+            echo "ERROR: Must specify --issue, --spec, or a goal description" >&2
             usage
             exit 1
         fi
@@ -593,12 +575,12 @@ main() {
             ;;
         unstructured)
             if [[ -z "$GOAL" ]]; then
-                echo "ERROR: --goal required for unstructured type" >&2
+                echo "ERROR: Goal description required for unstructured type" >&2
                 exit 1
             fi
             ;;
         *)
-            echo "ERROR: Invalid type: $SESSION_TYPE (use speckit, github_issue, or unstructured)" >&2
+            echo "ERROR: Invalid type: $SESSION_TYPE" >&2
             exit 1
             ;;
     esac

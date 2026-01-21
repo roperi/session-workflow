@@ -9,14 +9,9 @@ handoffs:
     condition: workflow is development
   - label: Execute Tasks
     agent: session.execute
-    prompt: Execute experimental tasks
+    prompt: Execute spike tasks
     send: true
-    condition: workflow is experiment
-  - label: Document Session
-    agent: session.wrap
-    prompt: Document advisory session
-    send: true
-    condition: workflow is advisory
+    condition: workflow is spike
 ---
 
 ## User Input
@@ -67,17 +62,17 @@ If no arguments provided, the script will resume an active session or prompt for
 **Common invocations:**
 - `.session/scripts/bash/session-start.sh --json --issue 123` - Work on GitHub issue
 - `.session/scripts/bash/session-start.sh --json --spec 001-feature` - Work on Speckit feature  
-- `.session/scripts/bash/session-start.sh --json --goal 'Description'` - Unstructured work
-- `.session/scripts/bash/session-start.sh --json --resume` - Resume active session (continue from where you left off)
-- `.session/scripts/bash/session-start.sh --json --resume --comment "Continue from Test 5.4"` - Resume with specific instructions
+- `.session/scripts/bash/session-start.sh --json "Fix the bug"` - Unstructured work (goal as positional arg)
+- `.session/scripts/bash/session-start.sh --json --spike "Explore caching"` - Spike/research session
+- `.session/scripts/bash/session-start.sh --json --resume` - Resume active session
+- `.session/scripts/bash/session-start.sh --json --resume --comment "Continue from task 5"` - Resume with context
 
 **⚠️ CRITICAL - Session Directory Naming**:
 The script creates session directories in the format: `.session/sessions/YYYY-MM/YYYY-MM-DD-N`
 - ✅ CORRECT: `.session/sessions/2025-12/2025-12-20-1`
 - ❌ WRONG: `.session/sessions/2025-12/session-20251220-105707-issue-660`
-- ❌ WRONG: `.session/sessions/2025-12/session-20251220-105715-issue-660`
 
-**DO NOT** manually create session directories with timestamp-based names. Always use the script output's `session.dir` path.
+**DO NOT** manually create session directories. Always use the script output's `session.dir` path.
 
 ### 3. Parse JSON Output
 
@@ -90,49 +85,31 @@ Extract from the script output:
 - `previous_session` - Context from prior session (if any)
 - `project_context` - Paths to constitution and technical context
 
-
 ### 3.5. Determine Workflow Routing
 
-**NEW (Schema v2.0)**: Check workflow field from JSON output:
+Check workflow field from JSON output:
 
 ```bash
 # Extract workflow from session-info.json
-WORKFLOW=$(jq -r '.workflow // "smart"' "$SESSION_DIR/session-info.json")
+WORKFLOW=$(jq -r '.workflow' "$SESSION_DIR/session-info.json")
 echo "Workflow: $WORKFLOW"
-
-# If smart workflow, detect actual workflow
-if [[ "$WORKFLOW" == "smart" ]]; then
-    source .session/scripts/bash/session-common.sh
-    WORKFLOW=$(detect_workflow "$SESSION_ID")
-    echo "Detected workflow: $WORKFLOW"
-fi
 ```
 
-**Workflow determines handoff**:
-- **development**: Hand off to session.plan (full workflow)
-- **advisory**: Hand off to session.wrap (minimal - just documentation)
-- **experiment**: Hand off to session.execute (skip planning)
-- **smart**: Detect based on session activity, hand off accordingly
+**Workflow determines handoff** (only 2 options):
+- **development** (default): Hand off to session.plan (full workflow)
+- **spike**: Hand off to session.execute (skip planning, no PR)
 
-For **advisory** workflow, skip directly to wrap:
+For **spike** workflow:
 ```
-✅ Advisory session initialized
+✅ Spike session initialized
 
-This is a guidance-only session. No code changes expected.
-
-Ready for documentation → /session.wrap
-```
-
-For **experiment** workflow, skip to execute:
-```
-✅ Experiment session initialized
-
-This is an exploratory session for investigation/prototyping.
+This is an exploratory session for research/prototyping.
+No PR expected. Findings will be documented.
 
 Ready for execution → /session.execute
 ```
 
-### 5. Load Project Context
+### 4. Load Project Context
 
 Quick orientation:
 - Read `.session/project-context/constitution-summary.md` for quality standards
@@ -156,40 +133,27 @@ git log --oneline -5
 **If current branch is `main` AND session involves code changes:**
 
 ```bash
-# For GitHub issues (bugs, fixes, improvements)
+# For GitHub issues
 git checkout -b fix/issue-{number}-short-description
 
 # For Speckit features
 git checkout -b feat/{feature-id}-short-description
 
-# Example:
-# git checkout -b fix/issue-637-regenerate-button
-# git checkout -b feat/001-wizard-redesign
+# For unstructured/spike work
+git checkout -b feat/{short-description}
+# or
+git checkout -b spike/{short-description}
 ```
 
 **Branch naming conventions:**
 - `fix/` - Bug fixes, issue resolutions
 - `feat/` - New features, enhancements
+- `spike/` - Research, exploration, prototyping
 - `docs/` - Documentation-only changes
-- `refactor/` - Code refactoring
-- `test/` - Test additions/fixes
 
 **Exceptions (can work on main):**
 - Documentation-only changes (use `[skip ci]` in commit message)
 - Session wrap commits (documentation updates)
-- Emergency hotfixes (with explicit user approval)
-
-**Workflow:**
-1. Create branch BEFORE any code changes
-2. Make changes and commits on branch
-3. Push branch to remote: `git push -u origin <branch-name>`
-4. Create PR for review
-5. Wait for CI to pass
-6. Merge PR (do NOT push directly to main)
-
-**If already on correct feature branch:**
-- Verify with `git branch --show-current`
-- Proceed to next step
 
 ### 7. Review Previous Session
 
@@ -205,17 +169,9 @@ If continuing work with completed tasks from previous sessions:
 ```bash
 # Run the project's test suite
 # Check .session/project-context/technical-context.md for project-specific commands
-# Common patterns:
-#   make test          # If Makefile exists
-#   npm test           # Node.js projects
-#   pytest             # Python projects
-#   go test ./...      # Go projects
 ```
 
 - If any tests fail, **fix regressions BEFORE new work**
-- Verify previous session's changes work as expected
-- This prevents regression accumulation across sessions
-
 
 ### 9. Report Initialization Complete
 
@@ -226,6 +182,7 @@ Display session summary:
 
 Session ID: {session.id}
 Type: {speckit|github_issue|unstructured}
+Workflow: {development|spike}
 Branch: {current-branch}
 Previous session: {session-id or "none"}
 
@@ -235,17 +192,17 @@ Context loaded:
 - Session notes: {notes-path}
 - Tasks file: {tasks-path or spec-path}
 
-Ready for next step → (see workflow routing above)
+Ready for next step → /session.plan (or /session.execute for spike)
 ```
 
-The CLI will automatically present the handoff to session.plan based on the frontmatter.
+The CLI will automatically present the handoff based on the frontmatter condition.
 
-**Handoff Reasoning**: session.start only initializes session infrastructure and loads context. Next agent depends on workflow type (plan for development, execute for experiment, wrap for advisory), which can reference existing Speckit tasks or generate new ones based on session type.
+**Handoff Reasoning**: session.start only initializes session infrastructure. Next agent depends on workflow: plan for development (to generate tasks), execute for spike (to start exploration).
 
 ## Notes
 
 - **Single responsibility**: Initialize session infrastructure only
 - **No task generation**: That's session.plan's job
 - **No task execution**: That's session.execute's job
-- **Handoff**: Automatically suggests session.plan with send: true
-- **Independently callable**: Can resume/verify session without full workflow
+- **Two workflows only**: development (default) or spike
+- **No auto-detection**: User explicitly chooses workflow with --spike flag

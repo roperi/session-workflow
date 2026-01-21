@@ -88,7 +88,7 @@ Use `$SESSION_DIR` for all file operations (creating tasks.md, notes.md, etc.).
 
 ### 1.5. Check Workflow Compatibility
 
-**NEW (Schema v2.0)**: Verify this agent is appropriate for the workflow:
+Verify this agent is appropriate for the workflow:
 
 ```bash
 # Source common functions
@@ -97,7 +97,7 @@ source .session/scripts/bash/session-common.sh
 # Check if planning is allowed for this workflow
 if ! check_workflow_allowed "$SESSION_ID" "development"; then
     echo "❌ session.plan is only for development workflow"
-    echo "Current workflow does not require formal planning"
+    echo "For spike sessions, skip directly to /session.execute"
     exit 1
 fi
 
@@ -107,10 +107,9 @@ echo "✓ Workflow check passed - proceeding with planning"
 **Allowed workflows**: development only
 
 **Blocked workflows**:
-- **advisory**: No planning needed (guidance-only)
-- **experiment**: Direct execution without formal plan
+- **spike**: Direct execution without formal plan (use /session.execute)
 
-If blocked, the session should have routed to a different agent from session.start.
+If blocked, the session should have routed to session.execute from session.start.
 
 ### 2. Determine Session Type
 

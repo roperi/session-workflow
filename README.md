@@ -48,15 +48,13 @@ your-repo/
 ```bash
 # Development workflow (full 7-agent chain)
 /session.start --issue 123
+/session.start "Fix performance bug"
 
-# Unstructured work
-/session.start --goal "Fix performance bug"
+# Spike (exploration, no PR)
+/session.start --spike "Explore Redis caching"
 
-# Experiment (no PR)
-/session.start --experiment --goal "Test Redis caching"
-
-# Quick question (no code)
-/session.start --advisory --goal "How should I structure the API?"
+# Resume active session
+/session.start --resume
 
 # End session
 /session.wrap
@@ -64,18 +62,17 @@ your-repo/
 
 ## Workflow Types
 
-| Workflow | Agent Chain | Use Case |
-|----------|-------------|----------|
-| **Development** | start → plan → execute → validate → publish → finalize → wrap | Features, bug fixes |
-| **Advisory** | start → wrap | Quick questions |
-| **Experiment** | start → execute → wrap | Prototypes, spikes |
+| Workflow | Flag | Agent Chain | Use Case |
+|----------|------|-------------|----------|
+| **Development** | (default) | start → plan → execute → validate → publish → finalize → wrap | Features, bug fixes |
+| **Spike** | `--spike` | start → execute → wrap | Research, prototyping |
 
 ## Slash Commands
 
 | Command | Purpose |
 |---------|---------|
 | `/session.start` | Initialize or resume a session |
-| `/session.plan` | Generate task list |
+| `/session.plan` | Generate task list (development only) |
 | `/session.execute` | Execute tasks with TDD |
 | `/session.validate` | Quality checks before PR |
 | `/session.publish` | Create/update pull request |
@@ -84,12 +81,16 @@ your-repo/
 
 ## Arguments
 
-All agents support:
-- `--comment "text"` - Provide specific instructions
-- `--resume` - Continue from where you left off
-- `--force` - Skip workflow validation (use with caution)
-
 ```bash
+# Session types
+/session.start --issue 123         # GitHub issue
+/session.start --spec 001-feature  # Speckit feature
+/session.start "Fix the bug"       # Unstructured (goal as positional arg)
+
+# Workflow selection
+/session.start --spike "Research"  # Spike workflow (no PR)
+
+# All agents support
 /session.execute --resume --comment "Continue from task 5"
 ```
 
