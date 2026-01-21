@@ -71,13 +71,16 @@ The script creates session directories in the format: `.session/sessions/YYYY-MM
 ### 3. Parse JSON Output
 
 Extract from the script output:
+- `repo_root` - **Absolute path to repository root. Use this for ALL file operations.**
 - `session.id` - Session identifier (YYYY-MM-DD-N)
 - `session.type` - Type: speckit, github_issue, or unstructured
-- `session.dir` - Directory containing session files
+- `session.dir` - Directory containing session files (relative to repo_root)
 - `resume_mode` - Boolean: true if --resume flag was used
 - `user_comment` - String: additional instructions from --comment flag
 - `previous_session` - Context from prior session (if any)
 - `project_context` - Paths to constitution and technical context
+
+**⚠️ PATH ENFORCEMENT**: Always use `repo_root` from JSON output. Never assume or hallucinate paths like `/home/project/`.
 
 ### 3.5. Determine Workflow Routing
 

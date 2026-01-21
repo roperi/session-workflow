@@ -312,6 +312,10 @@ output_json() {
     local session_dir
     session_dir=$(get_session_dir "$session_id")
     
+    # Get repo root (absolute path) - prevents agent hallucination
+    local repo_root
+    repo_root=$(git rev-parse --show-toplevel 2>/dev/null || pwd)
+    
     # Get previous session info
     local prev_session
     prev_session=$(get_previous_session)
@@ -359,6 +363,7 @@ EOF
   "action": "$(if [[ "$is_resume" == "true" ]]; then echo "resumed"; else echo "created"; fi)",
   "resume_mode": $(if [[ "$RESUME_MODE" == "true" ]]; then echo "true"; else echo "false"; fi),
   "user_comment": "$(json_escape "$COMMENT")",
+  "repo_root": "${repo_root}",
   "session": {
     "id": "${session_id}",
     "type": "${sess_type}",
