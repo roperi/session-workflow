@@ -185,7 +185,7 @@ source .session/scripts/bash/session-common.sh
 # Check if publishing is allowed for this workflow
 if ! check_workflow_allowed "$SESSION_ID" "development"; then
     echo "❌ session.publish is only for development workflow"
-    echo "Experiment and advisory workflows do not create PRs"
+    echo "Spike workflow does not create PRs"
     exit 1
 fi
 
@@ -195,8 +195,7 @@ echo "✓ Workflow check passed - proceeding with PR creation"
 **Allowed workflows**: development only
 
 **Blocked workflows**:
-- **advisory**: No code changes to publish
-- **experiment**: Experimental work not intended for production PRs
+- **spike**: Research/exploration work not intended for production PRs
 
 Only development workflow creates pull requests for review.
 

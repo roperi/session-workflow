@@ -74,8 +74,7 @@ echo "✓ Documenting $WORKFLOW session"
 
 **Workflow-specific documentation**:
 - **development**: Document features, tests, PR link
-- **advisory**: Document advice given, recommendations
-- **experiment**: Document findings, conclusions
+- **spike**: Document findings, exploration results
 
 No workflow guards needed - this is a terminal agent.
 

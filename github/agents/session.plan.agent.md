@@ -49,7 +49,13 @@ Expected session variables from session-info.json:
 
 **CRITICAL**: Session context must come from session.start agent's output, NOT by guessing paths.
 
-Read the active session information:
+**Option A - Preflight Script (Recommended):**
+```bash
+.session/scripts/bash/session-preflight.sh --step plan --json
+```
+This validates the session, checks for interrupts, and outputs JSON context. If errors, follow the hint.
+
+**Option B - Manual Loading:**
 ```bash
 # Get the active session ID from ACTIVE_SESSION marker
 ACTIVE_SESSION_FILE=".session/ACTIVE_SESSION"
