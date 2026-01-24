@@ -237,3 +237,6 @@ EOF
         fi
         ;;
 esac
+
+# Mark step as completed
+set_workflow_step "$SESSION_ID" "finalize" "completed" >/dev/null

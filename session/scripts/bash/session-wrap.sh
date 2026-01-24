@@ -292,6 +292,7 @@ main() {
     
     # Update state and clear sentinel
     update_session_state "$active_session"
+    set_workflow_step "$active_session" "wrap" "completed" >/dev/null
     clear_active_session
     
     # Output results

@@ -638,6 +638,9 @@ main() {
     create_session_notes "$session_id"
     create_session_tasks "$session_id"
     
+    # Set workflow step status
+    set_workflow_step "$session_id" "start" "completed" >/dev/null
+
     # Set as active session
     set_active_session "$session_id"
     

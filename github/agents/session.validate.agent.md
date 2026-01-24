@@ -84,176 +84,65 @@ This tracking enables session continuity - if the CLI is killed during validatio
 - Report the check as "skipped" with reason "No [lint/test] command configured"
 - Do NOT mark as "pass" - absence of a command is not the same as passing
 
-## Validation Checklist (Sequential - DO NOT SKIP)
+## Outline
 
-Run each check, WAIT for completion, store results. Continue even if failures occur (collect all issues).
+### 1. Run Session-Validate Script (MANDATORY)
 
-### 1. Lint Check
-
-**CRITICAL: Actually Execute Commands**
-- You MUST run actual commands and capture real output
-- DO NOT assume or fabricate results based on file existence
-- If a command doesn't exist, report "skipped" with reason
-- If a command fails, report the actual error
+Execute the validation support script to perform mechanical checks (Git, Tasks, Session State):
 
 ```bash
-# First, check if lint command exists in package.json or Makefile
-# Then run project-specific lint command (examples):
-# npm run lint        # Node.js (check package.json scripts first)
-# make lint           # If Makefile has lint target
-# pylint app/         # Python
-# go vet ./...        # Go
+.session/scripts/bash/session-validate.sh --json $ARGUMENTS
 ```
 
-**IMPORTANT**: 
-- TypeScript compilation (`tsc`) is NOT linting - it's type checking
-- If no lint script exists, report status as "skipped" with "No lint script configured"
-- DO NOT substitute `tsc` or `npm run build` for linting
+⛔ **STOP HERE** until you receive script output.
 
-**Pass criteria**: Lint command exists AND reports no errors  
-**Skip criteria**: No lint command configured (report as "skipped", not "pass")
-**Fail**: Record actual lint errors, continue to next check
+### 2. Parse JSON Output
 
+Extract from the script output:
+- `status` - Overall status of mechanical checks
+- `session.id` - Session identifier
+- `session.dir` - Directory for storing `validation-results.json`
+- `validation_checks` - Results of individual mechanical checks
 
-### 1.5. Check Workflow Compatibility
+If mechanical checks fail (e.g., uncommitted changes, incomplete tasks), report them and ask the user how to proceed before running tests.
 
-**NEW (Schema v2.0)**: Verify this agent is appropriate for the workflow:
+### 3. Project-Specific Validation (MANDATORY)
 
-```bash
-# Source common functions
-source .session/scripts/bash/session-common.sh
+For each check below, consult `.session/project-context/technical-context.md` for the correct commands.
 
-# Check if validation is allowed for this workflow
-if ! check_workflow_allowed "$SESSION_ID" "development"; then
-    echo "❌ session.validate is only for development workflow"
-    echo "Experiment and advisory workflows skip validation"
-    exit 1
-fi
+#### A. Lint Check
+- **Execute** the project's lint command.
+- **Capture** output and status.
+- Report "skipped" if no command is configured.
 
-echo "✓ Workflow check passed - proceeding with validation"
-```
+#### B. Unit & Integration Tests
+- **Execute** the project's test suite.
+- **Capture** pass/fail counts and coverage if available.
+- Report "skipped" if no command is configured.
 
-**Allowed workflows**: development only
+### 4. Create Validation Results File
 
-**Blocked workflows**:
-- **advisory**: No code to validate
-- **experiment**: Experimental work not intended for production
-
-Only development workflow requires validation before PR.
-
-### 2. Unit Tests
-
-```bash
-# First, verify test command exists and what it is
-# Check package.json scripts, Makefile, or pyproject.toml
-# Then run project-specific test command (examples):
-# npm test            # Node.js (verify script exists first)
-# make test           # If Makefile has test target
-# pytest tests/unit/  # Python
-# go test ./...       # Go
-```
-
-**CRITICAL**: 
-- Use `initial_wait: 120` minimum
-- If still running, use `read_bash` with delay: 30 until complete
-- Capture ACTUAL test output - do not estimate or fabricate numbers
-- If no test command exists, report as "skipped"
-
-**Pass criteria**: 
-- Test command exists AND runs successfully
-- All tests pass (capture actual pass/fail counts from output)
-- Coverage meets project requirements (if applicable)
-
-**Skip criteria**: No test command configured (report as "skipped", not "pass")
-**Fail**: Record actual failure count from test output, continue
-
-### 3. Integration Tests (if applicable)
-
-```bash
-# Run project-specific integration tests
-# Check technical-context.md for commands
-```
-
-**CRITICAL**: Use `initial_wait: 180` minimum. If still running, use `read_bash` until completion.
-
-**Pass criteria**:
-- All tests pass
-- Coverage meets project requirements
-
-**Fail**: Record failures with test names, continue
-
-### 4. Frontend Tests (if applicable)
-
-```bash
-# Run frontend tests (examples):
-# npm test            # React/Vue/Angular
-# make frontend-test  # If Makefile
-```
-
-**Pass criteria**: All test suites pass  
-**Fail**: Record failures, continue
-
-### 5. Git Status
-
-```bash
-git status
-git diff --stat
-git diff --cached --stat
-```
-
-**Pass criteria**: "working tree clean"  
-**Fail**: List uncommitted files
-
-### 6. Task Completion
-
-Check session tasks.md or Speckit tasks.md:
-- Count [x] vs [ ] tasks
-- Verify all non-[SKIP] tasks complete
-
-## Validation Results Storage
-
-**ALWAYS create** `.session/validation-results.json`:
+**ALWAYS** generate `{session.dir}/validation-results.json` with the combined results of mechanical and project-specific checks.
 
 ```json
 {
-  "timestamp": "2025-12-19T17:30:00Z",
-  "session_id": "2025-12-19-1",
-  "results": {
-    "lint": {
-      "status": "pass|fail",
-      "details": "All checks passed"
-    },
-    "unit_tests": {
-      "status": "pass|fail",
-      "passed": 387,
-      "failed": 0,
-      "coverage": "72.51%",
-      "details": "387 passed"
-    },
-    "integration_tests": {
-      "status": "pass|fail|skipped",
-      "details": "..."
-    },
-    "frontend_tests": {
-      "status": "pass|fail|skipped",
-      "details": "..."
-    },
-    "git_status": {
-      "status": "pass|fail",
-      "details": "Working tree clean"
-    },
-    "tasks": {
-      "status": "pass|fail",
-      "completed": 47,
-      "total": 47,
-      "details": "All tasks complete"
-    }
-  },
+  "timestamp": "ISO-TIMESTAMP",
+  "session_id": "SESSION_ID",
   "overall": "pass|fail",
-  "can_publish": true|false,
-  "summary": "All checks passed" | "2 tests failed"
+  "checks": { ... }
 }
 ```
+
+### 5. Decision Logic & Handoff
+
+#### IF all checks PASS:
+- Mark step as `completed`: `set_workflow_step "$SESSION_ID" "validate" "completed"`
+- **Auto-chain** to `/session.publish`
+
+#### IF any checks FAIL:
+- Mark step as `failed`: `set_workflow_step "$SESSION_ID" "validate" "failed"`
+- Present failures to user.
+- Offer options: Fix now, Publish anyway (as draft), or Wrap session.
 
 ## Decision Logic
 
