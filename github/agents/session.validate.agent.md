@@ -140,8 +140,7 @@ For each check below, consult `.session/project-context/technical-context.md` fo
 - **Auto-chain** to `/session.publish`
 
 #### IF any checks FAIL:
-- Mark step as `failed`: `set_workflow_step "$SESSION_ID" "validate" "failed"`
-- Present failures to user.
+- Present failures to user (script already marks step as `failed` for mechanical check failures)
 - Offer options: Fix now, Publish anyway (as draft), or Wrap session.
 
 ## Decision Logic

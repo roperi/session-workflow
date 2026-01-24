@@ -100,7 +100,7 @@ main() {
                 # Assuming the agent was running it, we can leave that to the agent 
                 # OR we can wrap it here. Let's try to verify the spec dir at least.
                 if [[ -n "$spec_dir" && ! -d "$spec_dir" && ! -d "specs/$spec_dir" ]]; then
-                     warnings=$(echo "$warnings" | jq '. + ["Spec directory not found: '"$spec_dir"'"]' )
+                     warnings=$(echo "$warnings" | jq --arg spec_dir "$spec_dir" '. + ["Spec directory not found: \($spec_dir)"]')
                 fi
             else
                 # Basic checks
@@ -125,12 +125,12 @@ main() {
                 if [[ "$issue_json" != "{}" ]]; then
                     type_data="$issue_json"
                 else
-                    warnings=$(echo "$warnings" | jq '. + ["Could not fetch GitHub issue #'$issue_number'"]' )
+                    warnings=$(echo "$warnings" | jq --arg issue_number "$issue_number" '. + ["Could not fetch GitHub issue #\($issue_number)"]')
                 fi
             fi
             ;;
             
-unstructured)
+        unstructured)
             type_data=$(jq -n --arg goal "$goal" '{goal: $goal}')
             ;; 
     esac

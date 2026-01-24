@@ -80,19 +80,28 @@ main() {
     fi
 
     # 1. Workflow Check
+    # Determine current workflow first
+    local workflow
+    workflow=$(detect_workflow "$session_id")
+
+    # Spike workflow skips formal validation
+    if [[ "$workflow" == "spike" ]]; then
+        if $JSON_OUTPUT; then
+            echo '{"status": "ok", "message": "Spike workflow skips formal validation", "workflow": "spike"}'
+        else
+            print_info "Spike workflow skips formal validation"
+        fi
+        exit 0
+    fi
+
+    # For all other workflows, check if validation is allowed
     if ! check_workflow_allowed "$session_id" "development" 2>/dev/null; then
-         # Validation is only strictly required for development workflow
-         # Spike workflow skips formal validation
-         local workflow
-         workflow=$(detect_workflow "$session_id")
-         if [[ "$workflow" == "spike" ]]; then
-             if $JSON_OUTPUT; then
-                echo '{"status": "ok", "message": "Spike workflow skips formal validation", "workflow": "spike"}'
-             else
-                print_info "Spike workflow skips formal validation"
-             fi
-             exit 0
-         fi
+        if $JSON_OUTPUT; then
+            echo "{\"status\": \"error\", \"message\": \"Validation is only allowed in development workflow\", \"workflow\": \"${workflow}\"}"
+        else
+            print_error "Validation is only allowed in development workflow (current: ${workflow:-unknown})"
+        fi
+        exit 1
     fi
 
     # Update workflow state
@@ -148,8 +157,16 @@ main() {
     if [[ "$session_type" == "speckit" ]]; then
         local spec_dir
         spec_dir=$(jq -r '.spec_dir // empty' "$info_file")
-        if [[ -d "$spec_dir" ]]; then tasks_file="${spec_dir}/tasks.md";
-        elif [[ -d "specs/$spec_dir" ]]; then tasks_file="specs/${spec_dir}/tasks.md"; fi
+        if [[ -n "$spec_dir" ]]; then
+            if [[ -d "$spec_dir" ]]; then
+                tasks_file="${spec_dir}/tasks.md"
+            elif [[ -d "specs/$spec_dir" ]]; then
+                tasks_file="specs/${spec_dir}/tasks.md"
+            else
+                # spec_dir is set but neither path exists
+                checks+=("{\"check\": \"spec_dir\", \"status\": \"warning\", \"message\": \"Spec directory not found: ${spec_dir}\"}")
+            fi
+        fi
     else
         tasks_file="${session_dir}/tasks.md"
     fi

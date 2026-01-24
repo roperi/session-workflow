@@ -383,6 +383,50 @@ get_for_next_session_section() {
 # Task Functions
 # ============================================================================
 
+resolve_spec_tasks_file() {
+    # Resolve the tasks file path for a speckit session
+    # Args: session_id
+    # Returns: path to tasks.md or empty string if not found
+    # Handles both direct spec_dir path and "specs/" prefix
+    
+    local session_id="$1"
+    local session_dir
+    session_dir=$(get_session_dir "$session_id")
+    local info_file="${session_dir}/session-info.json"
+    
+    if [[ ! -f "$info_file" ]]; then
+        echo ""
+        return
+    fi
+    
+    local session_type
+    session_type=$(jq -r '.type // "unknown"' "$info_file")
+    
+    if [[ "$session_type" != "speckit" ]]; then
+        # Non-speckit sessions use session dir tasks.md
+        echo "${session_dir}/tasks.md"
+        return
+    fi
+    
+    local spec_dir
+    spec_dir=$(jq -r '.spec_dir // empty' "$info_file")
+    
+    if [[ -z "$spec_dir" ]]; then
+        echo ""
+        return
+    fi
+    
+    # Check direct path first, then specs/ prefix
+    if [[ -d "$spec_dir" ]]; then
+        echo "${spec_dir}/tasks.md"
+    elif [[ -d "specs/$spec_dir" ]]; then
+        echo "specs/${spec_dir}/tasks.md"
+    else
+        # spec_dir is set but path doesn't exist
+        echo ""
+    fi
+}
+
 count_tasks() {
     # Count total and completed tasks in a tasks.md file
     # Only counts checkboxes under the "## Tasks" section, not Acceptance Criteria
