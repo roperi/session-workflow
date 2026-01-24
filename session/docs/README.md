@@ -201,7 +201,68 @@ git add -A && git commit -m "wip"
 
 ---
 
+## Parallel Sessions (Multiple Agents)
+
+The session workflow assumes **one active session per repository**. If you need to run concurrent sessions (e.g., one agent on backend, another on frontend), use **git worktree**.
+
+### Why Worktree?
+
+Each worktree has its own working directory with its own `.session/` folder, providing natural isolation with no code changes.
+
+### Setup
+
+```bash
+# From your main project
+cd ~/workspace/myproject
+
+# Create worktrees for parallel work
+git worktree add ../myproject-backend -b feature/backend-api
+git worktree add ../myproject-frontend -b feature/frontend-ui
+
+# Terminal 1: Backend session
+cd ../myproject-backend
+/session.start --issue 123
+
+# Terminal 2: Frontend session
+cd ../myproject-frontend
+/session.start --issue 124
+```
+
+### Key Points
+
+- Each worktree **must be on a different branch** (git requirement)
+- Each worktree has independent `.session/` state
+- Changes are visible across worktrees after commit (shared `.git`)
+- Worktrees are lightweight (no full clone)
+
+### Cleanup
+
+```bash
+# When done with a worktree
+git worktree remove ../myproject-backend
+
+# Or delete folder and prune
+rm -rf ../myproject-backend
+git worktree prune
+
+# List active worktrees
+git worktree list
+```
+
+### Alternative: Inside Project
+
+You can also create worktrees inside your project (add `.worktrees/` to `.gitignore`):
+
+```bash
+git worktree add .worktrees/backend-fix feature/backend
+```
+
+---
+
 ## Version History
+
+### 2.1.1 (2026-01)
+- Added documentation for parallel sessions using git worktree
 
 ### 2.1.0 (2026-01)
 - **BREAKING**: Simplified to 2 workflows: development (default) and spike
