@@ -142,10 +142,11 @@ EOF
         PARENT_UPDATED=false
         PROGRESS=""
         if [ -n "$PARENT_ISSUE" ]; then
-            # TODO: Calculate and update parent issue progress
-            # This would require parsing parent issue body for phase checklist
+            # Note: Parent issue progress update would require parsing checklist
+            # For now, just post a completion comment
+            gh issue comment "$PARENT_ISSUE" --body "Phase #$ISSUE_NUMBER complete via PR #$PR_NUMBER" >/dev/null 2>&1 || true
             PARENT_UPDATED=true
-            PROGRESS="Phase complete"
+            PROGRESS="Comment posted"
         fi
         
         # Mark tasks complete in specs/XXX/tasks.md
@@ -161,17 +162,13 @@ EOF
         # Update draft PR description (if multi-phase)
         PR_DRAFT=$(gh pr view "$PR_NUMBER" --json isDraft -q .isDraft)
         PR_UPDATED=false
-        if [ "$PR_DRAFT" = "true" ]; then
-            # TODO: Update PR description with phase completion notes
-            PR_UPDATED=true
-        fi
+        # Note: Draft PR description update intentionally skipped
+        # Multi-phase PR description should be managed by the agent
         
         # Sync to GitHub Projects
         SYNCED=false
-        if [ -f "scripts/sync-task-status.sh" ] && [ -f "$TASK_FILE" ]; then
-            # TODO: Call sync script
-            SYNCED=true
-        fi
+        # Note: Project sync would require scripts/sync-task-status.sh to exist
+        # and GitHub Projects to be configured
         
         if [ "$JSON_OUTPUT" = true ]; then
             cat <<EOF

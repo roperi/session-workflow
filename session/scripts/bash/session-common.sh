@@ -703,6 +703,30 @@ detect_workflow() {
     echo "$workflow"
 }
 
+check_branch_for_workflow() {
+    # Warn if on main/master during development workflow
+    # Args: session_id
+    # Returns: 0 always (warning only), outputs warning to stderr if needed
+    
+    local session_id="$1"
+    local current_branch
+    current_branch=$(git rev-parse --abbrev-ref HEAD 2>/dev/null || echo "unknown")
+    
+    local workflow
+    workflow=$(detect_workflow "$session_id")
+    
+    # Only warn for development workflow on main branches
+    if [[ "$workflow" == "development" && ("$current_branch" == "main" || "$current_branch" == "master") ]]; then
+        echo -e "${YELLOW}⚠ WARNING: On '$current_branch' branch during development workflow${NC}" >&2
+        echo -e "${YELLOW}  Consider creating a feature branch before making changes${NC}" >&2
+        echo -e "${YELLOW}  Suggested: git checkout -b feature/<description>${NC}" >&2
+        return 0
+    fi
+    
+    # Spike workflow on main is acceptable
+    return 0
+}
+
 check_workflow_allowed() {
     # Check if current workflow allows this agent
     # Args: session_id, allowed_workflows...
