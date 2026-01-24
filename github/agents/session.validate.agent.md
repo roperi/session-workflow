@@ -36,7 +36,13 @@ $ARGUMENTS
 
 ## ⚠️ CRITICAL: Workflow State Tracking
 
-**ON ENTRY** (before running any validation):
+**ON ENTRY** - Use preflight script (recommended):
+```bash
+.session/scripts/bash/session-preflight.sh --step validate --json
+```
+This validates workflow state, checks for interrupts, and marks step as in_progress.
+
+**Alternative** - Manual state tracking:
 ```bash
 source .session/scripts/bash/session-common.sh
 SESSION_ID=$(get_active_session)

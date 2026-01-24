@@ -56,6 +56,13 @@ Expected context:
 
 **CRITICAL**: Read session context from ACTIVE_SESSION, NOT by guessing paths.
 
+**Option A - Preflight Script (Recommended):**
+```bash
+.session/scripts/bash/session-preflight.sh --step execute --json
+```
+This validates the session, marks step in_progress, and outputs JSON context including task counts.
+
+**Option B - Manual Loading:**
 ```bash
 # Get the active session ID from ACTIVE_SESSION marker
 ACTIVE_SESSION_FILE=".session/ACTIVE_SESSION"
