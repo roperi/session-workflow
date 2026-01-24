@@ -161,16 +161,15 @@ case "$WORKFLOW" in
     development)
         echo "✓ Development workflow - will update parent issues"
         ;;
-    advisory|experiment)
-        echo "✓ $WORKFLOW workflow - issue updates only (no phase/PR tracking)"
+    spike)
+        echo "✓ Spike workflow - minimal issue updates"
         ;;
 esac
 ```
 
 **Behavior by workflow**:
 - **development**: Full issue management (close phase, update parent, sync tasks)
-- **advisory**: Minimal (document advice given, no issue closure)
-- **experiment**: Document findings, close associated issue if applicable
+- **spike**: Minimal (document findings, no formal issue closure)
 
 **All workflows**: Can invoke this agent for issue tracking.
 

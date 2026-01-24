@@ -9,9 +9,9 @@ handoffs:
     condition: workflow is development
   - label: Wrap Session
     agent: session.wrap
-    prompt: Document experimental session
+    prompt: Document spike/exploration session
     send: true
-    condition: workflow is experiment
+    condition: workflow is spike
 ---
 
 ## User Input
@@ -99,8 +99,8 @@ Determine task file location:
 source .session/scripts/bash/session-common.sh
 
 # Check if execution is allowed for this workflow
-if ! check_workflow_allowed "$SESSION_ID" "development" "experiment"; then
-    echo "❌ session.execute is only for development or experiment workflows"
+if ! check_workflow_allowed "$SESSION_ID" "development" "spike"; then
+    echo "❌ session.execute is only for development or spike workflows"
     echo "Advisory workflow does not include code execution"
     exit 1
 fi
@@ -108,12 +108,9 @@ fi
 echo "✓ Workflow check passed - proceeding with execution"
 ```
 
-**Allowed workflows**: development, experiment
+**Allowed workflows**: development, spike
 
-**Blocked workflows**:
-- **advisory**: No code execution (guidance-only)
-
-For **experiment** workflow, note that execution proceeds directly without formal planning or validation.
+**Note**: Spike workflow proceeds with lighter validation (no PR required).
 
 ### 2. Review Task List
 

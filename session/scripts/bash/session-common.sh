@@ -342,6 +342,90 @@ get_previous_session() {
 # Session Context Functions
 # ============================================================================
 
+get_session_context_json() {
+    # Output complete session context as JSON
+    # Used by agents to load context without inline bash
+    # Returns: JSON object with session info, paths, and state
+    
+    local session_id
+    session_id=$(get_active_session)
+    
+    if [[ -z "$session_id" ]]; then
+        echo '{"status": "error", "message": "No active session found"}'
+        return 1
+    fi
+    
+    local session_dir
+    session_dir=$(get_session_dir "$session_id")
+    
+    if [[ ! -d "$session_dir" ]]; then
+        echo '{"status": "error", "message": "Session directory not found"}'
+        return 1
+    fi
+    
+    local info_file="${session_dir}/session-info.json"
+    if [[ ! -f "$info_file" ]]; then
+        echo '{"status": "error", "message": "Session info file not found"}'
+        return 1
+    fi
+    
+    # Read session info
+    local session_type workflow
+    session_type=$(jq -r '.type // "unknown"' "$info_file" 2>/dev/null)
+    workflow=$(jq -r '.workflow // "development"' "$info_file" 2>/dev/null)
+    
+    # Get tasks file path
+    local tasks_file
+    tasks_file=$(resolve_tasks_file "$session_id")
+    
+    # Get task counts if tasks file exists
+    local task_total=0 task_completed=0
+    if [[ -n "$tasks_file" && -f "$tasks_file" ]]; then
+        local counts
+        counts=$(count_tasks "$tasks_file")
+        task_total=$(echo "$counts" | cut -d: -f1)
+        task_completed=$(echo "$counts" | cut -d: -f2)
+    fi
+    
+    # Get workflow state
+    local current_step="none" step_status="none"
+    if [[ -f "${session_dir}/state.json" ]]; then
+        current_step=$(jq -r '.current_step // "none"' "${session_dir}/state.json" 2>/dev/null)
+        step_status=$(jq -r '.step_status // "none"' "${session_dir}/state.json" 2>/dev/null)
+    fi
+    
+    # Build JSON output
+    jq -n \
+        --arg status "ok" \
+        --arg session_id "$session_id" \
+        --arg session_dir "$session_dir" \
+        --arg session_type "$session_type" \
+        --arg workflow "$workflow" \
+        --arg tasks_file "$tasks_file" \
+        --argjson task_total "$task_total" \
+        --argjson task_completed "$task_completed" \
+        --arg current_step "$current_step" \
+        --arg step_status "$step_status" \
+        '{
+            status: $status,
+            session: {
+                id: $session_id,
+                dir: $session_dir,
+                type: $session_type,
+                workflow: $workflow
+            },
+            tasks: {
+                file: $tasks_file,
+                total: $task_total,
+                completed: $task_completed
+            },
+            workflow_state: {
+                current_step: $current_step,
+                step_status: $step_status
+            }
+        }'
+}
+
 load_session_state() {
     # Load state.json for a session
     local session_id="$1"
@@ -382,6 +466,57 @@ get_for_next_session_section() {
 # ============================================================================
 # Task Functions
 # ============================================================================
+
+resolve_tasks_file() {
+    # Resolve the correct tasks.md path based on session type
+    # Args: session_id
+    # Returns: path to tasks.md (or empty string if not found)
+    #
+    # For speckit sessions: checks spec_dir and specs/spec_dir
+    # For other sessions: uses session directory tasks.md
+    
+    local session_id="$1"
+    local session_dir
+    session_dir=$(get_session_dir "$session_id")
+    local info_file="${session_dir}/session-info.json"
+    
+    if [[ ! -f "$info_file" ]]; then
+        echo ""
+        return 1
+    fi
+    
+    local session_type
+    session_type=$(jq -r '.type // "unknown"' "$info_file" 2>/dev/null)
+    
+    case "$session_type" in
+        speckit)
+            local spec_dir
+            spec_dir=$(jq -r '.spec_dir // empty' "$info_file" 2>/dev/null)
+            
+            if [[ -z "$spec_dir" ]]; then
+                echo ""
+                return 1
+            fi
+            
+            # Check direct path first, then specs/ prefix
+            if [[ -f "${spec_dir}/tasks.md" ]]; then
+                echo "${spec_dir}/tasks.md"
+            elif [[ -f "specs/${spec_dir}/tasks.md" ]]; then
+                echo "specs/${spec_dir}/tasks.md"
+            elif [[ -d "$spec_dir" ]]; then
+                echo "${spec_dir}/tasks.md"
+            elif [[ -d "specs/${spec_dir}" ]]; then
+                echo "specs/${spec_dir}/tasks.md"
+            else
+                echo ""
+                return 1
+            fi
+            ;;
+        github_issue|unstructured|*)
+            echo "${session_dir}/tasks.md"
+            ;;
+    esac
+}
 
 count_tasks() {
     # Count total and completed tasks in a tasks.md file
