@@ -46,7 +46,7 @@ your-repo/
 ## Quick Start
 
 ```bash
-# Development workflow (full 7-agent chain)
+# Development workflow (full 8-agent chain)
 /session.start --issue 123
 /session.start "Fix performance bug"
 
@@ -64,17 +64,18 @@ your-repo/
 
 | Workflow | Flag | Agent Chain | Use Case |
 |----------|------|-------------|----------|
-| **Development** | (default) | start → plan → execute → validate → publish → finalize → wrap | Features, bug fixes |
-| **Spike** | `--spike` | start → plan → execute → wrap | Research, prototyping |
+| **Development** | (default) | start → plan → task → execute → validate → publish → finalize → wrap | Features, bug fixes |
+| **Spike** | `--spike` | start → plan → task → execute → wrap | Research, prototyping |
 
-**Both workflows include planning.** Spike only skips PR steps (validate, publish, finalize).
+**Both workflows include planning and task generation.** Spike only skips PR steps (validate, publish, finalize).
 
 ## Slash Commands
 
 | Command | Purpose |
 |---------|---------|
 | `/session.start` | Initialize or resume a session |
-| `/session.plan` | Generate task list (development only) |
+| `/session.plan` | Create implementation plan and approach |
+| `/session.task` | Generate detailed task breakdown |
 | `/session.execute` | Execute tasks with TDD |
 | `/session.validate` | Quality checks before PR |
 | `/session.publish` | Create/update pull request |

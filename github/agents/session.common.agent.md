@@ -28,12 +28,12 @@ docker compose exec <service> <command>
 
 The session workflow follows a defined state machine. Each step must complete before the next can begin.
 
+**8-agent chain**: `start → plan → task → execute → validate → publish → finalize → wrap`
+
 ```
-┌────────┐   ┌────────┐   ┌─────────┐   ┌──────────┐   ┌─────────┐   ┌────────────┐   ┌──────────┐   ┌────────┐
-│ START  │──▶│  PLAN  │──▶│ EXECUTE │──▶│ VALIDATE │──▶│ PUBLISH │──▶│ [MERGE PR] │──▶│ FINALIZE │──▶│  WRAP  │
-└────────┘   └────────┘   └─────────┘   └──────────┘   └─────────┘   └────────────┘   └──────────┘   └────────┘
-                                                              │                              │
-                                                              └──────── Manual Step ─────────┘
+START → PLAN → TASK → EXECUTE → VALIDATE → PUBLISH → [MERGE PR] → FINALIZE → WRAP
+                                                          │                  │
+                                                          └── Manual Step ───┘
 ```
 
 **⚠️ IMPORTANT**: PR must be merged BEFORE finalize/wrap!
@@ -44,7 +44,8 @@ The session workflow follows a defined state machine. Each step must complete be
 |------------|-------------------|
 | `none` | `start` |
 | `start` | `plan`, `execute` |
-| `plan` | `execute` |
+| `plan` | `task` |
+| `task` | `execute` |
 | `execute` | `validate`, `execute` (loop for more tasks) |
 | `validate` | `publish`, `execute` (if fix needed) |
 | `publish` | `finalize` |
@@ -96,8 +97,9 @@ fi
 ```
 
 **Recovery guidance:**
-- If interrupted during `validate` → run `/session.validate --resume`
+- If interrupted during `task` → run `/session.task --resume`
 - If interrupted during `execute` → run `/session.execute --resume`
+- If interrupted during `validate` → run `/session.validate --resume`
 - If interrupted during other steps → run that step again
 
 ## Transition Validation
@@ -118,7 +120,7 @@ Workflow state is stored in `state.json`:
 
 ```json
 {
-  "current_step": "validate",
+  "current_step": "task",
   "step_status": "in_progress",
   "step_started_at": "2026-01-18T10:30:00Z",
   "step_updated_at": "2026-01-18T10:30:00Z"
