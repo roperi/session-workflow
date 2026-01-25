@@ -193,9 +193,13 @@ main() {
     if $JSON_OUTPUT; then
         # Enhanced context output
         local info_file="${session_dir}/session-info.json"
-        local session_type workflow
+        local session_type workflow stage
         session_type=$(jq -r '.type // "unknown"' "$info_file" 2>/dev/null)
         workflow=$(jq -r '.workflow // "development"' "$info_file" 2>/dev/null)
+        stage=$(jq -r '.stage // "production"' "$info_file" 2>/dev/null)
+
+        local repo_root
+        repo_root=$(git rev-parse --show-toplevel 2>/dev/null || pwd)
         
         local tasks_file
         tasks_file=$(resolve_tasks_file "$session_id")
@@ -215,6 +219,8 @@ main() {
             --arg session_dir "$session_dir" \
             --arg session_type "$session_type" \
             --arg workflow "$workflow" \
+            --arg stage "$stage" \
+            --arg repo_root "$repo_root" \
             --arg tasks_file "$tasks_file" \
             --argjson task_total "$task_total" \
             --argjson task_completed "$task_completed" \
@@ -227,8 +233,10 @@ main() {
                     id: $session_id,
                     dir: $session_dir,
                     type: $session_type,
-                    workflow: $workflow
+                    workflow: $workflow,
+                    stage: $stage
                 },
+                repo_root: $repo_root,
                 tasks: {
                     file: $tasks_file,
                     total: $task_total,

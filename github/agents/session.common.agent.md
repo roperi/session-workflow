@@ -4,8 +4,13 @@
 
 ## ⚠️ CRITICAL: Read Technical Context First
 
-**BEFORE running any commands**, every session agent MUST read:
-- `.session/project-context/technical-context.md` - Environment, stack, commands
+**BEFORE running any commands**, every session agent MUST:
+1. Run preflight to get repo_root and session context:
+   ```bash
+   .session/scripts/bash/session-preflight.sh --step <step> --json
+   ```
+2. Use `repo_root` from preflight output for ALL file operations (never assume `/home/project`).
+3. Read `.session/project-context/technical-context.md` for environment, stack, commands.
 
 ### Key Things to Check:
 1. **Project Stage**: poc, mvp, or production (affects strictness)

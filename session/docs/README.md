@@ -24,7 +24,7 @@ A lightweight session management system for AI context continuity and structured
 /session.wrap
 ```
 
-**Note**: Use the `/session.*` prompts which call the underlying scripts.
+**Note**: Use the `/session.*` prompts which call the underlying scripts. When consuming preflight or session-start JSON, use `repo_root` to resolve repo paths.
 
 ---
 

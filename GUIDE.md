@@ -83,6 +83,8 @@ cd your-project
 /session.wrap
 ```
 
+**Note**: When consuming preflight or session-start JSON, use `repo_root` to resolve repo paths.
+
 ---
 
 ## Workflow Types
