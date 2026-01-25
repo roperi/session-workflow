@@ -1,6 +1,12 @@
+---
+description: Shared workflow rules for all session agents (reference only)
+tools: []
+---
+
 # Session Workflow Common Rules
 
 **Purpose**: Shared workflow rules for all session agents. This is a reference document, not a runnable agent.
+**Reference-only**: Do not execute scripts or commands from this agent.
 
 ## ⚠️ CRITICAL: Read Technical Context First
 

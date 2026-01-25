@@ -518,5 +518,5 @@ Run: /session.validate --resume
 
 ### 1.0.0 (2025-12)
 - Initial release
-- 7-agent chain
+- 8-agent chain
 - Basic session tracking
