@@ -1,10 +1,16 @@
 # Session Workflow
 
-**Version**: 2.4.0  
-**Status**: Production-ready  
 **📝 Changelog**: [CHANGELOG.md](CHANGELOG.md)
 
 This is the single source of truth for session workflow documentation.
+
+**Compatibility**:
+- ✅ Tested with **GitHub Copilot CLI**
+- ⚠️ Other CLIs (Claude Code, Gemini CLI) are unverified and may require adjustments
+
+**Spec-kit support**:
+- ✅ Integrates with **GitHub Spec Kit** specs and tasks  
+  https://github.com/github/spec-kit
 
 ---
 
