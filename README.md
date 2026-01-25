@@ -2,7 +2,8 @@
 
 A lightweight, portable session management system for AI-assisted development. Provides context continuity across AI sessions and structured work tracking.
 
-**📖 Full documentation: [GUIDE.md](GUIDE.md)**
+**📖 Full documentation: [GUIDE.md](GUIDE.md)**  
+**📝 Changelog: [CHANGELOG.md](CHANGELOG.md)**
 
 ## Quick Install
 
