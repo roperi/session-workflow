@@ -296,9 +296,12 @@ install_bootstrap() {
             echo "See \`.session/docs/README.md\` for quick reference." >> AGENTS.md
             echo "" >> AGENTS.md
             echo "**Commands:**" >> AGENTS.md
-            echo "- \`/session.start --issue N\` - Start development session" >> AGENTS.md
-            echo "- \`/session.start \"text\"\` - Start unstructured session" >> AGENTS.md
-            echo "- \`/session.start --spike \"text\"\` - Start spike/research" >> AGENTS.md
+            echo "- \`/session.start --issue N\` - Development session from GitHub issue" >> AGENTS.md
+            echo "- \`/session.start --spec 001-feature\` - Spec Kit session" >> AGENTS.md
+            echo "- \`/session.start \"description\"\` - Development session (positional description)" >> AGENTS.md
+            echo "- \`/session.start --spike \"description\"\` - Spike/research (no PR)" >> AGENTS.md
+            echo "- \`/session.start --resume\` - Resume active session" >> AGENTS.md
+            echo "- \`/session.finalize\` - Post-merge cleanup (after PR merge)" >> AGENTS.md
             echo "- \`/session.wrap\` - End session" >> AGENTS.md
             success "Updated AGENTS.md with session workflow section"
         else
@@ -319,9 +322,12 @@ install_bootstrap() {
             echo "This project uses session workflow for AI context continuity." >> .github/copilot_instructions.md
             echo "" >> .github/copilot_instructions.md
             echo "**Commands:**" >> .github/copilot_instructions.md
-            echo "- \`/session.start --issue N\` - Start development session" >> .github/copilot_instructions.md
-            echo "- \`/session.start \"text\"\` - Unstructured work" >> .github/copilot_instructions.md
-            echo "- \`/session.start --spike \"text\"\` - Spike/research" >> .github/copilot_instructions.md
+            echo "- \`/session.start --issue N\` - Development session from GitHub issue" >> .github/copilot_instructions.md
+            echo "- \`/session.start --spec 001-feature\` - Spec Kit session" >> .github/copilot_instructions.md
+            echo "- \`/session.start \"description\"\` - Development session (positional description)" >> .github/copilot_instructions.md
+            echo "- \`/session.start --spike \"description\"\` - Spike/research (no PR)" >> .github/copilot_instructions.md
+            echo "- \`/session.start --resume\` - Resume active session" >> .github/copilot_instructions.md
+            echo "- \`/session.finalize\` - Post-merge cleanup (after PR merge)" >> .github/copilot_instructions.md
             echo "- \`/session.wrap\` - End session" >> .github/copilot_instructions.md
             echo "" >> .github/copilot_instructions.md
             echo "**Project context:**" >> .github/copilot_instructions.md
@@ -714,7 +720,7 @@ main() {
     echo ""
     echo -e "${BLUE}Quick start:${NC}"
     echo "  /session.start --issue 123       # Work on GitHub issue"
-    echo "  /session.start 'Task'            # Unstructured work"
+    echo "  /session.start 'Description'            # Development session (positional description)"
     echo "  /session.start --spike 'Research' # Spike/research"
     echo ""
 }
