@@ -90,6 +90,28 @@ This tracking enables session continuity - if the CLI is killed during validatio
 - Report the check as "skipped" with reason "No [lint/test] command configured"
 - Do NOT mark as "pass" - absence of a command is not the same as passing
 
+## Stage-Aware Validation
+
+**CRITICAL**: Check the session stage to determine validation strictness:
+
+```bash
+source .session/scripts/bash/session-common.sh
+SESSION_ID=$(get_active_session)
+SESSION_DIR=$(get_session_dir "$SESSION_ID")
+STAGE=$(jq -r '.stage // "production"' "$SESSION_DIR/session-info.json")
+```
+
+| Stage | Lint Failures | Test Failures | Missing Commands | Overall |
+|-------|---------------|---------------|------------------|---------|
+| **poc** | ⚠️ Warning only | ⚠️ Warning only | ✅ OK to proceed | Proceed with warnings |
+| **mvp** | ❌ Block | ⚠️ Warning on minor | ⚠️ Warning | Fail on errors, warn on style |
+| **production** | ❌ Block | ❌ Block | ⚠️ Warning | All checks must pass |
+
+**Stage-specific behavior:**
+- **poc**: Collect all results but never block. Add note: "⚠️ PoC validation: Warnings only"
+- **mvp**: Block on errors, warn on style issues. Add note: "📦 MVP validation: Standard checks"
+- **production**: Block on any failure. Add note: "🚀 Production validation: Strict checks"
+
 ## Validation Checklist (Sequential - DO NOT SKIP)
 
 Run each check, WAIT for completion, store results. Continue even if failures occur (collect all issues).
@@ -261,6 +283,18 @@ Check session tasks.md or Speckit tasks.md:
 ```
 
 ## Decision Logic
+
+### Check Stage First
+
+```bash
+STAGE=$(jq -r '.stage // "production"' "$SESSION_DIR/session-info.json")
+```
+
+### IF stage is "poc":
+1. Create validation-results.json with all results
+2. Report warnings but proceed regardless
+3. **Auto-chain to session.publish** (with warnings noted)
+4. Add note: "⚠️ PoC mode: Proceeding despite validation warnings"
 
 ### IF all checks PASS:
 1. Create validation-results.json with overall: "pass"

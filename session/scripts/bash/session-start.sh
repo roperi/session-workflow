@@ -18,6 +18,7 @@ SPEC_DIR=""
 GOAL=""
 JSON_OUTPUT=false
 WORKFLOW="development"  # Default workflow
+STAGE="production"      # Default stage (strictest)
 RESUME_MODE=false
 COMMENT=""
 
@@ -35,6 +36,7 @@ OPTIONS:
     --issue NUMBER    GitHub issue number (starts github_issue session)
     --spec DIR        Spec directory name (starts speckit session)
     --spike           Spike workflow: exploration/research, no PR expected
+    --stage STAGE     Project stage: poc, mvp, or production (default: production)
     --resume          Resume an active session (including interrupted)
     --comment "TEXT"  Additional instructions for the session
     --json            Output JSON for AI consumption
@@ -48,6 +50,11 @@ WORKFLOWS:
     development (default) - Full chain: start → plan → execute → validate → publish → finalize → wrap
     spike (--spike)       - Light chain: start → execute → wrap (no PR)
 
+STAGES:
+    poc        - Proof of concept: relaxed validation, minimal docs required
+    mvp        - Minimum viable product: standard validation, core docs required
+    production - Production-ready (default): strict validation, full docs required
+
 EXAMPLES:
     # GitHub issue (development workflow)
     session-start.sh --issue 123
@@ -60,6 +67,9 @@ EXAMPLES:
 
     # Spike/research (no PR expected)
     session-start.sh --spike "Explore Redis caching options"
+
+    # PoC project with relaxed validation
+    session-start.sh --stage poc "Prototype new auth flow"
 
     # Resume active session
     session-start.sh --resume
@@ -89,6 +99,15 @@ parse_args() {
             --spike)
                 WORKFLOW="spike"
                 shift
+                ;;
+            --stage)
+                STAGE="$2"
+                # Validate stage value
+                if [[ ! "$STAGE" =~ ^(poc|mvp|production)$ ]]; then
+                    echo "ERROR: Invalid stage '$STAGE'. Must be: poc, mvp, or production" >&2
+                    exit 1
+                fi
+                shift 2
                 ;;
             --resume)
                 RESUME_MODE=true
@@ -137,15 +156,19 @@ create_session_info() {
     # Workflow is either "development" (default) or "spike"
     local workflow="${WORKFLOW}"
     
+    # Stage is "poc", "mvp", or "production" (default)
+    local stage="${STAGE}"
+    
     # Build JSON based on type
     case $SESSION_TYPE in
         speckit)
             cat > "$info_file" << SESSIONEOF
 {
-  "schema_version": "2.1",
+  "schema_version": "2.2",
   "session_id": "${session_id}",
   "type": "speckit",
   "workflow": "${workflow}",
+  "stage": "${stage}",
   "created_at": "${created_at}",
   "spec_dir": "specs/${SPEC_DIR}"
 }
@@ -158,10 +181,11 @@ SESSIONEOF
             fi
             cat > "$info_file" << SESSIONEOF
 {
-  "schema_version": "2.1",
+  "schema_version": "2.2",
   "session_id": "${session_id}",
   "type": "github_issue",
   "workflow": "${workflow}",
+  "stage": "${stage}",
   "created_at": "${created_at}",
   "issue_number": ${ISSUE_NUMBER},
   "issue_title": "$(json_escape "$issue_title")"
@@ -171,10 +195,11 @@ SESSIONEOF
         unstructured)
             cat > "$info_file" << SESSIONEOF
 {
-  "schema_version": "2.1",
+  "schema_version": "2.2",
   "session_id": "${session_id}",
   "type": "unstructured",
   "workflow": "${workflow}",
+  "stage": "${stage}",
   "created_at": "${created_at}",
   "goal": "$(json_escape "$GOAL")"
 }
@@ -353,9 +378,12 @@ EOF
     local session_info
     session_info=$(cat "${session_dir}/session-info.json" 2>/dev/null || echo "{}")
     
-    # Get session type
+    # Get session type and stage
     local sess_type
     sess_type=$(echo "$session_info" | jq -r '.type // "unknown"')
+    
+    local sess_stage
+    sess_stage=$(echo "$session_info" | jq -r '.stage // "production"')
     
     cat << EOF
 {
@@ -367,6 +395,7 @@ EOF
   "session": {
     "id": "${session_id}",
     "type": "${sess_type}",
+    "stage": "${sess_stage}",
     "dir": "${session_dir}",
     "files": {
       "info": "${session_dir}/session-info.json",
@@ -379,6 +408,26 @@ EOF
   "project_context": {
     "constitution": ".session/project-context/constitution-summary.md",
     "technical": ".session/project-context/technical-context.md"
+  },
+  "stage_behavior": {
+    "poc": {
+      "constitution": "optional",
+      "technical_context": "optional",
+      "validation": "relaxed (warnings only)",
+      "docs": "minimal"
+    },
+    "mvp": {
+      "constitution": "required (can be brief)",
+      "technical_context": "required (can be partial)",
+      "validation": "standard",
+      "docs": "core sections"
+    },
+    "production": {
+      "constitution": "required (comprehensive)",
+      "technical_context": "required (complete)",
+      "validation": "strict",
+      "docs": "full"
+    }
   },
   "tips": {
     "before_starting": "Provide a brief summary of planned tasks before beginning work",
