@@ -1,6 +1,6 @@
 # Session Workflow Guide
 
-**Version**: 2.1.0  
+**Version**: 2.2.0  
 **Status**: Production-ready
 
 This is the single source of truth for session workflow. It consolidates all documentation into one reference.
@@ -29,10 +29,10 @@ When AI context windows reset, work continuity is lost. Session workflow solves 
 
 1. **Session tracking** - What's in progress, what's done
 2. **Handoff notes** - Context for the next AI session
-3. **7-agent chain** - Structured workflow with automatic handoffs
+3. **8-agent chain** - Structured workflow with automatic handoffs
 4. **Git hygiene** - Ensures clean state before session ends
 
-**Agent Chain**: `start → plan → execute → validate → publish → finalize → wrap`
+**Agent Chain**: `start → plan → task → execute → validate → publish → finalize → wrap`
 
 ---
 
@@ -89,7 +89,7 @@ cd your-project
 
 ### 1. Development (default)
 
-**Chain**: `start → plan → execute → validate → publish → finalize → wrap`
+**Chain**: `start → plan → task → execute → validate → publish → finalize → wrap`
 
 Use for:
 - Feature development
@@ -103,7 +103,7 @@ Use for:
 
 ### 2. Spike
 
-**Chain**: `start → plan → execute → wrap`
+**Chain**: `start → plan → task → execute → wrap`
 
 Use for:
 - Research and exploration
@@ -114,37 +114,37 @@ Use for:
 /session.start --spike "Benchmark Redis vs Memcached"
 ```
 
-**Note**: Spike still includes planning - it only skips PR steps (validate, publish, finalize).
+**Note**: Spike still includes planning and task generation - it only skips PR steps (validate, publish, finalize).
 
 ---
 
 ## Agent Chain
 
 ```
-┌──────────┐    ┌──────────┐    ┌──────────┐    ┌──────────┐
-│  START   │───▶│   PLAN   │───▶│ EXECUTE  │───▶│ VALIDATE │
-│          │    │          │    │          │    │          │
-│ Init     │    │ Tasks    │    │ TDD      │    │ Quality  │
-│ Context  │    │ Generate │    │ Implement│    │ Tests    │
-└──────────┘    └──────────┘    └──────────┘    └──────────┘
-   (auto)          (auto)          (auto)          (auto)
-                                                      │
-                                                      ▼
-┌──────────┐    ┌──────────┐    ┌──────────┐    ┌──────────┐
-│   WRAP   │◀───│ FINALIZE │◀───│ PUBLISH  │◀───┤          │
-│          │    │          │    │          │    │          │
-│ Document │    │ Close    │    │ Create   │    │          │
-│ Cleanup  │    │ Issues   │    │ PR       │    │          │
-└──────────┘    └──────────┘    └──────────┘    └──────────┘
+┌──────────┐    ┌──────────┐    ┌──────────┐    ┌──────────┐    ┌──────────┐
+│  START   │───▶│   PLAN   │───▶│   TASK   │───▶│ EXECUTE  │───▶│ VALIDATE │
+│          │    │          │    │          │    │          │    │          │
+│ Init     │    │ Approach │    │ Generate │    │ TDD      │    │ Quality  │
+│ Context  │    │ Strategy │    │ Tasks    │    │ Implement│    │ Tests    │
+└──────────┘    └──────────┘    └──────────┘    └──────────┘    └──────────┘
+   (auto)          (auto)          (auto)          (auto)          (auto)
+                                                                      │
+                                                                      ▼
+┌──────────┐    ┌──────────┐    ┌──────────┐                    ┌──────────┐
+│   WRAP   │◀───│ FINALIZE │◀───│ PUBLISH  │◀───────────────────┤          │
+│          │    │          │    │          │                    │          │
+│ Document │    │ Close    │    │ Create   │                    │          │
+│ Cleanup  │    │ Issues   │    │ PR       │                    │          │
+└──────────┘    └──────────┘    └──────────┘                    └──────────┘
                   (manual)        (manual)
 ```
 
-**Development workflow** uses all agents.
+**Development workflow** uses all 8 agents.
 
-**Spike workflow** uses: `start → execute → wrap` (skips plan, validate, publish, finalize)
+**Spike workflow** uses: `start → plan → task → execute → wrap` (skips validate, publish, finalize)
 
 **Automatic handoffs** (`send: true`):
-- start → plan → execute → validate → publish
+- start → plan → task → execute → validate → publish
 
 **Manual handoffs** (`send: false`):
 - publish → finalize (user monitors CI, merges PR)
@@ -159,13 +159,20 @@ Use for:
 - Load project context
 - Create feature branch
 - Review previous session notes
-- **Handoff**: → session.plan (development) or session.execute (spike)
+- **Handoff**: → session.plan (auto)
 
 ### session.plan
-- Generate TDD-first task list
-- Or reference existing Speckit tasks
+- Create implementation plan and approach
+- Analyze requirements and identify components
+- Or reference existing Speckit plan
+- **Handoff**: → session.task (auto)
+
+### session.task
+- Generate detailed task breakdown
+- Organize by user story with priorities
+- Add parallelization markers [P] and dependencies
+- Use tasks-template.md structure
 - **Handoff**: → session.execute (auto)
-- **Only for**: development workflow
 
 ### session.execute
 - Single-task focus
@@ -232,6 +239,7 @@ Use for:
 |-------|-----------|----------|
 | session.start | ✅ | ✅ |
 | session.plan | ✅ | ✅ |
+| session.task | ✅ | ✅ |
 | session.execute | ✅ | ✅ |
 | session.validate | ✅ | ⚠️ (re-runs failed only) |
 | session.publish | ✅ | ✅ |
@@ -248,7 +256,7 @@ Use for:
 # Start
 /session.start --issue 456
 
-# Auto-chains through: plan → execute → validate → publish
+# Auto-chains through: plan → task → execute → validate → publish
 # You interact at each step
 
 # After PR merged
@@ -382,6 +390,14 @@ Run: /session.validate --resume
 ---
 
 ## Version History
+
+### 2.2.0 (2026-01)
+- **NEW**: Added dedicated `session.task` agent for task generation
+- **CHANGE**: 8-agent chain: `start → plan → task → execute → validate → publish → finalize → wrap`
+- **CHANGE**: `session.plan` now focuses on implementation planning only
+- **NEW**: Added `tasks-template.md` with user story organization
+- **NEW**: Task format includes parallelization markers [P], user story labels [US1], and dependencies
+- Inspired by Speckit's task generation workflow
 
 ### 2.1.0 (2026-01)
 - **BREAKING**: Simplified to 2 workflows: development (default) and spike
