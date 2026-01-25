@@ -1,6 +1,6 @@
 # Session Workflow Guide
 
-**Version**: 2.2.0  
+**Version**: 2.3.0  
 **Status**: Production-ready
 
 This is the single source of truth for session workflow. It consolidates all documentation into one reference.
@@ -209,6 +209,37 @@ Use for:
 
 ---
 
+## Optional Quality Agents
+
+These agents are **not part of the main 8-agent chain**. Use them for quality checks at any time.
+
+### session.clarify
+- Ask up to 5 targeted questions to reduce ambiguity
+- Records clarifications in session notes
+- **Best used**: Before `/session.task` when requirements are vague
+- **Inspired by**: Speckit's `/speckit.clarify`
+
+### session.analyze
+- Cross-artifact consistency and coverage analysis
+- **STRICTLY READ-ONLY** - produces report only
+- **Best used**: After `/session.task`, before `/session.execute`
+- **Inspired by**: Speckit's `/speckit.analyze`
+
+### session.checklist
+- Generate requirements quality checklists ("unit tests for English")
+- Domain-specific: UX, API, security, performance
+- **Best used**: Before implementation or PR review
+- **Inspired by**: Speckit's `/speckit.checklist`
+
+**Usage pattern:**
+```
+start → plan → [clarify?] → task → [analyze?] → [checklist?] → execute → ...
+                   ↑                    ↑              ↑
+            Optional quality checks (reduce downstream rework)
+```
+
+---
+
 ## Arguments
 
 ### session.start
@@ -390,6 +421,13 @@ Run: /session.validate --resume
 ---
 
 ## Version History
+
+### 2.3.0 (2026-01)
+- **NEW**: Added optional quality agents (not part of main chain):
+  - `/session.clarify` - Ask targeted questions to reduce ambiguity
+  - `/session.analyze` - Cross-artifact consistency check (read-only)
+  - `/session.checklist` - Generate requirements quality checklists
+- Inspired by Speckit's clarify, analyze, and checklist commands
 
 ### 2.2.0 (2026-01)
 - **NEW**: Added dedicated `session.task` agent for task generation

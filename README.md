@@ -71,6 +71,8 @@ your-repo/
 
 ## Slash Commands
 
+### Main Workflow (8-agent chain)
+
 | Command | Purpose |
 |---------|---------|
 | `/session.start` | Initialize or resume a session |
@@ -81,6 +83,16 @@ your-repo/
 | `/session.publish` | Create/update pull request |
 | `/session.finalize` | Post-merge issue management |
 | `/session.wrap` | Document and close session |
+
+### Optional Quality Agents
+
+| Command | Purpose |
+|---------|---------|
+| `/session.clarify` | Ask targeted questions to reduce ambiguity |
+| `/session.analyze` | Cross-artifact consistency check (read-only) |
+| `/session.checklist` | Generate requirements quality checklists |
+
+These optional agents help reduce downstream rework by catching issues early. Use them between main workflow steps as needed.
 
 ## Arguments
 
