@@ -208,7 +208,7 @@ Workflow state is stored in `state.json`:
 All session agents should reference this document:
 
 ```markdown
-**IMPORTANT**: Read `.github/agents/session.common.agent.md` for shared workflow rules.
+**IMPORTANT**: Read `.session/docs/shared-workflow.md` for shared workflow rules.
 ```
 
 ## Why This Matters
