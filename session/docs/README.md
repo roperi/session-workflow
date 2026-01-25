@@ -257,26 +257,3 @@ You can also create worktrees inside your project (add `.worktrees/` to `.gitign
 ```bash
 git worktree add .worktrees/backend-fix feature/backend
 ```
-
----
-
-## Version History
-
-### 2.1.1 (2026-01)
-- Added documentation for parallel sessions using git worktree
-
-### 2.1.0 (2026-01)
-- **BREAKING**: Simplified to 2 workflows: development (default) and spike
-- **BREAKING**: Removed legacy workflow flags
-- Goal is now a positional argument: `/session.start "Fix the bug"`
-- Standardized on `--spike` for exploration
-- Removed auto-detection ("smart" workflow) - user explicitly chooses
-- **Both workflows include planning** - spike only skips PR steps
-
-### 2.0.0 (2026-01)
-- Added workflow types (development, spike, smart)
-- Added `--resume` and `--comment` flags
-- Added session continuity across CLI restarts
-
-### 1.0.0 (2025-12)
-- Initial release
