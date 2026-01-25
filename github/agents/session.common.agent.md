@@ -52,6 +52,25 @@ START → PLAN → TASK → EXECUTE → VALIDATE → PUBLISH → [MERGE PR] → 
 | `finalize` | `wrap` |
 | `wrap` | (terminal - session complete) |
 
+## Optional Quality Agents
+
+These agents are **not part of the main workflow chain**. They can be invoked at any time for quality checks:
+
+| Agent | Purpose | Best Used |
+|-------|---------|-----------|
+| `/session.clarify` | Ask targeted questions to reduce ambiguity | Before `task` |
+| `/session.analyze` | Cross-artifact consistency check (read-only) | After `task`, before `execute` |
+| `/session.checklist` | Generate requirements quality checklists | Before `execute` or PR |
+
+**Usage pattern:**
+```
+start → plan → [clarify?] → task → [analyze?] → execute → ...
+                   ↑                    ↑
+            Optional quality checks (not required)
+```
+
+These agents help reduce downstream rework by catching issues early.
+
 ## Step Status Values
 
 Each workflow step has a status:
