@@ -192,9 +192,9 @@ detect_project_stage() {
         fi
     fi
     
-    # Check for experiments folder (indicates PoC/experimental)
+    # Check for PoC marker folder (experiments/)
     if [[ -d "experiments" ]] || [[ -f "ROADMAP.md" ]]; then
-        # Cap at poc if experiments exist
+        # Cap at poc if PoC markers exist
         if [[ $maturity_score -gt 2 ]]; then
             maturity_score=2
         fi
@@ -202,8 +202,8 @@ detect_project_stage() {
     
     # Determine stage
     if [[ $maturity_score -le 1 ]]; then
-        DETECTED_STAGE="experiment"
-        success "Detected: Experiment stage"
+        DETECTED_STAGE="poc"
+        success "Detected: PoC stage"
     elif [[ $maturity_score -le 2 ]]; then
         DETECTED_STAGE="poc"
         success "Detected: PoC stage"
@@ -296,9 +296,8 @@ install_bootstrap() {
             echo "" >> AGENTS.md
             echo "**Commands:**" >> AGENTS.md
             echo "- \`/session.start --issue N\` - Start development session" >> AGENTS.md
-            echo "- \`/session.start --goal \"text\"\` - Start unstructured session" >> AGENTS.md
-            echo "- \`/session.start --experiment --goal \"text\"\` - Start experiment" >> AGENTS.md
-            echo "- \`/session.start --advisory --goal \"text\"\` - Quick question" >> AGENTS.md
+            echo "- \`/session.start \"text\"\` - Start unstructured session" >> AGENTS.md
+            echo "- \`/session.start --spike \"text\"\` - Start spike/research" >> AGENTS.md
             echo "- \`/session.wrap\` - End session" >> AGENTS.md
             success "Updated AGENTS.md with session workflow section"
         else
@@ -320,9 +319,8 @@ install_bootstrap() {
             echo "" >> .github/copilot_instructions.md
             echo "**Commands:**" >> .github/copilot_instructions.md
             echo "- \`/session.start --issue N\` - Start development session" >> .github/copilot_instructions.md
-            echo "- \`/session.start --goal \"text\"\` - Unstructured work" >> .github/copilot_instructions.md
-            echo "- \`/session.start --experiment --goal \"text\"\` - Experiment/spike" >> .github/copilot_instructions.md
-            echo "- \`/session.start --advisory --goal \"text\"\` - Quick question" >> .github/copilot_instructions.md
+            echo "- \`/session.start \"text\"\` - Unstructured work" >> .github/copilot_instructions.md
+            echo "- \`/session.start --spike \"text\"\` - Spike/research" >> .github/copilot_instructions.md
             echo "- \`/session.wrap\` - End session" >> .github/copilot_instructions.md
             echo "" >> .github/copilot_instructions.md
             echo "**Project context:**" >> .github/copilot_instructions.md
@@ -368,8 +366,7 @@ generate_technical_context() {
 **Stage**: ${DETECTED_STAGE}
 
 <!-- Stage affects how strictly session agents enforce requirements -->
-<!-- experiment: flexible, discover as you go -->
-<!-- poc: flexible, document discoveries -->
+<!-- poc: flexible, discover as you go -->
 <!-- mvp: recommended to have full context -->
 <!-- production: required to have full context -->
 
@@ -483,11 +480,11 @@ generate_constitution() {
     local output=".session/project-context/constitution-summary.md"
     
     case "$DETECTED_STAGE" in
-        experiment|poc)
+        poc)
             cat > "$output" << 'EOF'
-# Constitution (Experimental Stage)
+# Constitution (PoC Stage)
 
-This project is in experimental/PoC stage. Formal constitution will emerge from discoveries.
+This project is in PoC stage. Formal constitution will emerge from discoveries.
 
 ## Working Principles
 
@@ -712,12 +709,12 @@ main() {
     echo ""
     echo -e "${BLUE}Next steps:${NC}"
     echo "  1. Review generated context files (already populated!)"
-    echo "  2. Start a session: /session.start --goal 'Your goal'"
+    echo "  2. Start a session: /session.start 'Your goal'"
     echo ""
     echo -e "${BLUE}Quick start:${NC}"
     echo "  /session.start --issue 123       # Work on GitHub issue"
-    echo "  /session.start --goal 'Task'     # Unstructured work"
-    echo "  /session.start --advisory --goal 'Question'  # Quick question"
+    echo "  /session.start 'Task'            # Unstructured work"
+    echo "  /session.start --spike 'Research' # Spike/research"
     echo ""
 }
 

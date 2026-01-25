@@ -277,7 +277,7 @@ main() {
                 fi
                 echo ""
                 echo "To create a retroactive session:"
-                echo "  1. Run: .session/scripts/bash/session-start.sh --issue 123  (or --spec, --goal)"
+                echo "  1. Run: .session/scripts/bash/session-start.sh --issue 123  (or --spec, \"Goal\")"
                 echo "  2. Then run: .session/scripts/bash/session-wrap.sh"
             else
                 echo "Start a session first: .session/scripts/bash/session-start.sh --issue 123"
