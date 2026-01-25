@@ -10,7 +10,7 @@
 
 ## ⚠️ IMPORTANT
 
-- **Read `.github/agents/session.common.agent.md`** for shared workflow rules.
+- **Read `.session/docs/shared-workflow.md`** for shared workflow rules.
 - **Read `.session/project-context/technical-context.md`** for project context.
 - This is an **optional** agent - not part of the 8-agent chain.
 - Can be invoked at any time, but most useful **before** `/session.task`.

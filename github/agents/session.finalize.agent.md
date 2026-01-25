@@ -11,7 +11,7 @@ handoffs:
 
 **Purpose**: Post-merge issue management and task completion tracking.
 
-**IMPORTANT**: Read `.github/agents/session.common.agent.md` for shared workflow rules.
+**IMPORTANT**: Read `.session/docs/shared-workflow.md` for shared workflow rules.
 
 ## User Input
 

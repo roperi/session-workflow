@@ -83,6 +83,8 @@ cd your-project
 /session.wrap
 ```
 
+**Note**: When consuming preflight or session-start JSON, use `repo_root` to resolve repo paths.
+
 ---
 
 ## Workflow Types
@@ -516,5 +518,5 @@ Run: /session.validate --resume
 
 ### 1.0.0 (2025-12)
 - Initial release
-- 7-agent chain
+- 8-agent chain
 - Basic session tracking

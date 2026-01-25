@@ -11,7 +11,7 @@ handoffs:
 
 **Purpose**: Validates completed session work before publishing to PR/issues.
 
-**IMPORTANT**: Read `.github/agents/session.common.agent.md` for shared workflow rules.
+**IMPORTANT**: Read `.session/docs/shared-workflow.md` for shared workflow rules.
 
 ## User Input
 

@@ -10,7 +10,7 @@ A lightweight session management system for AI context continuity and structured
 ## Quick Start
 
 ```bash
-# Development workflow (full 7-agent chain)
+# Development workflow (full 8-agent chain)
 /session.start --issue 123
 /session.start "Fix performance bug"
 
@@ -24,7 +24,7 @@ A lightweight session management system for AI context continuity and structured
 /session.wrap
 ```
 
-**Note**: Use the `/session.*` prompts which call the underlying scripts.
+**Note**: Use the `/session.*` prompts which call the underlying scripts. When consuming preflight or session-start JSON, use `repo_root` to resolve repo paths.
 
 ---
 
@@ -43,10 +43,10 @@ When AI context windows reset, work continuity is lost. The session workflow sol
 
 | Workflow | Flag | Agent Chain | Use Case |
 |----------|------|-------------|----------|
-| **Development** | (default) | start → plan → execute → validate → publish → finalize → wrap | Features, bugs, anything needing PR |
-| **Spike** | `--spike` | start → plan → execute → wrap | Research, exploration, prototyping |
+| **Development** | (default) | start → plan → task → execute → validate → publish → finalize → wrap | Features, bugs, anything needing PR |
+| **Spike** | `--spike` | start → plan → task → execute → wrap | Research, exploration, prototyping |
 
-**Both workflows include planning.** Spike only skips the PR-related steps (validate, publish, finalize).
+**Both workflows include planning and task generation.** Spike only skips the PR-related steps (validate, publish, finalize).
 
 ---
 
@@ -64,12 +64,12 @@ When AI context windows reset, work continuity is lost. The session workflow sol
 
 ### Development Workflow
 ```
-start → plan → execute → validate → publish → [MERGE PR] → finalize → wrap
+start → plan → task → execute → validate → publish → [MERGE PR] → finalize → wrap
 ```
 
 ### Spike Workflow
 ```
-start → execute → wrap
+start → plan → task → execute → wrap
 ```
 
 **⚠️ IMPORTANT for Development**: PR must be merged BEFORE finalize/wrap!
@@ -81,7 +81,8 @@ start → execute → wrap
 | Command | Purpose |
 |---------|---------|
 | `/session.start` | Initialize or resume a session |
-| `/session.plan` | Generate task list (both workflows) |
+| `/session.plan` | Create implementation plan and approach |
+| `/session.task` | Generate detailed task list |
 | `/session.execute` | Execute tasks with TDD |
 | `/session.validate` | Quality checks before PR (development only) |
 | `/session.publish` | Create/update pull request (development only) |

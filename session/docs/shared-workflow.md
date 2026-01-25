@@ -1,11 +1,22 @@
+---
+description: Shared workflow rules for all session agents (reference only)
+tools: []
+---
+
 # Session Workflow Common Rules
 
 **Purpose**: Shared workflow rules for all session agents. This is a reference document, not a runnable agent.
+**Reference-only**: Do not execute scripts or commands from this agent.
 
 ## ⚠️ CRITICAL: Read Technical Context First
 
-**BEFORE running any commands**, every session agent MUST read:
-- `.session/project-context/technical-context.md` - Environment, stack, commands
+**BEFORE running any commands**, every session agent MUST:
+1. Run preflight to get repo_root and session context:
+   ```bash
+   .session/scripts/bash/session-preflight.sh --step <step> --json
+   ```
+2. Use `repo_root` from preflight output for ALL file operations (never assume `/home/project`).
+3. Read `.session/project-context/technical-context.md` for environment, stack, commands.
 
 ### Key Things to Check:
 1. **Project Stage**: poc, mvp, or production (affects strictness)
@@ -197,7 +208,7 @@ Workflow state is stored in `state.json`:
 All session agents should reference this document:
 
 ```markdown
-**IMPORTANT**: Read `.github/agents/session.common.agent.md` for shared workflow rules.
+**IMPORTANT**: Read `.session/docs/shared-workflow.md` for shared workflow rules.
 ```
 
 ## Why This Matters
