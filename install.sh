@@ -267,9 +267,8 @@ install_templates() {
 install_docs() {
     info "Installing session docs..."
     
-    # Only install internal session docs (quick reference)
     mkdir -p .session/docs
-    download_file "${REPO_URL}/session/docs/README.md" ".session/docs/README.md"
+    download_file "${REPO_URL}/README.md" ".session/docs/README.md"
     download_file "${REPO_URL}/session/docs/testing.md" ".session/docs/testing.md"
     download_file "${REPO_URL}/session/docs/shared-workflow.md" ".session/docs/shared-workflow.md"
     

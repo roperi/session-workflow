@@ -74,7 +74,7 @@ update_templates() {
 
 update_docs() {
     info "Updating documentation..."
-    download_file "${REPO_URL}/session/docs/README.md" ".session/docs/README.md"
+    download_file "${REPO_URL}/README.md" ".session/docs/README.md"
     download_file "${REPO_URL}/session/docs/testing.md" ".session/docs/testing.md"
     download_file "${REPO_URL}/session/docs/shared-workflow.md" ".session/docs/shared-workflow.md"
     success "Documentation updated"
