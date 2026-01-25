@@ -69,6 +69,25 @@ your-repo/
 
 **Both workflows include planning and task generation.** Spike only skips PR steps (validate, publish, finalize).
 
+## Project Stages
+
+| Stage | Flag | Validation | Use Case |
+|-------|------|------------|----------|
+| **poc** | `--stage poc` | Relaxed (warnings only) | Experiments, early exploration |
+| **mvp** | `--stage mvp` | Standard | First working version |
+| **production** | (default) | Strict | Production-ready code |
+
+```bash
+# PoC: Experimenting with new ideas
+/session.start --stage poc "Prototype auth flow"
+
+# MVP: Building first version
+/session.start --stage mvp --issue 123
+
+# Production: Full quality (default)
+/session.start --issue 456
+```
+
 ## Slash Commands
 
 ### Main Workflow (8-agent chain)
@@ -104,6 +123,11 @@ These optional agents help reduce downstream rework by catching issues early. Us
 
 # Workflow selection
 /session.start --spike "Research"  # Spike workflow (no PR)
+
+# Project stage (affects validation strictness)
+/session.start --stage poc "Prototype"   # PoC: relaxed validation
+/session.start --stage mvp --issue 123   # MVP: standard validation
+/session.start --issue 456               # Production: strict (default)
 
 # All agents support
 /session.execute --resume --comment "Continue from task 5"

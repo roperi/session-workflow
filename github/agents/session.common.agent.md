@@ -8,7 +8,7 @@
 - `.session/project-context/technical-context.md` - Environment, stack, commands
 
 ### Key Things to Check:
-1. **Project Stage**: experiment, poc, mvp, or production (affects strictness)
+1. **Project Stage**: poc, mvp, or production (affects strictness)
 2. **Environment**: containerized (Docker) vs local
 3. **Commands**: Test/build/lint commands specific to this project
 
@@ -23,6 +23,52 @@ docker compose exec <service> <command>
 - ❌ Using paths like `/root/` (doesn't exist in most environments)
 - ❌ Assuming local dependencies are installed
 - ❌ Running wrap before PR is merged
+
+## Project Stages
+
+Sessions have a **stage** that affects validation strictness and documentation requirements.
+
+| Stage | Constitution | Technical Context | Validation | Use Case |
+|-------|--------------|-------------------|------------|----------|
+| **poc** | Optional | Optional | Relaxed (warnings) | Experiments, spikes, early exploration |
+| **mvp** | Required (brief OK) | Required (partial OK) | Standard | First working version, core features |
+| **production** | Required (full) | Required (complete) | Strict | Production-ready, full quality gates |
+
+### Stage Behavior by Agent
+
+| Agent | poc | mvp | production |
+|-------|-----|-----|------------|
+| **session.plan** | Skip context validation | Warn if incomplete | Require complete context |
+| **session.task** | Simple checklist OK | User stories encouraged | Full structure required |
+| **session.validate** | Warnings only, proceed | Fail on errors, warn on style | All checks must pass |
+| **session.execute** | WIP commits allowed | Standard commits | Conventional commits required |
+
+### Checking Stage
+
+```bash
+# In any agent, check the session stage
+STAGE=$(jq -r '.stage // "production"' "$SESSION_DIR/session-info.json")
+
+case $STAGE in
+    poc)
+        echo "PoC mode: Relaxed validation"
+        ;;
+    mvp)
+        echo "MVP mode: Standard validation"
+        ;;
+    production)
+        echo "Production mode: Strict validation"
+        ;;
+esac
+```
+
+### Upgrading Stage
+
+Projects can upgrade stage as they mature:
+```bash
+# Update session-info.json manually or start new session with new stage
+/session.start --stage mvp --issue 123
+```
 
 ## Workflow State Machine
 

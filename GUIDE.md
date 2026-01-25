@@ -1,6 +1,6 @@
 # Session Workflow Guide
 
-**Version**: 2.3.0  
+**Version**: 2.4.0  
 **Status**: Production-ready
 
 This is the single source of truth for session workflow. It consolidates all documentation into one reference.
@@ -118,6 +118,63 @@ Use for:
 
 ---
 
+## Project Stages
+
+The `--stage` flag controls validation strictness and documentation requirements.
+
+| Stage | Constitution | Technical Context | Validation | Use Case |
+|-------|--------------|-------------------|------------|----------|
+| **poc** | Optional | Optional | Relaxed (warnings) | Experiments, spikes, early exploration |
+| **mvp** | Required (brief OK) | Required (partial OK) | Standard | First working version, core features |
+| **production** | Required (full) | Required (complete) | Strict (default) | Production-ready, full quality gates |
+
+### Usage
+
+```bash
+# PoC: Experimenting, don't know the stack yet
+/session.start --stage poc "Prototype auth flow"
+
+# MVP: Building first version, core requirements defined
+/session.start --stage mvp --issue 123
+
+# Production: Full quality (default, flag optional)
+/session.start --issue 456
+/session.start --stage production --issue 456
+```
+
+### Stage Behavior
+
+**poc** (Proof of Concept):
+- Constitution/technical-context files can be empty stubs
+- Validation reports warnings but never blocks
+- Simple task checklists OK (no user stories required)
+- WIP commits allowed
+
+**mvp** (Minimum Viable Product):
+- Core sections of constitution/technical-context required
+- Validation fails on errors, warns on style issues
+- User stories encouraged but not enforced
+- Standard commit messages
+
+**production** (default):
+- Full constitution and technical-context required
+- All validation checks must pass
+- Full task structure with dependencies
+- Conventional commits required
+
+### Upgrading Stage
+
+As your project matures, upgrade the stage:
+```bash
+# Started as PoC, now building MVP
+/session.start --stage mvp --issue 123
+
+# MVP proven, now going to production
+/session.start --stage production --issue 456
+```
+
+---
+
 ## Agent Chain
 
 ```
@@ -184,6 +241,7 @@ Use for:
 - Run lint, tests
 - Check git state
 - Offer fixes if failures
+- **Stage-aware**: poc=warnings only, mvp=standard, production=strict
 - **Handoff**: → session.publish (auto if pass)
 - **Only for**: development workflow
 
@@ -421,6 +479,12 @@ Run: /session.validate --resume
 ---
 
 ## Version History
+
+### 2.4.0 (2026-01)
+- **NEW**: Project stage flag `--stage poc|mvp|production`
+- **NEW**: Stage-aware validation (poc=warnings, mvp=standard, production=strict)
+- **NEW**: Context files optional for poc stage
+- Enables gradual formalization from experimentation to production
 
 ### 2.3.0 (2026-01)
 - **NEW**: Added optional quality agents (not part of main chain):

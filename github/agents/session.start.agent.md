@@ -58,6 +58,7 @@ If no arguments provided, the script will resume an active session or prompt for
 - `.session/scripts/bash/session-start.sh --json --spec 001-feature` - Work on Speckit feature  
 - `.session/scripts/bash/session-start.sh --json "Fix the bug"` - Unstructured work (goal as positional arg)
 - `.session/scripts/bash/session-start.sh --json --spike "Explore caching"` - Spike/research session
+- `.session/scripts/bash/session-start.sh --json --stage poc "Prototype auth"` - PoC with relaxed validation
 - `.session/scripts/bash/session-start.sh --json --resume` - Resume active session
 - `.session/scripts/bash/session-start.sh --json --resume --comment "Continue from task 5"` - Resume with context
 
@@ -84,23 +85,36 @@ Extract from the script output:
 
 ### 3.5. Determine Workflow Routing
 
-Check workflow field from JSON output:
+Check workflow and stage fields from JSON output:
 
 ```bash
-# Extract workflow from session-info.json
+# Extract workflow and stage from session-info.json
 WORKFLOW=$(jq -r '.workflow' "$SESSION_DIR/session-info.json")
-echo "Workflow: $WORKFLOW"
+STAGE=$(jq -r '.stage' "$SESSION_DIR/session-info.json")
+echo "Workflow: $WORKFLOW, Stage: $STAGE"
 ```
 
-**Both workflows go to session.plan:**
-- **development**: Full chain (plan → execute → validate → publish → finalize → wrap)
-- **spike**: Light chain (plan → execute → wrap) - skips PR steps, not planning!
+**Workflows (both go to session.plan):**
+- **development**: Full chain (plan → task → execute → validate → publish → finalize → wrap)
+- **spike**: Light chain (plan → task → execute → wrap) - skips PR steps, not planning!
+
+**Stages (affect validation strictness):**
+- **poc**: Relaxed - constitution/context optional, validation warnings only
+- **mvp**: Standard - core docs required, standard validation
+- **production**: Strict (default) - full docs required, all checks must pass
 
 ### 4. Load Project Context
 
-Quick orientation:
+Quick orientation (behavior depends on stage):
+
+**For production/mvp stage:**
 - Read `.session/project-context/constitution-summary.md` for quality standards
 - Read `.session/project-context/technical-context.md` for stack and patterns
+- If files are empty/stubs, warn user to fill them in
+
+**For poc stage:**
+- Context files are optional - proceed even if empty/missing
+- Note any missing context in session notes for future reference
 
 ### 5. Get Bearings (MANDATORY)
 
@@ -170,17 +184,23 @@ Display session summary:
 Session ID: {session.id}
 Type: {speckit|github_issue|unstructured}
 Workflow: {development|spike}
+Stage: {poc|mvp|production}
 Branch: {current-branch}
 Previous session: {session-id or "none"}
 
 Context loaded:
-- Constitution: {summary-path}
-- Technical: {context-path}
+- Constitution: {summary-path} {status}
+- Technical: {context-path} {status}
 - Session notes: {notes-path}
 - Tasks file: {tasks-path or spec-path}
 
 Ready for next step → /session.plan
 ```
+
+**Stage-specific notes:**
+- **poc**: "⚠️ PoC mode: Validation relaxed, context files optional"
+- **mvp**: "📦 MVP mode: Core validation enabled"
+- **production**: "🚀 Production mode: Full validation enabled"
 
 The CLI will automatically present the handoff to session.plan (for both workflows).
 
