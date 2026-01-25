@@ -124,14 +124,14 @@ The `--stage` flag controls validation strictness and documentation requirements
 
 | Stage | Constitution | Technical Context | Validation | Use Case |
 |-------|--------------|-------------------|------------|----------|
-| **poc** | Optional | Optional | Relaxed (warnings) | Experiments, spikes, early exploration |
+| **poc** | Optional | Optional | Relaxed (warnings) | PoCs, spikes, early exploration |
 | **mvp** | Required (brief OK) | Required (partial OK) | Standard | First working version, core features |
 | **production** | Required (full) | Required (complete) | Strict (default) | Production-ready, full quality gates |
 
 ### Usage
 
 ```bash
-# PoC: Experimenting, don't know the stack yet
+# PoC: PoC work, don't know the stack yet
 /session.start --stage poc "Prototype auth flow"
 
 # MVP: Building first version, core requirements defined
@@ -484,7 +484,7 @@ Run: /session.validate --resume
 - **NEW**: Project stage flag `--stage poc|mvp|production`
 - **NEW**: Stage-aware validation (poc=warnings, mvp=standard, production=strict)
 - **NEW**: Context files optional for poc stage
-- Enables gradual formalization from experimentation to production
+- Enables gradual formalization from PoC to production
 
 ### 2.3.0 (2026-01)
 - **NEW**: Added optional quality agents (not part of main chain):
@@ -503,13 +503,13 @@ Run: /session.validate --resume
 
 ### 2.1.0 (2026-01)
 - **BREAKING**: Simplified to 2 workflows: development (default) and spike
-- **BREAKING**: Removed `--advisory`, `--experiment`, `--workflow`, `--goal`
+- **BREAKING**: Removed legacy workflow flags
 - Goal is now a positional argument: `/session.start "Fix the bug"`
-- Renamed `--experiment` to `--spike` for clarity
+- Standardized on `--spike` for exploration
 - Removed auto-detection ("smart" workflow) - user explicitly chooses
 
 ### 2.0.0 (2026-01)
-- Added workflow types (development, advisory, experiment, smart)
+- Added workflow types (development, spike, smart)
 - Added `--resume` and `--comment` flags
 - Added anti-hallucination rules to session.validate
 - Added session continuity across CLI restarts

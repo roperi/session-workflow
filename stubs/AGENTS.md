@@ -24,9 +24,8 @@ This project uses session workflow for AI context continuity.
 
 **Commands:**
 - `/session.start --issue N` - Start development session
-- `/session.start --goal "text"` - Start unstructured session
-- `/session.start --experiment --goal "text"` - Start experiment
-- `/session.start --advisory --goal "text"` - Quick question
+- `/session.start "text"` - Start unstructured session
+- `/session.start --spike "text"` - Start spike/research
 - `/session.wrap` - End session
 
 **Project context:**

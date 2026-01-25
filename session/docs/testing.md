@@ -66,7 +66,7 @@ git checkout README.md  # cleanup
 
 **Command:**
 ```bash
-.session/scripts/bash/session-start.sh --goal "Investigate performance issue" --json
+.session/scripts/bash/session-start.sh "Investigate performance issue" --json
 ```
 
 **Expected:**
@@ -140,7 +140,7 @@ rm .session/ACTIVE_SESSION
 ```
 
 **Expected:**
-- Error message: "Must specify --type, --issue, --spec, or --goal"
+- Error message: "Must specify --issue, --spec, or a goal description"
 - Usage help displayed
 - Exit code 1
 
