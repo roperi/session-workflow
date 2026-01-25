@@ -757,10 +757,13 @@ check_workflow_allowed() {
 # ============================================================================
 
 # Valid workflow transitions
+# Note: session.start creates the session but does not track step state.
+# The first tracked step is typically "plan".
 declare -A WORKFLOW_TRANSITIONS=(
-    ["none"]="start"
+    ["none"]="plan"
     ["start"]="plan execute"
-    ["plan"]="execute"
+    ["plan"]="task execute"
+    ["task"]="execute"
     ["execute"]="validate execute"
     ["validate"]="publish execute"
     ["publish"]="finalize"
@@ -780,10 +783,11 @@ set_workflow_step() {
     local step_name="$2"
     local status="$3"
     local timestamp=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
-    
-    local session_dir="${SESSIONS_DIR}/${session_id}"
+
+    local session_dir
+    session_dir=$(get_session_dir "$session_id")
     local state_file="${session_dir}/state.json"
-    
+
     if [[ ! -d "$session_dir" ]]; then
         echo -e "${RED}ERROR: Session directory not found: $session_dir${NC}" >&2
         return 1
@@ -824,9 +828,10 @@ get_workflow_step() {
     # Returns: JSON with current_step and step_status
     
     local session_id="$1"
-    local session_dir="${SESSIONS_DIR}/${session_id}"
+    local session_dir
+    session_dir=$(get_session_dir "$session_id")
     local state_file="${session_dir}/state.json"
-    
+
     if [[ -f "$state_file" ]]; then
         jq '{current_step, step_status, step_started_at, step_updated_at}' "$state_file"
     else
@@ -929,7 +934,7 @@ format_workflow_guidance() {
     echo "  Requested: $target_step"
     echo ""
     echo "  Workflow sequence:"
-    echo "  start → plan → execute → validate → publish → finalize → wrap"
+    echo "  start → plan → task → execute → validate → publish → finalize → wrap"
     echo ""
     
     if [[ "$status" == "in_progress" ]]; then
