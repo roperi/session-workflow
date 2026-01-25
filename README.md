@@ -27,8 +27,9 @@ This is the single source of truth for session workflow documentation.
 9. [Arguments](#arguments)
 10. [Workflow Examples](#workflow-examples)
 11. [Session Lifecycle](#session-lifecycle)
-12. [File Structure](#file-structure)
-13. [Troubleshooting](#troubleshooting)
+12. [Testing](#testing)
+13. [File Structure](#file-structure)
+14. [Troubleshooting](#troubleshooting)
 
 ---
 
@@ -405,6 +406,37 @@ Update regularly:
 - Commits documentation
 - Cleans merged branches
 - Clears ACTIVE_SESSION
+
+---
+
+## Testing
+
+Session-workflow has both deterministic parts (bash scripts) and non-deterministic parts (LLM output). Our test suite focuses on the deterministic core so it is safe and stable to run in CI.
+
+### Run locally
+
+```bash
+bash tests/run.sh
+```
+
+Requires: `bash`, `git`, `jq`.
+
+Optional:
+
+```bash
+TEST_VERBOSE=1 bash tests/run.sh   # prints step-by-step + JSON
+TEST_KEEP_TMP=1 bash tests/run.sh  # keeps the temp repo and prints its path
+```
+
+### What we test
+
+- `session-start.sh --json`: JSON contract (including deterministic `repo_root`) and session file creation
+- `session-preflight.sh --json`: workflow gating (detects interrupted sessions and returns exit code `2`)
+- `session-wrap.sh --json`: clears `.session/ACTIVE_SESSION`
+
+### Why we test this (and not the LLM)
+
+We intentionally do not invoke Copilot/LLMs in CI because that would be flaky (model/prompt drift) and typically requires unsafe permissions (paths/tools/URLs). These tests validate the stable “plumbing” that all agents depend on.
 
 ---
 

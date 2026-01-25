@@ -3,6 +3,16 @@ set -euo pipefail
 
 ROOT_DIR=$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)
 
+log() {
+  echo "$*"
+}
+
+vlog() {
+  if [[ "${TEST_VERBOSE:-0}" == "1" ]]; then
+    echo "$*"
+  fi
+}
+
 fail() {
   echo "FAIL: $*" >&2
   exit 1
@@ -51,20 +61,32 @@ main() {
   require_cmd git
   require_cmd jq
 
+  log "Running session-workflow bash tests..."
+
   local repo_root
   repo_root=$(make_tmp_repo)
   local tmp_base
   tmp_base=$(dirname "$repo_root")
-  # Expand $tmp_base at trap definition time (avoid relying on locals at EXIT).
-  trap "rm -rf '$tmp_base'" EXIT
+
+  if [[ "${TEST_KEEP_TMP:-0}" == "1" ]]; then
+    # Expand $tmp_base at trap definition time (avoid relying on locals at EXIT).
+    trap "echo \"Keeping temp dir: $tmp_base\" >&2" EXIT
+    log "Temp repo: $repo_root"
+  else
+    # Expand $tmp_base at trap definition time (avoid relying on locals at EXIT).
+    trap "rm -rf '$tmp_base'" EXIT
+    vlog "Temp repo: $repo_root"
+  fi
 
   install_session_workflow_into_repo "$repo_root"
 
   cd "$repo_root"
 
   # 1) Start unstructured session (JSON)
+  log "1) session-start (JSON)"
   local start_json session_id repo_root_json year_month session_dir
   start_json=$(./.session/scripts/bash/session-start.sh --json "Test goal")
+  vlog "start_json: $start_json"
   assert_eq "ok" "$(echo "$start_json" | jq -r '.status')" "session-start status"
 
   repo_root_json=$(echo "$start_json" | jq -r '.repo_root')
@@ -88,42 +110,53 @@ main() {
   assert_eq "production" "$(jq -r '.stage' "$session_dir/session-info.json")" "stage default"
 
   # 2) Preflight plan should succeed
+  log "2) session-preflight plan (JSON)"
   local preflight_plan_json
   preflight_plan_json=$(./.session/scripts/bash/session-preflight.sh --step plan --json)
+  vlog "preflight_plan_json: $preflight_plan_json"
   assert_eq "ok" "$(echo "$preflight_plan_json" | jq -r '.status')" "preflight plan status"
   assert_eq "$repo_root" "$(echo "$preflight_plan_json" | jq -r '.repo_root')" "preflight repo_root"
 
   # 3) Attempt to move to execute while plan is in_progress should warn + exit 2
+  log "3) session-preflight execute (expects interrupted warning + exit 2)"
   set +e
   local preflight_execute_json
   preflight_execute_json=$(./.session/scripts/bash/session-preflight.sh --step execute --json)
   local exit_code=$?
   set -e
+  vlog "preflight_execute_json: $preflight_execute_json"
   assert_eq "2" "$exit_code" "expected interrupted-session exit code"
   assert_eq "warning" "$(echo "$preflight_execute_json" | jq -r '.status')" "expected warning JSON"
 
   # 4) Complete plan, then task should be allowed
+  log "4) mark plan completed; preflight task"
   # shellcheck source=/dev/null
   source ./.session/scripts/bash/session-common.sh
   set_workflow_step "$session_id" "plan" "completed" >/dev/null
 
   local preflight_task_json
   preflight_task_json=$(./.session/scripts/bash/session-preflight.sh --step task --json)
+  vlog "preflight_task_json: $preflight_task_json"
   assert_eq "ok" "$(echo "$preflight_task_json" | jq -r '.status')" "preflight task status"
 
   # 5) Complete task, then execute should be allowed
+  log "5) mark task completed; preflight execute"
   set_workflow_step "$session_id" "task" "completed" >/dev/null
   local preflight_exec_ok_json
   preflight_exec_ok_json=$(./.session/scripts/bash/session-preflight.sh --step execute --json)
+  vlog "preflight_exec_ok_json: $preflight_exec_ok_json"
   assert_eq "ok" "$(echo "$preflight_exec_ok_json" | jq -r '.status')" "preflight execute status"
 
   # 6) Wrap should clear ACTIVE_SESSION
+  log "6) mark execute completed; wrap clears ACTIVE_SESSION"
   # Mark execute completed to avoid interrupted warnings
   set_workflow_step "$session_id" "execute" "completed" >/dev/null
-  ././.session/scripts/bash/session-wrap.sh --json >/dev/null
+  local wrap_json
+  wrap_json=$(././.session/scripts/bash/session-wrap.sh --json)
+  vlog "wrap_json: $wrap_json"
   [[ ! -f ".session/ACTIVE_SESSION" ]] || fail "ACTIVE_SESSION should be cleared after wrap"
 
-  echo "All tests passed."
+  log "All tests passed (start, preflight, wrap)."
 }
 
 main "$@"
