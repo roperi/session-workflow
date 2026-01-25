@@ -9,7 +9,7 @@ set -euo pipefail
 # ============================================================================
 
 REPO_URL="https://raw.githubusercontent.com/roperi/session-workflow/main"
-VERSION="1.0.0"
+VERSION="2.4.0"
 
 # Colors for output
 RED='\033[0;31m'
@@ -46,7 +46,7 @@ download_file() {
 
 update_scripts() {
     info "Updating session scripts..."
-    
+
     local scripts=(
         "session-common.sh"
         "session-start.sh"
@@ -54,19 +54,21 @@ update_scripts() {
         "session-validate.sh"
         "session-publish.sh"
         "session-finalize.sh"
+        "session-preflight.sh"
     )
-    
+
     for script in "${scripts[@]}"; do
         download_file "${REPO_URL}/session/scripts/bash/${script}" ".session/scripts/bash/${script}"
         chmod +x ".session/scripts/bash/${script}"
     done
-    
+
     success "Scripts updated"
 }
 
 update_templates() {
     info "Updating templates..."
     download_file "${REPO_URL}/session/templates/session-notes.md" ".session/templates/session-notes.md"
+    download_file "${REPO_URL}/session/templates/tasks-template.md" ".session/templates/tasks-template.md"
     success "Templates updated"
 }
 
@@ -74,46 +76,55 @@ update_docs() {
     info "Updating documentation..."
     download_file "${REPO_URL}/session/docs/README.md" ".session/docs/README.md"
     download_file "${REPO_URL}/session/docs/testing.md" ".session/docs/testing.md"
+    download_file "${REPO_URL}/session/docs/shared-workflow.md" ".session/docs/shared-workflow.md"
     success "Documentation updated"
 }
 
 update_agents() {
     info "Updating GitHub Copilot agents..."
-    
+
     local agents=(
         "session.start.agent.md"
         "session.plan.agent.md"
+        "session.task.agent.md"
         "session.execute.agent.md"
         "session.validate.agent.md"
         "session.publish.agent.md"
         "session.finalize.agent.md"
         "session.wrap.agent.md"
+        "session.clarify.agent.md"
+        "session.analyze.agent.md"
+        "session.checklist.agent.md"
     )
-    
+
     for agent in "${agents[@]}"; do
         download_file "${REPO_URL}/github/agents/${agent}" ".github/agents/${agent}"
     done
-    
+
     success "Agents updated"
 }
 
 update_prompts() {
     info "Updating GitHub Copilot prompts..."
-    
+
     local prompts=(
         "session.start.prompt.md"
         "session.plan.prompt.md"
+        "session.task.prompt.md"
         "session.execute.prompt.md"
         "session.validate.prompt.md"
         "session.publish.prompt.md"
         "session.finalize.prompt.md"
         "session.wrap.prompt.md"
+        "session.clarify.prompt.md"
+        "session.analyze.prompt.md"
+        "session.checklist.prompt.md"
     )
-    
+
     for prompt in "${prompts[@]}"; do
         download_file "${REPO_URL}/github/prompts/${prompt}" ".github/prompts/${prompt}"
     done
-    
+
     success "Prompts updated"
 }
 
