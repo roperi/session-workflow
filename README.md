@@ -63,7 +63,7 @@ cd your-project
 - `.github/prompts/session.*.prompt.md` - Slash command links
 - `.session/` - Scripts, templates, project context
 - `AGENTS.md` - AI bootstrap file (created if missing)
-- `.github/copilot_instructions.md` - Copilot config (created if missing)
+- `.github/copilot-instructions.md` - Copilot config (created if missing)
 
 **Post-install:**
 1. Customize `.session/project-context/technical-context.md` with your stack

@@ -308,33 +308,33 @@ install_bootstrap() {
         fi
     fi
     
-    # Install copilot_instructions.md if it doesn't exist
-    if [[ ! -f ".github/copilot_instructions.md" ]]; then
-        download_file "${REPO_URL}/stubs/copilot_instructions.md" ".github/copilot_instructions.md"
-        success "Created .github/copilot_instructions.md"
+    # Install copilot-instructions.md if it doesn't exist
+    if [[ ! -f ".github/copilot-instructions.md" ]]; then
+        download_file "${REPO_URL}/stubs/copilot-instructions.md" ".github/copilot-instructions.md"
+        success "Created .github/copilot-instructions.md"
     else
         # Append session workflow section if not already present
-        if ! grep -q "Session Workflow" .github/copilot_instructions.md 2>/dev/null; then
-            echo "" >> .github/copilot_instructions.md
-            echo "## Session Workflow" >> .github/copilot_instructions.md
-            echo "" >> .github/copilot_instructions.md
-            echo "This project uses session workflow for AI context continuity." >> .github/copilot_instructions.md
-            echo "" >> .github/copilot_instructions.md
-            echo "**Commands:**" >> .github/copilot_instructions.md
-            echo "- \`/session.start --issue N\` - Development session from GitHub issue" >> .github/copilot_instructions.md
-            echo "- \`/session.start --spec 001-feature\` - Spec Kit session" >> .github/copilot_instructions.md
-            echo "- \`/session.start \"description\"\` - Development session (positional description)" >> .github/copilot_instructions.md
-            echo "- \`/session.start --spike \"description\"\` - Spike/research (no PR)" >> .github/copilot_instructions.md
-            echo "- \`/session.start --resume\` - Resume active session" >> .github/copilot_instructions.md
-            echo "- \`/session.finalize\` - Post-merge cleanup (after PR merge)" >> .github/copilot_instructions.md
-            echo "- \`/session.wrap\` - End session" >> .github/copilot_instructions.md
-            echo "" >> .github/copilot_instructions.md
-            echo "**Project context:**" >> .github/copilot_instructions.md
-            echo "- \`.session/project-context/technical-context.md\` - Stack, build/test commands" >> .github/copilot_instructions.md
-            echo "- \`.session/project-context/constitution-summary.md\` - Quality standards" >> .github/copilot_instructions.md
-            success "Updated .github/copilot_instructions.md with session workflow section"
+        if ! grep -q "Session Workflow" .github/copilot-instructions.md 2>/dev/null; then
+            echo "" >> .github/copilot-instructions.md
+            echo "## Session Workflow" >> .github/copilot-instructions.md
+            echo "" >> .github/copilot-instructions.md
+            echo "This project uses session workflow for AI context continuity." >> .github/copilot-instructions.md
+            echo "" >> .github/copilot-instructions.md
+            echo "**Commands:**" >> .github/copilot-instructions.md
+            echo "- \`/session.start --issue N\` - Development session from GitHub issue" >> .github/copilot-instructions.md
+            echo "- \`/session.start --spec 001-feature\` - Spec Kit session" >> .github/copilot-instructions.md
+            echo "- \`/session.start \"description\"\` - Development session (positional description)" >> .github/copilot-instructions.md
+            echo "- \`/session.start --spike \"description\"\` - Spike/research (no PR)" >> .github/copilot-instructions.md
+            echo "- \`/session.start --resume\` - Resume active session" >> .github/copilot-instructions.md
+            echo "- \`/session.finalize\` - Post-merge cleanup (after PR merge)" >> .github/copilot-instructions.md
+            echo "- \`/session.wrap\` - End session" >> .github/copilot-instructions.md
+            echo "" >> .github/copilot-instructions.md
+            echo "**Project context:**" >> .github/copilot-instructions.md
+            echo "- \`.session/project-context/technical-context.md\` - Stack, build/test commands" >> .github/copilot-instructions.md
+            echo "- \`.session/project-context/constitution-summary.md\` - Quality standards" >> .github/copilot-instructions.md
+            success "Updated .github/copilot-instructions.md with session workflow section"
         else
-            warn ".github/copilot_instructions.md already has session workflow section, skipping"
+            warn ".github/copilot-instructions.md already has session workflow section, skipping"
         fi
     fi
 }
