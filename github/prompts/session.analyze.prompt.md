@@ -1,1 +1,3 @@
-[Session Analyze](.github/agents/session.analyze.agent.md)
+---
+agent: session.analyze
+---

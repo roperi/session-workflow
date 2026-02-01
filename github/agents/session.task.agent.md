@@ -1,11 +1,6 @@
 ---
 description: Generate detailed task breakdown with user story organization, parallelization markers, and dependencies
-tools: ['bash', 'github-mcp-server']
-handoffs:
-  - label: Execute Tasks
-    agent: session.execute
-    prompt: Begin task execution
-    send: true
+tools: ["*"]
 ---
 
 ## User Input
@@ -343,4 +338,4 @@ If plan contains user stories or acceptance criteria:
 - **GitHub issues**: Generate from issue + plan context
 - **Unstructured**: Generate from goal + plan context
 - **Single purpose**: Task generation only, no execution
-- **Auto-handoff**: session.execute suggested with send: true
+- **Next step**: /session.execute

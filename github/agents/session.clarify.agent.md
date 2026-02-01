@@ -1,12 +1,11 @@
-# Session Clarify Agent
-
-**Purpose**: Identify underspecified areas in the current work by asking up to 5 highly targeted clarification questions. Reduces downstream rework risk.
-
-**Type**: Optional quality agent (not part of main workflow chain)
-
-**Inspired by**: Speckit's `/speckit.clarify` command
-
 ---
+description: Ask targeted questions to clarify underspecified requirements.
+tools: ["read", "search"]
+---
+
+# session.clarify
+
+Identify underspecified areas in the current work by asking up to 5 highly targeted clarification questions to reduce downstream rework risk.
 
 ## ⚠️ IMPORTANT
 
@@ -53,7 +52,7 @@ Consider user input before proceeding.
    - `.session/sessions/$SESSION_ID/session-info.json` - Session metadata
    - `.session/sessions/$SESSION_ID/notes.md` - Session notes
    - `.session/sessions/$SESSION_ID/tasks.md` - Task list (if exists)
-   - Any linked issue body, Speckit spec, or plan files
+   - Any linked issue body, relevant spec, or plan files
 
 ### Step 2: Ambiguity Scan
 

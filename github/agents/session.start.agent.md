@@ -1,11 +1,6 @@
 ---
 description: Initialize session tracking and load project context
-tools: ['bash', 'github-mcp-server']
-handoffs:
-  - label: Plan Session Tasks
-    agent: session.plan
-    prompt: Generate task list for this session
-    send: true
+tools: ["*"]
 ---
 
 ## User Input

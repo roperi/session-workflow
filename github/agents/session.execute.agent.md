@@ -1,17 +1,6 @@
 ---
 description: Execute tasks with TDD discipline and single-task focus
-tools: ['bash', 'github-mcp-server']
-handoffs:
-  - label: Validate Session
-    agent: session.validate
-    prompt: Run quality checks before publishing
-    send: true
-    condition: workflow is development
-  - label: Wrap Session
-    agent: session.wrap
-    prompt: Document spike/exploration session
-    send: true
-    condition: workflow is spike
+tools: ["*"]
 ---
 
 ## User Input
@@ -305,14 +294,13 @@ Remaining: {count} tasks
 Can resume with /session.execute
 
 Next steps:
-→ /session.validate (recommended) - Auto-chains to publish
+→ /session.validate (recommended) - Run quality checks before publishing
 → /session.wrap - Skip validation and document only
 ```
 
-The CLI will present handoff to session.validate with send: true (auto-invoke).
-User can override and call session.wrap directly if needed.
+**Next step:** /session.validate (development) or /session.wrap (spike)
 
-**Handoff Reasoning**: session.execute completes implementation tasks but doesn't verify quality or create PRs. session.validate runs comprehensive quality checks (lint, tests, coverage) before publishing, ensuring nothing broken is pushed. session.wrap is for documentation only without validation.
+**Reasoning**: session.execute completes implementation tasks but doesn't verify quality or create PRs. session.validate runs comprehensive quality checks (lint, tests, coverage) before publishing, ensuring nothing broken is pushed. session.wrap is for documentation only without validation.
 
 ## Failure Modes to Avoid
 
@@ -332,4 +320,4 @@ User can override and call session.wrap directly if needed.
 - **TDD discipline**: Test → implement → verify → commit
 - **Manual verification**: Required for UI-visible changes
 - **Small commits**: One task per commit
-- **Handoff when done**: Auto-chain to session.validate (send: true)
+- **Next step**: /session.validate (development) or /session.wrap (spike)

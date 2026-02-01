@@ -1,10 +1,6 @@
 ---
 description: Create or update pull request for session work
-handoffs:
-  - label: Finalize Issues & Phase
-    agent: session.finalize
-    prompt: Update issues and close phase (run after PR merged)
-    send: false
+tools: ["*"]
 ---
 
 # session.publish
@@ -131,13 +127,11 @@ fi
 - Can't finalize until PR is merged to main
 ```
 
-## Handoff Configuration
+## Next step
 
 After successful PR creation/update:
 
-**Suggest next step**: `/session.finalize` (after PR merged to main)
-
-**Handoff**: `send: false` - suggest but wait for user (user must merge PR first)
+**Next step:** `/session.finalize` (after PR merged to main)
 
 ## CRITICAL: PR Merge Rules
 

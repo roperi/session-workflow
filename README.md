@@ -39,7 +39,7 @@ When AI context windows reset, work continuity is lost. Session workflow solves 
 
 1. **Session tracking** - What's in progress, what's done
 2. **Handoff notes** - Context for the next AI session
-3. **8-agent chain** - Structured workflow with automatic handoffs
+3. **8-agent chain** - Structured workflow with clear next-step suggestions
 4. **Git hygiene** - Ensures clean state before session ends
 
 **Agent Chain**: `start → plan → task → execute → validate → publish → finalize → wrap`
@@ -205,19 +205,14 @@ As your project matures, upgrade the stage:
 │ Document │    │ Close    │    │ Create   │                    │          │
 │ Cleanup  │    │ Issues   │    │ PR       │                    │          │
 └──────────┘    └──────────┘    └──────────┘                    └──────────┘
-                  (manual)        (manual)
 ```
 
 **Development workflow** uses all 8 agents.
 
 **Spike workflow** uses: `start → plan → task → execute → wrap` (skips validate, publish, finalize)
 
-**Automatic handoffs** (`send: true`):
-- start → plan → task → execute → validate → publish
-
-**Manual handoffs** (`send: false`):
-- publish → finalize (user monitors CI, merges PR)
-- finalize → wrap (user confirms)
+At the end of each step, the agent will suggest the next `/session.*` command.
+You run the suggested command (or choose a different step as needed).
 
 ---
 
@@ -228,46 +223,46 @@ As your project matures, upgrade the stage:
 - Load project context
 - Create feature branch
 - Review previous session notes
-- **Handoff**: → session.plan (auto)
+- **Next step:** /session.plan
 
 ### session.plan
 - Create implementation plan and approach
 - Analyze requirements and identify components
 - Or reference existing Speckit plan
-- **Handoff**: → session.task (auto)
+- **Next step:** /session.task
 
 ### session.task
 - Generate detailed task breakdown
 - Organize by user story with priorities
 - Add parallelization markers [P] and dependencies
 - Use tasks-template.md structure
-- **Handoff**: → session.execute (auto)
+- **Next step:** /session.execute
 
 ### session.execute
 - Single-task focus
 - TDD: test → implement → verify
 - Commit after each task
-- **Handoff**: → session.validate (development) or session.wrap (spike)
+- **Next step:** /session.validate (development) or /session.wrap (spike)
 
 ### session.validate
 - Run lint, tests
 - Check git state
 - Offer fixes if failures
 - **Stage-aware**: poc=warnings only, mvp=standard, production=strict
-- **Handoff**: → session.publish (auto if pass)
+- **Suggested next command (if validation passes):** /session.publish
 - **Only for**: development workflow
 
 ### session.publish
 - Create or update PR
 - Link issues
-- **Handoff**: → session.finalize (manual)
+- **Next step:** After the PR is merged, run /session.finalize
 - **Only for**: development workflow
 
 ### session.finalize
 - Validate PR is merged
 - Close issues
 - Update parent issues
-- **Handoff**: → session.wrap (manual)
+- **Next step:** /session.wrap
 - **Only for**: development workflow
 
 ### session.wrap
@@ -357,7 +352,7 @@ start → plan → [clarify?] → task → [analyze?] → [checklist?] → execu
 # Start
 /session.start --issue 456
 
-# Auto-chains through: plan → task → execute → validate → publish
+# Suggested flow: plan → task → execute → validate → publish
 # You interact at each step
 
 # After PR merged

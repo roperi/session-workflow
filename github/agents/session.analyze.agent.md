@@ -1,12 +1,11 @@
-# Session Analyze Agent
-
-**Purpose**: Perform non-destructive cross-artifact consistency and quality analysis after task generation. Identifies inconsistencies, gaps, and issues before implementation.
-
-**Type**: Optional quality agent (not part of main workflow chain)
-
-**Inspired by**: Speckit's `/speckit.analyze` command
-
 ---
+description: Perform non-destructive cross-artifact consistency and quality analysis.
+tools: ["read", "search"]
+---
+
+# session.analyze
+
+Perform non-destructive cross-artifact consistency and quality analysis after task generation. Identify inconsistencies, gaps, and issues before implementation.
 
 ## ⚠️ IMPORTANT
 
@@ -64,7 +63,7 @@ Consider user input before proceeding.
    - `.session/sessions/$SESSION_ID/tasks.md` - Task list (**required**)
    - `.session/project-context/constitution-summary.md` - Quality standards
    - `.session/project-context/technical-context.md` - Stack/environment
-   - Linked issue body or Speckit spec (if applicable)
+   - Linked issue body or relevant spec (if applicable)
 
 4. If `tasks.md` missing, abort with: "No tasks found. Run `/session.task` first."
 

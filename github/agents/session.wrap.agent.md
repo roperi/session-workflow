@@ -1,6 +1,6 @@
 ---
 description: Finalize session with documentation and cleanup (end of session workflow chain)
-tools: ['bash']
+tools: ["*"]
 ---
 
 ## User Input

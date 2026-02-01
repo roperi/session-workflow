@@ -1,1 +1,3 @@
-[Session Clarify](.github/agents/session.clarify.agent.md)
+---
+agent: session.clarify
+---

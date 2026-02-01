@@ -1,12 +1,11 @@
-# Session Checklist Agent
-
-**Purpose**: Generate custom quality checklists for the current session. Checklists validate requirements quality, not implementation - they are "unit tests for English".
-
-**Type**: Optional quality agent (not part of main workflow chain)
-
-**Inspired by**: Speckit's `/speckit.checklist` command
-
 ---
+description: Generate a custom quality checklist for the current session.
+tools: ["read", "search"]
+---
+
+# session.checklist
+
+Generate custom quality checklists for the current session. Checklists validate requirements quality, not implementation.
 
 ## ⚠️ IMPORTANT
 
@@ -71,7 +70,7 @@ Consider user input before proceeding. User may specify:
    - `.session/sessions/$SESSION_ID/session-info.json` - Session metadata
    - `.session/sessions/$SESSION_ID/notes.md` - Session notes/plan
    - `.session/sessions/$SESSION_ID/tasks.md` - Task list (if exists)
-   - Linked issue body or Speckit spec (if applicable)
+   - Linked issue body or relevant spec (if applicable)
 
 ### Step 2: Clarify Intent
 
