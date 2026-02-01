@@ -2,6 +2,20 @@
 
 All notable changes to this project will be documented in this file.
 
+## [2.4.1] - 2026-02
+- **FIX**: Restore GitHub Copilot custom agent compatibility
+  - Removed unsupported YAML frontmatter `handoffs` (and prior `send: true|false` semantics)
+  - Agents now suggest the next `/session.*` command (manual chaining)
+  - Prompt link files must contain only:
+    ```yaml
+    ---
+    agent: session.<name>
+    ---
+    ```
+  - Added missing YAML frontmatter for `session.analyze`, `session.checklist`, `session.clarify`
+- **DOCS**: Remove irrelevant Speckit references and update docs to match the manual-chaining model
+- **FIX**: Correct Copilot instructions filename to `.github/copilot-instructions.md`
+
 ## [2.4.0] - 2026-01
 - **NEW**: Project stage flag `--stage poc|mvp|production`
 - **NEW**: Stage-aware validation (poc=warnings, mvp=standard, production=strict)
@@ -13,7 +27,6 @@ All notable changes to this project will be documented in this file.
   - `/session.clarify` - Ask targeted questions to reduce ambiguity
   - `/session.analyze` - Cross-artifact consistency check (read-only)
   - `/session.checklist` - Generate requirements quality checklists
-- Inspired by Speckit's clarify, analyze, and checklist commands
 
 ## [2.2.0] - 2026-01
 - **NEW**: Added dedicated `session.task` agent for task generation
@@ -21,7 +34,6 @@ All notable changes to this project will be documented in this file.
 - **CHANGE**: `session.plan` now focuses on implementation planning only
 - **NEW**: Added `tasks-template.md` with user story organization
 - **NEW**: Task format includes parallelization markers [P], user story labels [US1], and dependencies
-- Inspired by Speckit's task generation workflow
 
 ## [2.1.1] - 2026-01
 - Added documentation for parallel sessions using git worktree
