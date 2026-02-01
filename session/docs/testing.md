@@ -94,7 +94,7 @@ git checkout README.md  # cleanup
 
 ---
 
-### Test 6: Previous Session Handoff
+### Test 6: Previous Session Context
 
 **Command:**
 ```bash
@@ -210,7 +210,7 @@ cat .session/sessions/{session_id}/tasks.md
 | Git dirty on wrap | Hard block (exit 1) |
 | Empty notes on wrap | Soft warning (still completes) |
 | Missing "For Next Session" | Soft warning |
-| Incomplete tasks | Soft warning + included in handoff |
+| Incomplete tasks | Soft warning + included in previous session context |
 | Speckit session | No tasks.md created |
 
 ---

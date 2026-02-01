@@ -1,11 +1,6 @@
 ---
 description: Create implementation plan and approach for session work
-tools: ['bash', 'github-mcp-server']
-handoffs:
-  - label: Generate Tasks
-    agent: session.task
-    prompt: Generate detailed task breakdown
-    send: true
+tools: ["*"]
 ---
 
 ## User Input
@@ -240,9 +235,9 @@ Plan: Written to notes.md
 Ready for task generation → /session.task
 ```
 
-The CLI will present the handoff option automatically based on frontmatter.
+**Next step:** `/session.task`
 
-**Handoff Reasoning**: session.plan creates the high-level implementation plan but doesn't break it into detailed tasks. session.task generates the structured task list with user story organization, parallelization markers, and dependencies.
+**Why:** session.plan creates the high-level implementation plan but doesn't break it into detailed tasks. session.task generates the structured task list with user story organization, parallelization markers, and dependencies.
 
 ## Planning Guidelines
 
@@ -282,4 +277,4 @@ Include:
 - **GitHub issues**: Create plan from issue content
 - **Unstructured**: Create plan from goal
 - **Single responsibility**: Planning only, no task generation
-- **Auto-handoff**: session.task will be suggested with send: true
+- **Next step:** `/session.task`

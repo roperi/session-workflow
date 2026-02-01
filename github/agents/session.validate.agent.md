@@ -1,10 +1,6 @@
 ---
 description: Validates session work quality before publishing
-handoffs:
-  - label: Publish PR
-    agent: session.publish
-    prompt: Create or update pull request with validation results
-    send: true
+tools: ["*"]
 ---
 
 # session.validate

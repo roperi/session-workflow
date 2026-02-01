@@ -1,1 +1,3 @@
-[Session Checklist](.github/agents/session.checklist.agent.md)
+---
+agent: session.checklist
+---
