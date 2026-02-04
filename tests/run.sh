@@ -109,16 +109,24 @@ main() {
   assert_eq "development" "$(jq -r '.workflow' "$session_dir/session-info.json")" "workflow default"
   assert_eq "production" "$(jq -r '.stage' "$session_dir/session-info.json")" "stage default"
 
-  # 2) Preflight plan should succeed
-  log "2) session-preflight plan (JSON)"
+  # 2) session-handoff-list should include the created session
+  log "2) session-handoff-list (JSON)"
+  local list_json
+  list_json=$(./.session/scripts/bash/session-handoff-list.sh --json)
+  vlog "list_json: $list_json"
+  assert_eq "ok" "$(echo "$list_json" | jq -r '.status')" "handoff list status"
+  assert_eq "$session_id" "$(echo "$list_json" | jq -r '.sessions[0].id')" "most recent session should be first"
+
+  # 3) Preflight plan should succeed
+  log "3) session-preflight plan (JSON)"
   local preflight_plan_json
   preflight_plan_json=$(./.session/scripts/bash/session-preflight.sh --step plan --json)
   vlog "preflight_plan_json: $preflight_plan_json"
   assert_eq "ok" "$(echo "$preflight_plan_json" | jq -r '.status')" "preflight plan status"
   assert_eq "$repo_root" "$(echo "$preflight_plan_json" | jq -r '.repo_root')" "preflight repo_root"
 
-  # 3) Attempt to move to execute while plan is in_progress should warn + exit 2
-  log "3) session-preflight execute (expects interrupted warning + exit 2)"
+  # 4) Attempt to move to execute while plan is in_progress should warn + exit 2
+  log "4) session-preflight execute (expects interrupted warning + exit 2)"
   set +e
   local preflight_execute_json
   preflight_execute_json=$(./.session/scripts/bash/session-preflight.sh --step execute --json)
@@ -128,8 +136,8 @@ main() {
   assert_eq "2" "$exit_code" "expected interrupted-session exit code"
   assert_eq "warning" "$(echo "$preflight_execute_json" | jq -r '.status')" "expected warning JSON"
 
-  # 4) Complete plan, then task should be allowed
-  log "4) mark plan completed; preflight task"
+  # 5) Complete plan, then task should be allowed
+  log "5) mark plan completed; preflight task"
   # shellcheck source=/dev/null
   source ./.session/scripts/bash/session-common.sh
   set_workflow_step "$session_id" "plan" "completed" >/dev/null
@@ -139,16 +147,16 @@ main() {
   vlog "preflight_task_json: $preflight_task_json"
   assert_eq "ok" "$(echo "$preflight_task_json" | jq -r '.status')" "preflight task status"
 
-  # 5) Complete task, then execute should be allowed
-  log "5) mark task completed; preflight execute"
+  # 6) Complete task, then execute should be allowed
+  log "6) mark task completed; preflight execute"
   set_workflow_step "$session_id" "task" "completed" >/dev/null
   local preflight_exec_ok_json
   preflight_exec_ok_json=$(./.session/scripts/bash/session-preflight.sh --step execute --json)
   vlog "preflight_exec_ok_json: $preflight_exec_ok_json"
   assert_eq "ok" "$(echo "$preflight_exec_ok_json" | jq -r '.status')" "preflight execute status"
 
-  # 6) Wrap should clear ACTIVE_SESSION
-  log "6) mark execute completed; wrap clears ACTIVE_SESSION"
+  # 7) Wrap should clear ACTIVE_SESSION
+  log "7) mark execute completed; wrap clears ACTIVE_SESSION"
   # Mark execute completed to avoid interrupted warnings
   set_workflow_step "$session_id" "execute" "completed" >/dev/null
   local wrap_json

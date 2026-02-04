@@ -243,6 +243,8 @@ install_scripts() {
         "session-validate.sh"
         "session-publish.sh"
         "session-finalize.sh"
+        "session-preflight.sh"
+        "session-handoff-list.sh"
     )
     
     mkdir -p .session/scripts/bash

@@ -100,7 +100,9 @@ check_session_readiness() {
     if [[ -f "$notes_file" ]]; then
         local for_next
         for_next=$(get_for_next_session_section "$session_id")
-        if [[ -z "$for_next" ]] || [[ "$for_next" == "## For Next Session" ]]; then
+        local for_next_body
+        for_next_body=$(echo "$for_next" | tail -n +2 | tr -d '[:space:]' 2>/dev/null || true)
+        if [[ -z "$for_next" ]] || [[ -z "$for_next_body" ]]; then
             warnings+=("notes.md missing 'For Next Session' content")
         fi
     fi

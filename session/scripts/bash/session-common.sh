@@ -452,12 +452,16 @@ load_session_notes_summary() {
 
 get_for_next_session_section() {
     # Extract "For Next Session" section from notes
+    # Includes blank lines; stops only at next markdown H2 heading or EOF.
     local session_id="$1"
     local notes_file="${SESSIONS_DIR}/${session_id}/notes.md"
-    
+
     if [[ -f "$notes_file" ]]; then
-        # Extract content from "## For Next Session" until next "##" or end
-        awk '/^## For Next Session/,/^## [^F]|^$/' "$notes_file" | head -20
+        awk '
+            $0 ~ /^## For Next Session[[:space:]]*$/ {in=1; print; next}
+            in && $0 ~ /^## / {exit}
+            in {print}
+        ' "$notes_file" | head -20
     else
         echo ""
     fi
