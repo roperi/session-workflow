@@ -1,6 +1,6 @@
 # GitHub MCP config (may contain API keys)
 .github/mcp-config.json
-.github/copilot_instructions.md
+.github/copilot-instructions.md
 
 # OS / editor
 .DS_Store
