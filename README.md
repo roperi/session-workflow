@@ -278,13 +278,13 @@ You run the suggested command (or choose a different step as needed).
 
 ---
 
-## Optional Quality Agents
+## Optional Agents
 
-These agents are **not part of the main 8-agent chain**. Use them for quality checks at any time.
+These agents are **not part of the main 8-agent chain**.
 
-## Knowledge Capture Agents
+### Knowledge Capture Agents
 
-These agents are also **optional** (not part of the main chain), but they create **version-controlled** artifacts under `docs/`.
+These create **version-controlled** artifacts under `docs/`.
 
 ### session.brainstorm
 - Clarify **WHAT/WHY** and explore 2-3 approaches
@@ -296,6 +296,9 @@ These agents are also **optional** (not part of the main chain), but they create
 - Focus: symptoms → root cause → fix → prevention
 - **Best used**: After a meaningful solution/decision, often near the end of a session
 
+### Quality Agents
+
+Use these for requirements hygiene and consistency checks at any time.
 
 ### session.clarify
 - Ask up to 5 targeted questions to reduce ambiguity
