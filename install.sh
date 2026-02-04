@@ -262,6 +262,7 @@ install_templates() {
     
     mkdir -p .session/templates
     download_file "${REPO_URL}/session/templates/session-notes.md" ".session/templates/session-notes.md"
+    download_file "${REPO_URL}/session/templates/tasks-template.md" ".session/templates/tasks-template.md"
     
     success "Templates installed"
 }
@@ -590,11 +591,17 @@ install_agents() {
     local agents=(
         "session.start.agent.md"
         "session.plan.agent.md"
+        "session.task.agent.md"
         "session.execute.agent.md"
         "session.validate.agent.md"
         "session.publish.agent.md"
         "session.finalize.agent.md"
         "session.wrap.agent.md"
+        "session.clarify.agent.md"
+        "session.analyze.agent.md"
+        "session.checklist.agent.md"
+        "session.brainstorm.agent.md"
+        "session.compound.agent.md"
     )
     
     mkdir -p .github/agents
@@ -616,11 +623,17 @@ install_prompts() {
     local prompts=(
         "session.start.prompt.md"
         "session.plan.prompt.md"
+        "session.task.prompt.md"
         "session.execute.prompt.md"
         "session.validate.prompt.md"
         "session.publish.prompt.md"
         "session.finalize.prompt.md"
         "session.wrap.prompt.md"
+        "session.clarify.prompt.md"
+        "session.analyze.prompt.md"
+        "session.checklist.prompt.md"
+        "session.brainstorm.prompt.md"
+        "session.compound.prompt.md"
     )
     
     mkdir -p .github/prompts

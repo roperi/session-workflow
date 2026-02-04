@@ -44,6 +44,10 @@ When AI context windows reset, work continuity is lost. Session workflow solves 
 
 **Agent Chain**: `start → plan → task → execute → validate → publish → finalize → wrap`
 
+**Optional knowledge agents** (version-controlled docs):
+- `/session.brainstorm` → writes to `docs/brainstorms/` (clarify WHAT/WHY before planning)
+- `/session.compound` → writes to `docs/solutions/` (capture reusable learnings after solving)
+
 ---
 
 ## Installation
@@ -278,6 +282,21 @@ You run the suggested command (or choose a different step as needed).
 
 These agents are **not part of the main 8-agent chain**. Use them for quality checks at any time.
 
+## Knowledge Capture Agents
+
+These agents are also **optional** (not part of the main chain), but they create **version-controlled** artifacts under `docs/`.
+
+### session.brainstorm
+- Clarify **WHAT/WHY** and explore 2-3 approaches
+- Captures decisions + open questions in `docs/brainstorms/`
+- **Best used**: Before `/session.plan` (or before `/session.task` if plan already exists)
+
+### session.compound
+- Capture solved problems as reusable solution docs in `docs/solutions/`
+- Focus: symptoms → root cause → fix → prevention
+- **Best used**: After a meaningful solution/decision, often near the end of a session
+
+
 ### session.clarify
 - Ask up to 5 targeted questions to reduce ambiguity
 - Records clarifications in session notes
@@ -296,11 +315,20 @@ These agents are **not part of the main 8-agent chain**. Use them for quality ch
 - **Best used**: Before implementation or PR review
 - **Inspired by**: Speckit's `/speckit.checklist`
 
-**Usage pattern:**
+**Usage patterns:**
+
+Quality (requirements hygiene):
 ```
 start → plan → [clarify?] → task → [analyze?] → [checklist?] → execute → ...
                    ↑                    ↑              ↑
             Optional quality checks (reduce downstream rework)
+```
+
+Knowledge capture (compounding docs):
+```
+start → [brainstorm?] → plan → task → execute → ... → wrap → [compound?]
+         ↑                                         ↑
+   clarify WHAT/WHY                         capture learnings
 ```
 
 ---
