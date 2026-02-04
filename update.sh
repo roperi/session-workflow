@@ -96,6 +96,8 @@ update_agents() {
         "session.clarify.agent.md"
         "session.analyze.agent.md"
         "session.checklist.agent.md"
+        "session.brainstorm.agent.md"
+        "session.compound.agent.md"
     )
 
     for agent in "${agents[@]}"; do
@@ -120,6 +122,8 @@ update_prompts() {
         "session.clarify.prompt.md"
         "session.analyze.prompt.md"
         "session.checklist.prompt.md"
+        "session.brainstorm.prompt.md"
+        "session.compound.prompt.md"
     )
 
     for prompt in "${prompts[@]}"; do

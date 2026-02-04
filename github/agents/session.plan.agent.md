@@ -70,6 +70,27 @@ echo "Workflow: $WORKFLOW"
 
 **Allowed workflows**: development, spike (both need planning!)
 
+### 2.5. OPTIONAL: Check for Recent Brainstorm (Version-Controlled)
+
+If `docs/brainstorms/` exists, look for a recent brainstorm relevant to the current goal/issue and use it as planning input (do not rewrite it).
+
+```bash
+# Optional knowledge base (committed to git)
+if [ -d "docs/brainstorms" ]; then
+  ls -1t docs/brainstorms/*.md 2>/dev/null | head -10
+fi
+```
+
+If a brainstorm looks relevant:
+- Read it and treat its **Recommendation / Key Decisions** as planning constraints.
+- Add a reference in session notes:
+  ```markdown
+  ## Brainstorm
+  - docs/brainstorms/<file>.md
+  ```
+
+If none exists, proceed normally (do NOT create one automatically).
+
 **Workflow difference**:
 - **development**: plan → task → execute → validate → publish → finalize → wrap
 - **spike**: plan → task → execute → wrap (skips PR steps)

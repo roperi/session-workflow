@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file.
 
+## [Unreleased]
+- **NEW**: Optional knowledge capture agents:
+  - `/session.brainstorm` writes brainstorm docs to `docs/brainstorms/`
+  - `/session.compound` writes solution docs to `docs/solutions/`
+- **CHANGE**: Installer/updater now includes brainstorm/compound agents and prompts
+- **CHANGE**: `session.plan` can now optionally reference recent brainstorm docs from `docs/brainstorms/`
+
 ## [2.4.1] - 2026-02
 - **FIX**: Restore GitHub Copilot custom agent compatibility
   - Removed unsupported YAML frontmatter `handoffs` (and prior `send: true|false` semantics)
