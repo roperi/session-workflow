@@ -100,9 +100,11 @@ check_session_readiness() {
     if [[ -f "$notes_file" ]]; then
         local for_next
         for_next=$(get_for_next_session_section "$session_id")
+        # Extract the body of the "For Next Session" section (excluding the header).
+        # A body containing only whitespace (spaces, tabs, newlines) is treated as empty.
         local for_next_body
-        for_next_body=$(echo "$for_next" | tail -n +2 | tr -d '[:space:]' 2>/dev/null || true)
-        if [[ -z "$for_next" ]] || [[ -z "$for_next_body" ]]; then
+        for_next_body=$(echo "$for_next" | tail -n +2 2>/dev/null || true)
+        if [[ -z "$for_next" ]] || ! printf '%s' "$for_next_body" | grep -q '[^[:space:]]'; then
             warnings+=("notes.md missing 'For Next Session' content")
         fi
     fi

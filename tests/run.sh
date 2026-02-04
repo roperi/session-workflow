@@ -164,6 +164,37 @@ main() {
   vlog "wrap_json: $wrap_json"
   [[ ! -f ".session/ACTIVE_SESSION" ]] || fail "ACTIVE_SESSION should be cleared after wrap"
 
+  # 8) Start a chained session with git context scaffold
+  log "8) session-start --continues-from + --git-context"
+  local start2_json session_id2 year_month2 session_dir2
+  start2_json=$(./.session/scripts/bash/session-start.sh --json --continues-from "$session_id" --git-context "Test goal 2")
+  vlog "start2_json: $start2_json"
+  assert_eq "ok" "$(echo "$start2_json" | jq -r '.status')" "session-start (chained) status"
+  assert_eq "$session_id" "$(echo "$start2_json" | jq -r '.session.parent_session_id')" "parent_session_id should be set"
+  assert_eq "$session_id" "$(echo "$start2_json" | jq -r '.previous_session.id')" "previous_session should be explicit parent"
+  [[ -n "$(echo "$start2_json" | jq -r '.previous_session.staleness.classification')" ]] || fail "missing staleness classification"
+
+  session_id2=$(echo "$start2_json" | jq -r '.session.id')
+  year_month2=$(echo "$session_id2" | cut -d'-' -f1,2)
+  session_dir2=".session/sessions/${year_month2}/${session_id2}"
+  assert_file_exists "$session_dir2/notes.md"
+  grep -q "^## Git Context (auto)" "$session_dir2/notes.md" || fail "expected Git Context scaffold in notes"
+
+  # Wrap second session
+  set_workflow_step "$session_id2" "execute" "completed" >/dev/null
+  ././.session/scripts/bash/session-wrap.sh --json >/dev/null
+  [[ ! -f ".session/ACTIVE_SESSION" ]] || fail "ACTIVE_SESSION should be cleared after wrap (session2)"
+
+  # 9) --continues-from should error for missing session
+  log "9) session-start --continues-from missing session (expects error)"
+  set +e
+  local start_missing_json
+  start_missing_json=$(./.session/scripts/bash/session-start.sh --json --continues-from 2099-01-01-1 "X")
+  local missing_exit=$?
+  set -e
+  [[ "$missing_exit" != "0" ]] || fail "expected non-zero exit for missing continues-from"
+  assert_eq "error" "$(echo "$start_missing_json" | jq -r '.status')" "expected error JSON for missing continues-from"
+
   log "All tests passed (start, preflight, wrap)."
 }
 

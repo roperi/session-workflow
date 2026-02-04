@@ -123,6 +123,10 @@ parse_args() {
                 ;;
             --continues-from)
                 CONTINUES_FROM="$2"
+                if [[ -z "${CONTINUES_FROM}" ]] || [[ "${CONTINUES_FROM}" == -* ]] || [[ ! "${CONTINUES_FROM}" =~ ^[0-9]{4}-[0-9]{2}-[0-9]{2}-[0-9]+$ ]]; then
+                    echo "ERROR: Invalid session ID for --continues-from: '${CONTINUES_FROM}' (expected YYYY-MM-DD-N)" >&2
+                    exit 1
+                fi
                 shift 2
                 ;;
             --git-context)
@@ -281,7 +285,11 @@ append_git_context_scaffold() {
         echo "- HEAD: ${sha}"
         echo "- Working tree: ${status}"
         echo "- Recent commits:"
-        git log -5 --oneline 2>/dev/null | sed 's/^/  - /' || echo "  - (no commits)"
+        if git rev-parse --verify HEAD >/dev/null 2>&1; then
+            git log -5 --oneline 2>/dev/null | sed 's/^/  - /'
+        else
+            echo "  - (no commits)"
+        fi
     } >> "$notes_file"
 }
 
@@ -438,6 +446,7 @@ output_json() {
                 staleness_class="same_head"
                 staleness_message="Repo HEAD matches previous session commit."
             elif git cat-file -e "${prev_commit}^{commit}" >/dev/null 2>&1; then
+                # If this check fails we treat it as "missing" (could also indicate other git errors).
                 if git merge-base --is-ancestor "$prev_commit" HEAD >/dev/null 2>&1; then
                     staleness_class="ahead_of_previous"
                     staleness_message="Current HEAD is ahead of previous session commit; review intervening changes."
@@ -447,7 +456,7 @@ output_json() {
                 fi
             else
                 staleness_class="previous_commit_missing"
-                staleness_message="Previous session commit not found in history; repository may have been rewritten."
+                staleness_message="Previous session commit not found (or not accessible); repository may have been rewritten."
             fi
         else
             staleness_class="no_previous_commit"
@@ -490,6 +499,8 @@ EOF
 
     local sess_parent
     sess_parent=$(echo "$session_info" | jq -r '.parent_session_id // empty')
+    local sess_parent_escaped
+    sess_parent_escaped=$(json_escape "$sess_parent")
     
     cat << EOF
 {
@@ -503,7 +514,7 @@ EOF
     "type": "${sess_type}",
     "stage": "${sess_stage}",
     "dir": "${session_dir}"$(if [[ -n "$sess_parent" ]]; then echo ",
-    \"parent_session_id\": \"${sess_parent}\""; fi),
+    \"parent_session_id\": \"${sess_parent_escaped}\""; fi),
     "files": {
       "info": "${session_dir}/session-info.json",
       "state": "${session_dir}/state.json",
@@ -702,6 +713,19 @@ main() {
             output_human "$active_session" "true"
         fi
         exit 0
+    fi
+
+    if [[ -n "${CONTINUES_FROM}" ]]; then
+        local continue_dir
+        continue_dir=$(get_session_dir "${CONTINUES_FROM}")
+        if [[ ! -d "${continue_dir}" ]]; then
+            if $JSON_OUTPUT; then
+                echo "{\"status\": \"error\", \"message\": \"--continues-from session not found: ${CONTINUES_FROM}\", \"hint\": \"Check .session/sessions for existing sessions\"}"
+            else
+                print_error "--continues-from session not found: ${CONTINUES_FROM}"
+            fi
+            exit 1
+        fi
     fi
     
     # Creating new session - validate type

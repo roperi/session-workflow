@@ -458,7 +458,7 @@ get_for_next_session_section() {
 
     if [[ -f "$notes_file" ]]; then
         awk '
-            $0 ~ /^## For Next Session[[:space:]]*$/ {in=1; print; next}
+            /^## For Next Session[[:space:]]*$/ {in=1; print; next}
             in && $0 ~ /^## / {exit}
             in {print}
         ' "$notes_file" | head -20
