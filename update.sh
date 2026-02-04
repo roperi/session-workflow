@@ -55,6 +55,7 @@ update_scripts() {
         "session-publish.sh"
         "session-finalize.sh"
         "session-preflight.sh"
+        "session-handoff-list.sh"
     )
 
     for script in "${scripts[@]}"; do

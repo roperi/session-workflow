@@ -21,6 +21,8 @@ WORKFLOW="development"  # Default workflow
 STAGE="production"      # Default stage (strictest)
 RESUME_MODE=false
 COMMENT=""
+CONTINUES_FROM=""
+GIT_CONTEXT=false
 
 # ============================================================================
 # Usage
@@ -37,9 +39,11 @@ OPTIONS:
     --spec DIR        Spec directory name (starts speckit session)
     --spike           Spike workflow: exploration/research, no PR expected
     --stage STAGE     Project stage: poc, mvp, or production (default: production)
-    --resume          Resume an active session (including interrupted)
-    --comment "TEXT"  Additional instructions for the session
-    --json            Output JSON for AI consumption
+    --resume                   Resume an active session (including interrupted)
+    --comment "TEXT"           Additional instructions for the session
+    --continues-from SESSION_ID New session continues from a previous session
+    --git-context              Append a Git Context scaffold block to notes.md (or set SESSION_GIT_CONTEXT=1)
+    --json                     Output JSON for AI consumption
     -h, --help        Show this help
 
 GOAL:
@@ -117,6 +121,18 @@ parse_args() {
                 COMMENT="$2"
                 shift 2
                 ;;
+            --continues-from)
+                CONTINUES_FROM="$2"
+                if [[ -z "${CONTINUES_FROM}" ]] || [[ "${CONTINUES_FROM}" == -* ]] || [[ ! "${CONTINUES_FROM}" =~ ^[0-9]{4}-[0-9]{2}-[0-9]{2}-[0-9]+$ ]]; then
+                    echo "ERROR: Invalid session ID for --continues-from: '${CONTINUES_FROM}' (expected YYYY-MM-DD-N)" >&2
+                    exit 1
+                fi
+                shift 2
+                ;;
+            --git-context)
+                GIT_CONTEXT=true
+                shift
+                ;;
             --json)
                 JSON_OUTPUT=true
                 shift
@@ -158,6 +174,11 @@ create_session_info() {
     
     # Stage is "poc", "mvp", or "production" (default)
     local stage="${STAGE}"
+
+    local parent_json=""
+    if [[ -n "$CONTINUES_FROM" ]]; then
+        parent_json=$',\n  "parent_session_id": "'"${CONTINUES_FROM}"'"'
+    fi
     
     # Build JSON based on type
     case $SESSION_TYPE in
@@ -170,7 +191,7 @@ create_session_info() {
   "workflow": "${workflow}",
   "stage": "${stage}",
   "created_at": "${created_at}",
-  "spec_dir": "specs/${SPEC_DIR}"
+  "spec_dir": "specs/${SPEC_DIR}"${parent_json}
 }
 SESSIONEOF
             ;;
@@ -188,7 +209,7 @@ SESSIONEOF
   "stage": "${stage}",
   "created_at": "${created_at}",
   "issue_number": ${ISSUE_NUMBER},
-  "issue_title": "$(json_escape "$issue_title")"
+  "issue_title": "$(json_escape "$issue_title")"${parent_json}
 }
 SESSIONEOF
             ;;
@@ -201,7 +222,7 @@ SESSIONEOF
   "workflow": "${workflow}",
   "stage": "${stage}",
   "created_at": "${created_at}",
-  "goal": "$(json_escape "$GOAL")"
+  "goal": "$(json_escape "$GOAL")"${parent_json}
 }
 SESSIONEOF
             ;;
@@ -244,6 +265,34 @@ create_session_state() {
 EOF
 }
 
+append_git_context_scaffold() {
+    local notes_file="$1"
+
+    local branch sha status
+    branch=$(git branch --show-current 2>/dev/null || echo "unknown")
+    sha=$(git rev-parse --short HEAD 2>/dev/null || echo "unknown")
+
+    if git diff --quiet 2>/dev/null && git diff --cached --quiet 2>/dev/null; then
+        status="clean"
+    else
+        status="dirty"
+    fi
+
+    {
+        echo ""
+        echo "## Git Context (auto)"
+        echo "- Branch: ${branch}"
+        echo "- HEAD: ${sha}"
+        echo "- Working tree: ${status}"
+        echo "- Recent commits:"
+        if git rev-parse --verify HEAD >/dev/null 2>&1; then
+            git log -5 --oneline 2>/dev/null | sed 's/^/  - /'
+        else
+            echo "  - (no commits)"
+        fi
+    } >> "$notes_file"
+}
+
 create_session_notes() {
     local session_id="$1"
     local session_dir
@@ -272,6 +321,14 @@ create_session_notes() {
 
 ## Technical Notes (optional)
 EOF
+    fi
+
+    if [[ "${SESSION_GIT_CONTEXT:-}" == "1" ]]; then
+        GIT_CONTEXT=true
+    fi
+
+    if [[ "$GIT_CONTEXT" == "true" ]]; then
+        append_git_context_scaffold "$notes_file"
     fi
 }
 
@@ -343,7 +400,11 @@ output_json() {
     
     # Get previous session info
     local prev_session
-    prev_session=$(get_previous_session)
+    if [[ -n "${CONTINUES_FROM}" ]] && [[ "$is_resume" == "false" ]]; then
+        prev_session="${CONTINUES_FROM}"
+    else
+        prev_session=$(get_previous_session)
+    fi
     local prev_info=""
     
     if [[ -n "$prev_session" ]]; then
@@ -360,13 +421,64 @@ output_json() {
             incomplete_tasks=$(get_incomplete_tasks "$prev_tasks_file" | head -5)
             incomplete_tasks=$(json_escape "$incomplete_tasks")
         fi
-        
+
+        # Staleness classification vs current HEAD
+        local current_branch current_commit
+        current_branch=$(git branch --show-current 2>/dev/null || echo "unknown")
+        current_commit=$(git rev-parse --short HEAD 2>/dev/null || echo "unknown")
+
+        local prev_branch="" prev_commit=""
+        local prev_state_file="${prev_session_dir}/state.json"
+        if [[ -f "$prev_state_file" ]]; then
+            prev_branch=$(jq -r '.git.branch // ""' "$prev_state_file" 2>/dev/null || echo "")
+            prev_commit=$(jq -r '.git.last_commit // ""' "$prev_state_file" 2>/dev/null || echo "")
+        fi
+
+        local staleness_class="unknown"
+        local staleness_message=""
+        local branch_changed=false
+        if [[ -n "$prev_branch" && "$prev_branch" != "$current_branch" ]]; then
+            branch_changed=true
+        fi
+
+        if [[ -n "$prev_commit" && "$current_commit" != "unknown" ]]; then
+            if [[ "$prev_commit" == "$current_commit" ]]; then
+                staleness_class="same_head"
+                staleness_message="Repo HEAD matches previous session commit."
+            elif git cat-file -e "${prev_commit}^{commit}" >/dev/null 2>&1; then
+                # If this check fails we treat it as "missing" (could also indicate other git errors).
+                if git merge-base --is-ancestor "$prev_commit" HEAD >/dev/null 2>&1; then
+                    staleness_class="ahead_of_previous"
+                    staleness_message="Current HEAD is ahead of previous session commit; review intervening changes."
+                else
+                    staleness_class="diverged_from_previous"
+                    staleness_message="Current HEAD has diverged from previous session commit; reconcile context carefully."
+                fi
+            else
+                staleness_class="previous_commit_missing"
+                staleness_message="Previous session commit not found (or not accessible); repository may have been rewritten."
+            fi
+        else
+            staleness_class="no_previous_commit"
+            staleness_message="No previous session git commit recorded."
+        fi
+        staleness_message=$(json_escape "$staleness_message")
+
         prev_info=$(cat << EOF
   "previous_session": {
     "id": "${prev_session}",
     "notes_file": "${prev_session_dir}/notes.md",
     "for_next_session": "${prev_notes}",
-    "incomplete_tasks": "${incomplete_tasks}"
+    "incomplete_tasks": "${incomplete_tasks}",
+    "git": {
+      "branch": "$(json_escape "$prev_branch")",
+      "last_commit": "$(json_escape "$prev_commit")"
+    },
+    "staleness": {
+      "classification": "${staleness_class}",
+      "branch_changed": ${branch_changed},
+      "message": "${staleness_message}"
+    }
   },
 EOF
 )
@@ -384,6 +496,11 @@ EOF
     
     local sess_stage
     sess_stage=$(echo "$session_info" | jq -r '.stage // "production"')
+
+    local sess_parent
+    sess_parent=$(echo "$session_info" | jq -r '.parent_session_id // empty')
+    local sess_parent_escaped
+    sess_parent_escaped=$(json_escape "$sess_parent")
     
     cat << EOF
 {
@@ -396,7 +513,8 @@ EOF
     "id": "${session_id}",
     "type": "${sess_type}",
     "stage": "${sess_stage}",
-    "dir": "${session_dir}",
+    "dir": "${session_dir}"$(if [[ -n "$sess_parent" ]]; then echo ",
+    \"parent_session_id\": \"${sess_parent_escaped}\""; fi),
     "files": {
       "info": "${session_dir}/session-info.json",
       "state": "${session_dir}/state.json",
@@ -595,6 +713,19 @@ main() {
             output_human "$active_session" "true"
         fi
         exit 0
+    fi
+
+    if [[ -n "${CONTINUES_FROM}" ]]; then
+        local continue_dir
+        continue_dir=$(get_session_dir "${CONTINUES_FROM}")
+        if [[ ! -d "${continue_dir}" ]]; then
+            if $JSON_OUTPUT; then
+                echo "{\"status\": \"error\", \"message\": \"--continues-from session not found: ${CONTINUES_FROM}\", \"hint\": \"Check .session/sessions for existing sessions\"}"
+            else
+                print_error "--continues-from session not found: ${CONTINUES_FROM}"
+            fi
+            exit 1
+        fi
     fi
     
     # Creating new session - validate type
