@@ -52,8 +52,22 @@ When AI context windows reset, work continuity is lost. Session workflow solves 
 
 ## Installation
 
+> **⚠️ Security Note**: The one-liner below pipes a remote script directly into bash without review.  
+> For production or shared environments, prefer the **download-inspect-run** method or pin to a
+> specific release tag with `--version vX.Y.Z`:
+>
+> ```bash
+> # Recommended: inspect before running
+> curl -sSL https://raw.githubusercontent.com/roperi/session-workflow/main/install.sh -o install.sh
+> less install.sh                 # review the script
+> bash install.sh                 # run after review
+>
+> # Or pin to a specific release tag (avoids pulling from mutable main)
+> bash install.sh --version v2.0.0
+> ```
+
 ```bash
-# Quick install
+# Quick install (unreviewed – see security note above)
 curl -sSL https://raw.githubusercontent.com/roperi/session-workflow/main/install.sh | bash
 
 # Or clone and run

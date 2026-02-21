@@ -138,6 +138,28 @@ update_prompts() {
 # ============================================================================
 
 main() {
+    # Parse --version flag to pin download to a specific release tag
+    local arg_version=""
+    local args=()
+    while [[ $# -gt 0 ]]; do
+        case $1 in
+            --version)
+                arg_version="$2"
+                shift 2
+                ;;
+            *)
+                args+=("$1")
+                shift
+                ;;
+        esac
+    done
+    set -- "${args[@]+"${args[@]}"}"
+
+    if [[ -n "$arg_version" ]]; then
+        REPO_URL="https://raw.githubusercontent.com/roperi/session-workflow/refs/tags/${arg_version}"
+        info "Pinned to version ${arg_version} (${REPO_URL})"
+    fi
+
     echo ""
     echo -e "${BLUE}╔════════════════════════════════════════╗${NC}"
     echo -e "${BLUE}║     Session Workflow Updater v${VERSION}     ║${NC}"

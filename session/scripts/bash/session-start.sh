@@ -565,7 +565,7 @@ EOF
     "Read project context files for quick orientation",
     $(if [[ -n "$prev_session" ]]; then echo "\"Review previous session notes for continuity\","; fi)
     $(if [[ "$RESUME_MODE" == "true" ]]; then echo "\"RESUME MODE: Continue from where agent left off, do not restart from beginning\","; fi)
-    $(if [[ -n "$COMMENT" ]]; then echo "\"USER INSTRUCTION: ${COMMENT}\","; fi)
+    $(if [[ -n "$COMMENT" ]]; then echo "\"USER INSTRUCTION: $(json_escape "${COMMENT}")\","; fi)
     "Update notes.md throughout the session",
     "Run '.session/scripts/bash/session-wrap.sh' at end of session"
   ]
