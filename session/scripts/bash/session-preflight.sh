@@ -155,7 +155,10 @@ main() {
     fi
     
     # 2. Check for interrupted session
+    local info_file="${session_dir}/session-info.json"
     local state_file="${session_dir}/state.json"
+    validate_schema_version "$info_file" "$SESSION_INFO_SCHEMA_VERSION"
+    validate_schema_version "$state_file" "$STATE_SCHEMA_VERSION"
     local current_step="none"
     local step_status="none"
     

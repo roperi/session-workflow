@@ -28,7 +28,7 @@ done
 
 # Get active session
 if [ ! -f "$ACTIVE_SESSION_FILE" ]; then
-    echo '{"error": "No active session"}' >&2
+    json_error_msg "No active session" >&2
     exit 1
 fi
 
@@ -37,9 +37,11 @@ SESSION_DIR=$(get_session_dir "$SESSION_ID")
 SESSION_INFO="$SESSION_DIR/session-info.json"
 
 if [ ! -f "$SESSION_INFO" ]; then
-    echo '{"error": "Session info not found"}' >&2
+    json_error_msg "Session info not found" >&2
     exit 1
 fi
+
+validate_schema_version "$SESSION_INFO" "$SESSION_INFO_SCHEMA_VERSION"
 
 # Parse session metadata
 SESSION_TYPE=$(jq -r '.type' "$SESSION_INFO")
@@ -52,7 +54,7 @@ CURRENT_BRANCH=$(git branch --show-current)
 PR_NUMBER=$(gh pr view --json number -q .number 2>/dev/null || echo "")
 
 if [ -z "$PR_NUMBER" ]; then
-    echo '{"error": "No PR found for current branch"}' >&2
+    json_error_msg "No PR found for current branch" >&2
     exit 1
 fi
 
@@ -61,18 +63,7 @@ PR_MERGED=$(gh pr view "$PR_NUMBER" --json merged -q .merged)
 if [ "$PR_MERGED" != "true" ]; then
     PR_STATE=$(gh pr view "$PR_NUMBER" --json state -q .state)
     if [ "$JSON_OUTPUT" = true ]; then
-        cat <<EOF
-{
-  "status": "error",
-  "error": "PR not merged",
-  "pr": {
-    "number": $PR_NUMBER,
-    "state": "$PR_STATE",
-    "merged": false
-  },
-  "message": "Please merge PR first, then retry /session.finalize"
-}
-EOF
+        json_error_msg "PR not merged" "Merge PR #${PR_NUMBER} first, then retry /session.finalize" >&2
     else
         echo "❌ Cannot finalize: PR #$PR_NUMBER not merged (state: $PR_STATE)"
         echo "Please merge the PR first, then run /session.finalize"

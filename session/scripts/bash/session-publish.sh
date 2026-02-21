@@ -53,21 +53,21 @@ done
 
 # Validate required arguments
 if [ -z "$TITLE" ]; then
-    echo '{"error": "Missing required argument: --title"}' >&2
+    json_error_msg "Missing required argument: --title" >&2
     exit 1
 fi
 
 # Get current branch
 CURRENT_BRANCH=$(git branch --show-current)
 if [ -z "$CURRENT_BRANCH" ]; then
-    echo '{"error": "Not on a branch"}' >&2
+    json_error_msg "Not on a branch" >&2
     exit 1
 fi
 
 # Check if branch has commits
 COMMITS_AHEAD=$(git rev-list --count origin/main..HEAD 2>/dev/null || echo "0")
 if [ "$COMMITS_AHEAD" = "0" ]; then
-    echo '{"error": "No commits to create PR from"}' >&2
+    json_error_msg "No commits to create PR from" >&2
     exit 1
 fi
 
