@@ -64,8 +64,15 @@ if [ -z "$CURRENT_BRANCH" ]; then
     exit 1
 fi
 
+# Detect default branch (origin/HEAD, then gh, then fallback to main)
+DEFAULT_BRANCH=$(git symbolic-ref refs/remotes/origin/HEAD 2>/dev/null | sed 's|refs/remotes/origin/||')
+if [ -z "$DEFAULT_BRANCH" ]; then
+    DEFAULT_BRANCH=$(gh repo view --json defaultBranchRef -q .defaultBranchRef.name 2>/dev/null || echo "")
+fi
+DEFAULT_BRANCH="${DEFAULT_BRANCH:-main}"
+
 # Check if branch has commits
-COMMITS_AHEAD=$(git rev-list --count origin/main..HEAD 2>/dev/null || echo "0")
+COMMITS_AHEAD=$(git rev-list --count "origin/${DEFAULT_BRANCH}..HEAD" 2>/dev/null || echo "0")
 if [ "$COMMITS_AHEAD" = "0" ]; then
     json_error_msg "No commits to create PR from" >&2
     exit 1
@@ -118,7 +125,7 @@ else
     gh pr create \
         --title "$TITLE" \
         --body "$DESCRIPTION" \
-        --base main \
+        --base "$DEFAULT_BRANCH" \
         --head "$CURRENT_BRANCH" \
         $DRAFT_FLAG \
         >/dev/null 2>&1
