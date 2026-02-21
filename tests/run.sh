@@ -73,10 +73,12 @@ main() {
 
   if [[ "${TEST_KEEP_TMP:-0}" == "1" ]]; then
     # Expand $tmp_base at trap definition time (avoid relying on locals at EXIT).
+    # shellcheck disable=SC2064
     trap "echo \"Keeping temp dir: $tmp_base\" >&2" EXIT
     log "Temp repo: $repo_root"
   else
     # Expand $tmp_base at trap definition time (avoid relying on locals at EXIT).
+    # shellcheck disable=SC2064
     trap "rm -rf '$tmp_base'" EXIT
     vlog "Temp repo: $repo_root"
   fi
@@ -197,6 +199,71 @@ main() {
   set -e
   [[ "$missing_exit" != "0" ]] || fail "expected non-zero exit for missing continues-from"
   assert_eq "error" "$(echo "$start_missing_json" | jq -r '.status')" "expected error JSON for missing continues-from"
+
+  # 10) --comment produces valid JSON (F-3 / F-26 regression: no blank lines in instructions)
+  log "10) session-start --comment produces valid JSON instructions array"
+  local start_comment_json
+  start_comment_json=$(./.session/scripts/bash/session-start.sh --json --comment "hello world" "Commented goal")
+  echo "$start_comment_json" | jq -e '.instructions | length > 0' >/dev/null || fail "instructions array empty"
+  # Validate no null/empty entries in instructions
+  local null_count
+  null_count=$(echo "$start_comment_json" | jq '[.instructions[] | select(. == null or . == "")] | length')
+  assert_eq "0" "$null_count" "instructions must have no null/empty entries"
+  # Confirm user instruction appears
+  echo "$start_comment_json" | jq -e '.instructions[] | select(test("hello world"))' >/dev/null \
+    || fail "user comment not found in instructions"
+  # Wrap to clean up
+  local s3_id
+  s3_id=$(echo "$start_comment_json" | jq -r '.session.id')
+  set_workflow_step "$s3_id" "execute" "completed" >/dev/null
+  ././.session/scripts/bash/session-wrap.sh --json >/dev/null
+
+  # 11) for_next_session and notes_summary non-empty after wrap (F-4 regression)
+  log "11) for_next_session non-empty after wrap (path correctness)"
+  local start4_json s4_id s4_year_month s4_dir
+  start4_json=$(./.session/scripts/bash/session-start.sh --json "Notes continuity goal")
+  s4_id=$(echo "$start4_json" | jq -r '.session.id')
+  s4_year_month=$(echo "$s4_id" | cut -d'-' -f1,2)
+  s4_dir=".session/sessions/${s4_year_month}/${s4_id}"
+  # Write a "For Next Session" section
+  printf '\n## For Next Session\n- carry this forward\n' >> "${s4_dir}/notes.md"
+  set_workflow_step "$s4_id" "execute" "completed" >/dev/null
+  ././.session/scripts/bash/session-wrap.sh --json >/dev/null
+  # Chain a new session and check for_next_session is populated
+  local start5_json
+  start5_json=$(./.session/scripts/bash/session-start.sh --json --continues-from "$s4_id" "Continuation goal")
+  local for_next
+  for_next=$(echo "$start5_json" | jq -r '.previous_session.for_next_session')
+  [[ -n "$for_next" && "$for_next" != "null" ]] || fail "for_next_session should not be empty after wrap (F-4 regression)"
+  # Wrap the continuation session
+  local s5_id
+  s5_id=$(echo "$start5_json" | jq -r '.session.id')
+  set_workflow_step "$s5_id" "execute" "completed" >/dev/null
+  ././.session/scripts/bash/session-wrap.sh --json >/dev/null
+
+  # 12) count_tasks fallback: phase-based template (no ## Tasks heading) (F-16 regression)
+  log "12) count_tasks works on phase-based template (no ## Tasks section)"
+  local phase_tasks_file="${s4_dir}/phase_tasks_test.md"
+  cat > "$phase_tasks_file" << 'TMPL'
+# Tasks: test
+
+## Phase 1: Setup
+- [ ] T001 First task
+- [x] T002 Done task
+
+## Phase 2: Core
+- [ ] T003 Another task
+TMPL
+  # Source the lib and call count_tasks directly
+  # shellcheck disable=SC1090
+  source ./.session/scripts/bash/lib/session-output.sh
+  # shellcheck disable=SC1090
+  source ./.session/scripts/bash/lib/session-paths.sh
+  # shellcheck disable=SC1090
+  source ./.session/scripts/bash/lib/session-tasks.sh
+  local task_counts
+  task_counts=$(count_tasks "$phase_tasks_file")
+  assert_eq "3:1" "$task_counts" "count_tasks on phase-based template (3 total, 1 done)"
 
   log "All tests passed (start, preflight, wrap)."
 }

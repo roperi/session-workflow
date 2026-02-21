@@ -1,0 +1,8 @@
+# SC1091: Don't warn about not following sourced files (runtime paths)
+disable=SC1091
+# SC2034: Cross-file shared variables appear unused to shellcheck (false positive)
+disable=SC2034
+# SC2129: Style: use {} grouping for redirects (acceptable pattern in this codebase)
+disable=SC2129
+# SC2001: Style: prefer ${var//s/r} over sed (sed is clearer for multichar patterns here)
+disable=SC2001

@@ -358,6 +358,7 @@ check_workflow_transition() {
     fi
     
     # Check if target is in valid next steps
+    # shellcheck disable=SC2076  # intentional literal match (word boundary via spaces)
     if [[ " $valid_next " =~ " $target_step " ]]; then
         return 0
     else
