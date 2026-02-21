@@ -53,6 +53,9 @@ install_session_workflow_into_repo() {
   local repo_root="$1"
   mkdir -p "$repo_root/.session/scripts/bash" "$repo_root/.session/templates"
   cp "$ROOT_DIR"/session/scripts/bash/*.sh "$repo_root/.session/scripts/bash/"
+  # Copy lib sub-directory (session-common.sh now sources these)
+  mkdir -p "$repo_root/.session/scripts/bash/lib"
+  cp "$ROOT_DIR"/session/scripts/bash/lib/*.sh "$repo_root/.session/scripts/bash/lib/"
   cp "$ROOT_DIR"/session/templates/*.md "$repo_root/.session/templates/" 2>/dev/null || true
   chmod +x "$repo_root/.session/scripts/bash"/*.sh
 }
