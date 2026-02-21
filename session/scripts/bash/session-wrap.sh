@@ -185,7 +185,7 @@ update_session_state() {
 
 output_json() {
     local session_id="$1"
-    local warnings="$2"
+    local warnings_text="$2"
     local session_dir
     session_dir=$(get_session_dir "$session_id")
     
@@ -202,8 +202,8 @@ output_json() {
     
     # Format warnings as JSON array
     local warnings_json="[]"
-    if [[ -n "$warnings" ]]; then
-        warnings_json=$(echo "$warnings" | jq -R -s 'split("\n") | map(select(length > 0))')
+    if [[ -n "$warnings_text" ]]; then
+        warnings_json=$(echo "$warnings_text" | jq -R -s 'split("\n") | map(select(length > 0))')
     fi
     
     cat << EOF
@@ -225,7 +225,7 @@ EOF
 
 output_human() {
     local session_id="$1"
-    local warnings="$2"
+    local warnings_text="$2"
     local session_dir
     session_dir=$(get_session_dir "$session_id")
     
@@ -236,10 +236,10 @@ output_human() {
     echo "Session files preserved in: ${session_dir}"
     
     # Display warnings if any
-    if [[ -n "$warnings" ]]; then
+    if [[ -n "$warnings_text" ]]; then
         echo ""
         print_warning "Wrap completed with warnings:"
-        echo "$warnings" | while read -r warning; do
+        echo "$warnings_text" | while read -r warning; do
             if [[ -n "$warning" ]]; then
                 echo "  - $warning"
             fi

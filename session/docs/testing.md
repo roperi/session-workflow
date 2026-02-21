@@ -27,7 +27,7 @@ Manual test cases for the session workflow system.
 
 ---
 
-### Test 2: Wrap with Dirty Git (Hard Block)
+### Test 2: Wrap with Dirty Git (Soft Warning)
 
 **Command:**
 ```bash
@@ -37,10 +37,9 @@ git checkout README.md  # cleanup
 ```
 
 **Expected:**
-- `status: "blocked"`
-- `validation.git_clean: false`
-- Blocker message about uncommitted changes
-- Exit code 1
+- `status: "ok"` (wrap completes, not blocked)
+- `warnings` array contains uncommitted-changes message
+- Exit code 0
 
 **Result:** ✅ Pass
 
@@ -207,7 +206,7 @@ cat .session/sessions/{session_id}/tasks.md
 | No active session on wrap | Error with helpful message |
 | No previous session on start | `previous_session: null` |
 | Non-existent GitHub issue | Graceful - session created, no body |
-| Git dirty on wrap | Hard block (exit 1) |
+| Git dirty on wrap | Soft warning (exit 0, warnings array populated) |
 | Empty notes on wrap | Soft warning (still completes) |
 | Missing "For Next Session" | Soft warning |
 | Incomplete tasks | Soft warning + included in previous session context |

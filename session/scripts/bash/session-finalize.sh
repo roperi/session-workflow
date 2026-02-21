@@ -54,7 +54,6 @@ FEATURE_ID="${SPEC_DIR_PATH#specs/}"
 PHASE_CLOSED=false
 
 # Detect PR number for current branch
-CURRENT_BRANCH=$(git branch --show-current)
 PR_NUMBER=$(gh pr view --json number -q .number 2>/dev/null || echo "")
 
 if [ -z "$PR_NUMBER" ]; then

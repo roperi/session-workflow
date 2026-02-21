@@ -141,6 +141,7 @@ check_git_state() {
     
     # Check for unpushed commits
     local unpushed
+    # shellcheck disable=SC1083  # @{u} is git upstream syntax, not shell braces
     unpushed=$(git log @{u}.. --oneline 2>/dev/null | wc -l)
     if [ "$unpushed" -gt 0 ]; then
         ((errors++))

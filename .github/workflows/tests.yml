@@ -13,7 +13,14 @@ jobs:
       - name: Install deps
         run: |
           sudo apt-get update -y
-          sudo apt-get install -y jq
+          sudo apt-get install -y jq shellcheck
+
+      - name: Shellcheck
+        run: |
+          shellcheck \
+            session/scripts/bash/*.sh \
+            session/scripts/bash/lib/*.sh \
+            install.sh update.sh tests/run.sh
 
       - name: Run tests
         run: |
