@@ -128,12 +128,12 @@ count_tasks() {
 
     local total completed
     if [[ -n "$tasks_section" ]]; then
-        total=$(echo "$tasks_section" | grep -c '^\s*- \[' 2>/dev/null || true)
-        completed=$(echo "$tasks_section" | grep -c '^\s*- \[x\]' 2>/dev/null || true)
+        total=$(echo "$tasks_section" | grep -c '^[[:space:]]*- \[' 2>/dev/null || true)
+        completed=$(echo "$tasks_section" | grep -c '^[[:space:]]*- \[x\]' 2>/dev/null || true)
     else
         # Phase-based template (speckit): count T-prefixed checkboxes across full file
-        total=$(grep -c '^\s*- \[.\] T' "$tasks_file" 2>/dev/null || true)
-        completed=$(grep -c '^\s*- \[x\] T' "$tasks_file" 2>/dev/null || true)
+        total=$(grep -c '^[[:space:]]*- \[.\] T' "$tasks_file" 2>/dev/null || true)
+        completed=$(grep -c '^[[:space:]]*- \[x\] T' "$tasks_file" 2>/dev/null || true)
     fi
 
     total=${total:-0}
@@ -155,8 +155,8 @@ get_incomplete_tasks() {
     tasks_section=$(awk '/^## Tasks/,0' "$tasks_file" 2>/dev/null || true)
 
     if [[ -n "$tasks_section" ]]; then
-        echo "$tasks_section" | grep '^\s*- \[ \]' 2>/dev/null || true
+        echo "$tasks_section" | grep '^[[:space:]]*- \[ \]' 2>/dev/null || true
     else
-        grep '^\s*- \[ \] T' "$tasks_file" 2>/dev/null || true
+        grep '^[[:space:]]*- \[ \] T' "$tasks_file" 2>/dev/null || true
     fi
 }

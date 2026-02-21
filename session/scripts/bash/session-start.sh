@@ -530,8 +530,7 @@ EOF
     instructions+=("\"Update notes.md throughout the session\"")
     instructions+=("\"Run '.session/scripts/bash/session-wrap.sh' at end of session\"")
     local instructions_json
-    instructions_json=$(printf '    %s,\n' "${instructions[@]}")
-    instructions_json="${instructions_json%,}"  # remove trailing comma on last item
+    instructions_json=$(printf '    %s,\n' "${instructions[@]}" | sed '$s/,[[:space:]]*$//')
 
     cat << EOF
 {
