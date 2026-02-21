@@ -217,14 +217,13 @@ validate_safe_command() {
     local safe_prefixes=(
         "npm" "yarn" "pnpm" "npx" "bun"
         "pytest" "python" "python3" "ruff" "flake8" "black" "isort" "mypy" "pylint"
-        "go " "go\t" "cargo" "rustfmt" "clippy"
+        "go" "cargo" "rustfmt" "clippy"
         "make" "rake"
         "bundle" "rspec" "rubocop"
         "mvn" "gradle" "./gradlew" "./mvnw"
         "docker" "docker-compose" "docker compose"
         "swift" "xcodebuild"
         "dotnet"
-        "bash tests/" "bash test/"
     )
     for prefix in "${safe_prefixes[@]}"; do
         if [[ "$cmd" == "${prefix}"* ]]; then
