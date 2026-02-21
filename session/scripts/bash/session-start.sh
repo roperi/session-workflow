@@ -161,6 +161,11 @@ parse_args() {
 # ============================================================================
 
 create_session_info() {
+    # Writes session-info.json for the given session.
+    # To add a new session type: add a branch to the case block below
+    # that writes the type-specific JSON fields, and add the type to
+    # resolve_tasks_file() in session-common.sh if it needs a custom task path.
+    # See session/docs/schema-versioning.md for the full field reference.
     local session_id="$1"
     local session_dir
     session_dir=$(get_session_dir "$session_id")
@@ -179,11 +184,16 @@ create_session_info() {
     if [[ -n "$CONTINUES_FROM" ]]; then
         parent_json=$',\n  "parent_session_id": "'"${CONTINUES_FROM}"'"'
     fi
-    
+
+    # Write atomically via tmp file in same directory (rename is atomic on
+    # same filesystem; avoids partial reads if process is interrupted mid-write).
+    local tmp_info
+    tmp_info=$(mktemp "${info_file}.XXXXXX")
+
     # Build JSON based on type
     case $SESSION_TYPE in
         speckit)
-            cat > "$info_file" << SESSIONEOF
+            cat > "$tmp_info" << SESSIONEOF
 {
   "schema_version": "2.2",
   "session_id": "${session_id}",
@@ -200,7 +210,7 @@ SESSIONEOF
             if command -v gh &> /dev/null && [[ -n "$ISSUE_NUMBER" ]]; then
                 issue_title=$(gh issue view "$ISSUE_NUMBER" --json title -q '.title' 2>/dev/null || echo "")
             fi
-            cat > "$info_file" << SESSIONEOF
+            cat > "$tmp_info" << SESSIONEOF
 {
   "schema_version": "2.2",
   "session_id": "${session_id}",
@@ -214,7 +224,7 @@ SESSIONEOF
 SESSIONEOF
             ;;
         unstructured)
-            cat > "$info_file" << SESSIONEOF
+            cat > "$tmp_info" << SESSIONEOF
 {
   "schema_version": "2.2",
   "session_id": "${session_id}",
@@ -227,6 +237,8 @@ SESSIONEOF
 SESSIONEOF
             ;;
     esac
+
+    mv "$tmp_info" "$info_file"
 }
 
 create_session_state() {
@@ -244,7 +256,9 @@ create_session_state() {
     local last_commit
     last_commit=$(git rev-parse --short HEAD 2>/dev/null || echo "unknown")
     
-    cat > "$state_file" << EOF
+    local tmp_state
+    tmp_state=$(mktemp "${state_file}.XXXXXX")
+    cat > "$tmp_state" << EOF
 {
   "schema_version": "1.0",
   "session_id": "${session_id}",
@@ -263,6 +277,7 @@ create_session_state() {
   "notes_summary": ""
 }
 EOF
+    mv "$tmp_state" "$state_file"
 }
 
 append_git_context_scaffold() {
@@ -809,8 +824,16 @@ main() {
         exit 1
     fi
     
-    # Create session directory
-    mkdir -p "$session_dir"
+    # Create session directory (mkdir without -p detects race/collision atomically;
+    # parent year-month dir was already created by generate_session_id())
+    if ! mkdir "$session_dir" 2>/dev/null; then
+        if $JSON_OUTPUT; then
+            echo "{\"status\":\"error\",\"message\":\"Session collision: directory already exists: ${session_dir}\"}"
+        else
+            print_error "Session collision: directory already exists: ${session_dir}"
+        fi
+        exit 1
+    fi
     
     # Create session files
     create_session_info "$session_id"

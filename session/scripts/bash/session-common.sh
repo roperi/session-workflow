@@ -11,6 +11,10 @@ ACTIVE_SESSION_FILE="${SESSION_ROOT}/ACTIVE_SESSION"
 PROJECT_CONTEXT_DIR="${SESSION_ROOT}/project-context"
 TEMPLATES_DIR="${SESSION_ROOT}/templates"
 
+# Schema version constants — keep in sync with session/docs/schema-versioning.md
+SESSION_INFO_SCHEMA_VERSION="2.2"
+STATE_SCHEMA_VERSION="1.0"
+
 # Colors for output
 RED='\033[0;31m'
 GREEN='\033[0;32m'
@@ -233,6 +237,40 @@ check_git_clean() {
 }
 
 # ============================================================================
+# Schema Validation
+# ============================================================================
+
+validate_schema_version() {
+    # Warn if the schema_version in a JSON file does not match the expected value.
+    # Args: json_file expected_version
+    # Returns 0 always (warning only — never blocks execution).
+    local json_file="$1"
+    local expected="$2"
+    [[ -f "$json_file" ]] || return 0
+    local actual
+    actual=$(jq -r '.schema_version // "missing"' "$json_file" 2>/dev/null || echo "unreadable")
+    if [[ "$actual" != "$expected" ]]; then
+        echo -e "${YELLOW}[WARN]${NC} Schema version mismatch in ${json_file}: expected ${expected}, got ${actual}. Run migration or update scripts." >&2
+    fi
+}
+
+# ============================================================================
+# JSON Error Output
+# ============================================================================
+
+json_error_msg() {
+    # Emit a consistent JSON error envelope to stdout.
+    # Args: message [hint]
+    local message="$1"
+    local hint="${2:-}"
+    if [[ -n "$hint" ]]; then
+        jq -n --arg m "$message" --arg h "$hint" '{"status":"error","message":$m,"hint":$h}'
+    else
+        jq -n --arg m "$message" '{"status":"error","message":$m}'
+    fi
+}
+
+# ============================================================================
 # Session ID Functions
 # ============================================================================
 
@@ -292,7 +330,11 @@ get_active_session() {
 
 set_active_session() {
     local session_id="$1"
-    echo "$session_id" > "${ACTIVE_SESSION_FILE}"
+    # Write atomically (rename is atomic on the same filesystem)
+    local tmp
+    tmp=$(mktemp "${ACTIVE_SESSION_FILE}.XXXXXX")
+    echo "$session_id" > "$tmp"
+    mv "$tmp" "${ACTIVE_SESSION_FILE}"
 }
 
 clear_active_session() {

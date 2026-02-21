@@ -77,6 +77,16 @@ check_session_readiness() {
     session_dir=$(get_session_dir "$session_id")
     local warnings=()
     
+    # Warn if no workflow steps were ever tracked (session may have had zero tracked work)
+    local state_file="${session_dir}/state.json"
+    local current_step="none"
+    if [[ -f "$state_file" ]]; then
+        current_step=$(jq -r '.current_step // "none"' "$state_file" 2>/dev/null || echo "none")
+    fi
+    if [[ "$current_step" == "none" ]]; then
+        warnings+=("No workflow steps were tracked — session may have had no tracked work")
+    fi
+
     # Check for uncommitted changes
     if ! git diff --quiet 2>/dev/null || ! git diff --cached --quiet 2>/dev/null; then
         warnings+=("Uncommitted changes present - consider committing before wrap")
