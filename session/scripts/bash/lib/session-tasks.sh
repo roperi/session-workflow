@@ -112,40 +112,51 @@ resolve_tasks_file() {
 }
 
 count_tasks() {
-    # Count total and completed tasks in a tasks.md file
-    # Only counts checkboxes under the "## Tasks" section, not Acceptance Criteria
+    # Count total and completed tasks in a tasks.md file.
+    # Prefers the "## Tasks" section if present; falls back to counting
+    # task-id-prefixed checkboxes (- [ ] T / - [x] T) across the full file.
     local tasks_file="$1"
-    
+
     if [[ ! -f "$tasks_file" ]]; then
         echo "0:0"
         return
     fi
-    
-    # Extract only the content after "## Tasks" heading
+
+    # Try the "## Tasks" section first (used by github_issue/unstructured templates)
     local tasks_section
     tasks_section=$(awk '/^## Tasks/,0' "$tasks_file" 2>/dev/null || true)
-    
-    if [[ -z "$tasks_section" ]]; then
-        echo "0:0"
-        return
-    fi
-    
+
     local total completed
-    total=$(echo "$tasks_section" | grep -c '^\s*- \[' 2>/dev/null || true)
-    completed=$(echo "$tasks_section" | grep -c '^\s*- \[x\]' 2>/dev/null || true)
-    
-    # Ensure we have numbers (grep -c returns nothing on no match sometimes)
+    if [[ -n "$tasks_section" ]]; then
+        total=$(echo "$tasks_section" | grep -c '^[[:space:]]*- \[' 2>/dev/null || true)
+        completed=$(echo "$tasks_section" | grep -c '^[[:space:]]*- \[x\]' 2>/dev/null || true)
+    else
+        # Phase-based template (speckit): count T-prefixed checkboxes across full file
+        total=$(grep -c '^[[:space:]]*- \[.\] T' "$tasks_file" 2>/dev/null || true)
+        completed=$(grep -c '^[[:space:]]*- \[x\] T' "$tasks_file" 2>/dev/null || true)
+    fi
+
     total=${total:-0}
     completed=${completed:-0}
-    
+
     echo "${total}:${completed}"
 }
 
 get_incomplete_tasks() {
-    # Get list of incomplete tasks (only from ## Tasks section)
+    # Get list of incomplete tasks.
+    # Prefers the "## Tasks" section if present; falls back to T-prefixed checkboxes.
     local tasks_file="$1"
-    
-    if [[ -f "$tasks_file" ]]; then
-        awk '/^## Tasks/,0' "$tasks_file" 2>/dev/null | grep '^\s*- \[ \]' 2>/dev/null || true
+
+    if [[ ! -f "$tasks_file" ]]; then
+        return
+    fi
+
+    local tasks_section
+    tasks_section=$(awk '/^## Tasks/,0' "$tasks_file" 2>/dev/null || true)
+
+    if [[ -n "$tasks_section" ]]; then
+        echo "$tasks_section" | grep '^[[:space:]]*- \[ \]' 2>/dev/null || true
+    else
+        grep '^[[:space:]]*- \[ \] T' "$tasks_file" 2>/dev/null || true
     fi
 }

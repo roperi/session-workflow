@@ -47,7 +47,11 @@ validate_schema_version "$SESSION_INFO" "$SESSION_INFO_SCHEMA_VERSION"
 SESSION_TYPE=$(jq -r '.type' "$SESSION_INFO")
 ISSUE_NUMBER=$(jq -r '.issue_number // empty' "$SESSION_INFO")
 PARENT_ISSUE=$(jq -r '.parent_issue // empty' "$SESSION_INFO")
-FEATURE_ID=$(jq -r '.feature_id // empty' "$SESSION_INFO")
+# Derive FEATURE_ID from spec_dir (session-start.sh writes spec_dir, not feature_id)
+SPEC_DIR_PATH=$(jq -r '.spec_dir // empty' "$SESSION_INFO")
+FEATURE_ID="${SPEC_DIR_PATH#specs/}"
+# Initialize to avoid unbound-variable under set -u if ISSUE_NUMBER is empty
+PHASE_CLOSED=false
 
 # Detect PR number for current branch
 CURRENT_BRANCH=$(git branch --show-current)

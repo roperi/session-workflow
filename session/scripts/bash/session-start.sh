@@ -91,11 +91,13 @@ parse_args() {
     while [[ $# -gt 0 ]]; do
         case $1 in
             --issue)
+                [[ $# -lt 2 || "$2" == -* ]] && { echo "ERROR: Missing value for --issue" >&2; exit 1; }
                 ISSUE_NUMBER="$2"
                 SESSION_TYPE="github_issue"
                 shift 2
                 ;;
             --spec)
+                [[ $# -lt 2 || "$2" == -* ]] && { echo "ERROR: Missing value for --spec" >&2; exit 1; }
                 SPEC_DIR="$2"
                 SESSION_TYPE="speckit"
                 shift 2
@@ -105,6 +107,7 @@ parse_args() {
                 shift
                 ;;
             --stage)
+                [[ $# -lt 2 || "$2" == -* ]] && { echo "ERROR: Missing value for --stage" >&2; exit 1; }
                 STAGE="$2"
                 # Validate stage value
                 if [[ ! "$STAGE" =~ ^(poc|mvp|production)$ ]]; then
@@ -118,11 +121,12 @@ parse_args() {
                 shift
                 ;;
             --comment)
+                [[ $# -lt 2 || "$2" == -* ]] && { echo "ERROR: Missing value for --comment" >&2; exit 1; }
                 COMMENT="$2"
                 shift 2
                 ;;
             --continues-from)
-                CONTINUES_FROM="$2"
+                CONTINUES_FROM="${2:-}"
                 if [[ -z "${CONTINUES_FROM}" ]] || [[ "${CONTINUES_FROM}" == -* ]] || [[ ! "${CONTINUES_FROM}" =~ ^[0-9]{4}-[0-9]{2}-[0-9]{2}-[0-9]+$ ]]; then
                     echo "ERROR: Invalid session ID for --continues-from: '${CONTINUES_FROM}' (expected YYYY-MM-DD-N)" >&2
                     exit 1
@@ -517,6 +521,17 @@ EOF
     local sess_parent_escaped
     sess_parent_escaped=$(json_escape "$sess_parent")
     
+    # Build instructions array incrementally to avoid blank lines from unset vars
+    local instructions=()
+    instructions+=("\"Read project context files for quick orientation\"")
+    [[ -n "$prev_session" ]] && instructions+=("\"Review previous session notes for continuity\"")
+    [[ "$RESUME_MODE" == "true" ]] && instructions+=("\"RESUME MODE: Continue from where agent left off, do not restart from beginning\"")
+    [[ -n "$COMMENT" ]] && instructions+=("\"USER INSTRUCTION: $(json_escape "${COMMENT}")\"")
+    instructions+=("\"Update notes.md throughout the session\"")
+    instructions+=("\"Run '.session/scripts/bash/session-wrap.sh' at end of session\"")
+    local instructions_json
+    instructions_json=$(printf '    %s,\n' "${instructions[@]}" | sed '$s/,[[:space:]]*$//')
+
     cat << EOF
 {
   "status": "ok",
@@ -577,12 +592,7 @@ EOF
     }
   },
   "instructions": [
-    "Read project context files for quick orientation",
-    $(if [[ -n "$prev_session" ]]; then echo "\"Review previous session notes for continuity\","; fi)
-    $(if [[ "$RESUME_MODE" == "true" ]]; then echo "\"RESUME MODE: Continue from where agent left off, do not restart from beginning\","; fi)
-    $(if [[ -n "$COMMENT" ]]; then echo "\"USER INSTRUCTION: $(json_escape "${COMMENT}")\","; fi)
-    "Update notes.md throughout the session",
-    "Run '.session/scripts/bash/session-wrap.sh' at end of session"
+${instructions_json}
   ]
 }
 EOF
