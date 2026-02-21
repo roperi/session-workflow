@@ -2,7 +2,7 @@
 # lib/session-git.sh - Git/PR helpers, prerequisite checks, quality/validation
 # functions.
 #
-# Requires: session-output.sh (for color variables and print_* functions)
+# Note: Expects color variables (e.g., RED, YELLOW, NC) to be defined, typically via session-output.sh
 
 # ============================================================================
 # Prerequisite Checks

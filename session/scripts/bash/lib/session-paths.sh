@@ -2,8 +2,7 @@
 # lib/session-paths.sh - Path constants, schema version constants, and session
 # directory/ID functions.
 #
-# Requires: session-output.sh (for color variables used in set_active_session error path)
-# Can be sourced after session-output.sh for unit testing.
+# Can be sourced independently or after session-output.sh for unit testing.
 
 # ============================================================================
 # Constants
@@ -107,7 +106,7 @@ clear_active_session() {
 # ============================================================================
 
 get_previous_session() {
-    # Get the most recent completed or active session ID (excluding the current active one)
+    # Get the most recent session ID (excluding the current active one)
     # Returns: session_id or empty string
     
     local active_session
