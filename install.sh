@@ -247,11 +247,24 @@ install_scripts() {
         "session-handoff-list.sh"
     )
     
+    local lib_scripts=(
+        "session-output.sh"
+        "session-paths.sh"
+        "session-tasks.sh"
+        "session-git.sh"
+        "session-state.sh"
+    )
+    
     mkdir -p .session/scripts/bash
     
     for script in "${scripts[@]}"; do
         download_file "${REPO_URL}/session/scripts/bash/${script}" ".session/scripts/bash/${script}"
         chmod +x ".session/scripts/bash/${script}"
+    done
+
+    mkdir -p .session/scripts/bash/lib
+    for script in "${lib_scripts[@]}"; do
+        download_file "${REPO_URL}/session/scripts/bash/lib/${script}" ".session/scripts/bash/lib/${script}"
     done
     
     success "Scripts installed"
