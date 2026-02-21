@@ -1,6 +1,6 @@
 ---
 description: Clarify WHAT to build and capture decisions as a version-controlled brainstorm doc.
-tools: ["*"]
+tools: ["read", "write", "search"]
 ---
 
 # session.brainstorm

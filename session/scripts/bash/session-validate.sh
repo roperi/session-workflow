@@ -101,7 +101,11 @@ get_lint_command() {
         local lint_cmd
         lint_cmd=$(grep -A1 "lint" "$context_file" 2>/dev/null | grep -E '^\s*`' | head -1 | tr -d '`' || true)
         if [[ -n "$lint_cmd" ]]; then
-            echo "$lint_cmd"
+            if validate_safe_command "$lint_cmd"; then
+                echo "$lint_cmd"
+            else
+                warn "Ignoring unsafe lint command from technical-context.md: '$lint_cmd'"
+            fi
             return
         fi
     fi
@@ -149,7 +153,11 @@ get_test_command() {
         local test_cmd
         test_cmd=$(grep -A1 "test" "$context_file" 2>/dev/null | grep -E '^\s*`' | head -1 | tr -d '`' || true)
         if [[ -n "$test_cmd" ]]; then
-            echo "$test_cmd"
+            if validate_safe_command "$test_cmd"; then
+                echo "$test_cmd"
+            else
+                warn "Ignoring unsafe test command from technical-context.md: '$test_cmd'"
+            fi
             return
         fi
     fi
@@ -191,6 +199,38 @@ get_test_command() {
             echo ""
             ;;
     esac
+}
+
+# ============================================================================
+# Command Allowlist Validation
+# ============================================================================
+
+# Validate that a command extracted from technical-context.md is safe to run.
+# Only commands starting with a known-safe tool prefix are permitted.
+# This prevents RCE via malicious content in Markdown configuration files.
+validate_safe_command() {
+    local cmd="$1"
+    # Strip leading whitespace
+    cmd="${cmd#"${cmd%%[![:space:]]*}"}"
+    [[ -z "$cmd" ]] && return 1
+
+    local safe_prefixes=(
+        "npm" "yarn" "pnpm" "npx" "bun"
+        "pytest" "python" "python3" "ruff" "flake8" "black" "isort" "mypy" "pylint"
+        "go" "cargo" "rustfmt" "clippy"
+        "make" "rake"
+        "bundle" "rspec" "rubocop"
+        "mvn" "gradle" "./gradlew" "./mvnw"
+        "docker" "docker-compose" "docker compose"
+        "swift" "xcodebuild"
+        "dotnet"
+    )
+    for prefix in "${safe_prefixes[@]}"; do
+        if [[ "$cmd" == "${prefix}"* ]]; then
+            return 0
+        fi
+    done
+    return 1
 }
 
 # ============================================================================
