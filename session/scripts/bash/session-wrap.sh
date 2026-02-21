@@ -81,6 +81,7 @@ check_session_readiness() {
     local state_file="${session_dir}/state.json"
     local current_step="none"
     if [[ -f "$state_file" ]]; then
+        validate_schema_version "$state_file" "$STATE_SCHEMA_VERSION"
         current_step=$(jq -r '.current_step // "none"' "$state_file" 2>/dev/null || echo "none")
     fi
     if [[ "$current_step" == "none" ]]; then

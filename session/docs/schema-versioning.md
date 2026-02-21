@@ -22,7 +22,7 @@ constant before trusting field names.
 | `workflow` | string | `development` \| `spike` \| `maintenance` \| … |
 | `stage` | string | `poc` \| `mvp` \| `production` |
 | `created_at` | ISO 8601 string | UTC creation timestamp |
-| `parent_session` | string \| absent | Parent session ID (optional) |
+| `parent_session_id` | string \| absent | Parent session ID (optional) |
 
 **Type-specific fields**:
 
@@ -95,10 +95,12 @@ validate_schema_version "$state_file" "$STATE_SCHEMA_VERSION"
 
 ## Adding a new session type
 
-1. Add a helper function `_session_info_<type>()` in `session-start.sh` that
-   prints the type-specific JSON fields (excluding common fields).
-2. Add a `<type>)` branch to the `case $SESSION_TYPE in` block in
-   `create_session_info()` that calls the helper.
+1. Add a `<type>)` branch to the `case $SESSION_TYPE in` block in
+   `create_session_info()` in `session-start.sh`, writing the JSON for that type
+   directly following the pattern of the existing cases (include `schema_version`,
+   all common fields, then any type-specific fields).
+2. Ensure the fields you emit are consistent with the schema described in this
+   document. Bump `SESSION_INFO_SCHEMA_VERSION` if you make a breaking change.
 3. Add the type to `resolve_tasks_file()` in `session-common.sh` if it needs a
    non-default task file path.
 4. Update this document.
