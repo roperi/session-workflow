@@ -5,8 +5,8 @@
 This is the single source of truth for session workflow documentation.
 
 **Compatibility**:
-- ✅ Tested with **GitHub Copilot CLI**
-- ⚠️ Other CLIs (Claude Code, Gemini CLI) are unverified and may require adjustments
+- ✅ Works with all models available in **GitHub Copilot CLI** — OpenAI (GPT series), Anthropic (Claude series), Google (Gemini series)
+- ⚠️ Other CLIs (Claude Code, Gemini CLI standalone) are unverified and may require adjustments
 
 **Spec-kit support**:
 - ✅ Integrates with **GitHub Spec Kit** specs and tasks  

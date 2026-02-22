@@ -345,7 +345,7 @@ check_workflow_transition() {
         echo -e "Step '$current_step' is still in progress."
         echo ""
         echo "Either:"
-        echo "  1. Complete the current step: /session.$current_step --resume"
+        echo "  1. Complete the current step: invoke session.$current_step --resume"
         echo "  2. Force transition (data loss risk): --force flag"
         return 1
     fi
@@ -411,7 +411,7 @@ format_workflow_guidance() {
         echo "  ⚠️ Previous session was interrupted during '$current_step'"
         echo ""
         echo "  RECOMMENDED ACTION:"
-        echo "  Run: /session.$current_step --resume"
+        echo "  Run: invoke session.$current_step --resume"
         echo ""
     else
         echo "  ❌ Cannot skip to '$target_step' from '$current_step'"
@@ -420,7 +420,7 @@ format_workflow_guidance() {
         local valid_next="${WORKFLOW_TRANSITIONS[$current_step]:-}"
         local next_step
         next_step=$(echo "$valid_next" | cut -d' ' -f1)
-        echo "  Run: /session.$next_step"
+        echo "  Run: invoke session.$next_step"
         echo ""
     fi
     

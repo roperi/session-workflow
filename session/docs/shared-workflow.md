@@ -78,7 +78,7 @@ esac
 Projects can upgrade stage as they mature:
 ```bash
 # Update session-info.json manually or start new session with new stage
-/session.start --stage mvp --issue 123
+invoke session.start --stage mvp --issue 123
 ```
 
 ## Workflow State Machine
@@ -122,9 +122,9 @@ These agents are **not part of the main workflow chain**. They can be invoked at
 
 | Agent | Purpose | Best Used |
 |-------|---------|-----------|
-| `/session.clarify` | Ask targeted questions to reduce ambiguity | Before `task` |
-| `/session.analyze` | Cross-artifact consistency check (read-only) | After `task`, before `execute` |
-| `/session.checklist` | Generate requirements quality checklists | Before `execute` or PR |
+| `session.clarify` | Ask targeted questions to reduce ambiguity | Before `task` |
+| `session.analyze` | Cross-artifact consistency check (read-only) | After `task`, before `execute` |
+| `session.checklist` | Generate requirements quality checklists | Before `execute` or PR |
 
 **Usage pattern:**
 ```
@@ -180,9 +180,9 @@ fi
 ```
 
 **Recovery guidance:**
-- If interrupted during `task` → run `/session.task --resume`
-- If interrupted during `execute` → run `/session.execute --resume`
-- If interrupted during `validate` → run `/session.validate --resume`
+- If interrupted during `task` → invoke session.task --resume
+- If interrupted during `execute` → invoke session.execute --resume
+- If interrupted during `validate` → invoke session.validate --resume
 - If interrupted during other steps → run that step again
 
 ## Transition Validation

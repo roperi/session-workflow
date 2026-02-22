@@ -142,7 +142,7 @@ main() {
     session_id=$(get_active_session)
     
     if [[ -z "$session_id" ]]; then
-        output_error "No active session found" "Run /session.start first"
+        output_error "No active session found" "invoke session.start first"
         exit 1
     fi
     
@@ -172,7 +172,7 @@ main() {
                 if ! $JSON_OUTPUT; then
                     echo ""
                     echo "Options:"
-                    echo "  1. Resume: /session.$current_step --resume"
+                    echo "  1. Resume: invoke session.$current_step --resume"
                     echo "  2. Force: Add --force flag to skip this check"
                 fi
                 exit 2

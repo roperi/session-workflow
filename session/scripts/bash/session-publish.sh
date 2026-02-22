@@ -105,7 +105,7 @@ if [ -n "$PR_NUMBER" ]; then
     "🔧 Fix any CI failures if needed",
     "👀 Get PR reviewed (if required)",
     "✅ Merge PR when ready",
-    "▶️  Then run: /session.finalize"
+    "▶️  Then run: invoke session.finalize"
   ]
 }
 EOF
@@ -152,7 +152,7 @@ else
     "🔧 Fix any CI failures if needed",
     "👀 Get PR reviewed (if required)",
     "✅ Merge PR when ready",
-    "▶️  Then run: /session.finalize"
+    "▶️  Then run: invoke session.finalize"
   ]
 }
 EOF

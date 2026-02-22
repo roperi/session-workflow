@@ -66,10 +66,10 @@ PR_MERGED=$(gh pr view "$PR_NUMBER" --json merged -q .merged)
 if [ "$PR_MERGED" != "true" ]; then
     PR_STATE=$(gh pr view "$PR_NUMBER" --json state -q .state)
     if [ "$JSON_OUTPUT" = true ]; then
-        json_error_msg "PR not merged" "Merge PR #${PR_NUMBER} first, then retry /session.finalize" >&2
+        json_error_msg "PR not merged" "Merge PR #${PR_NUMBER} first, then retry: invoke session.finalize" >&2
     else
         echo "❌ Cannot finalize: PR #$PR_NUMBER not merged (state: $PR_STATE)"
-        echo "Please merge the PR first, then run /session.finalize"
+        echo "Please merge the PR first, then invoke session.finalize"
     fi
     exit 1
 fi

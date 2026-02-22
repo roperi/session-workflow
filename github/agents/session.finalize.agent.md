@@ -52,7 +52,7 @@ This typically happens when:
 - Process crashed during [step_name]
 
 REQUIRED ACTION:
-Run `/session.[step_name] --resume` to complete the interrupted step first.
+Run `invoke session.[step_name] --resume` to complete the interrupted step first.
 
 Cannot proceed with finalize until previous step completes.
 ```
@@ -68,7 +68,7 @@ The workflow sequence is:
   start → plan → execute → validate → publish → finalize → wrap
 
 REQUIRED ACTION:
-Run the next step in sequence: /session.[next_step]
+Run the next step in sequence: invoke session.[next_step]
 ```
 
 **Only proceed if:**

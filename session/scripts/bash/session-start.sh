@@ -749,7 +749,7 @@ main() {
 
         if [[ "$session_date" != "$today" ]]; then
             if $JSON_OUTPUT; then
-                echo "{\"status\": \"error\", \"message\": \"Stale session detected: ${active_session} is from ${session_date} but today is ${today}\", \"hint\": \"Run: /session.start --resume (or rm .session/ACTIVE_SESSION for a new session)\"}"
+                echo "{\"status\": \"error\", \"message\": \"Stale session detected: ${active_session} is from ${session_date} but today is ${today}\", \"hint\": \"Run: invoke session.start --resume (or rm .session/ACTIVE_SESSION for a new session)\"}"
             else
                 print_error "Stale session detected!"
                 echo ""
