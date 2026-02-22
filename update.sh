@@ -10,6 +10,7 @@ set -euo pipefail
 
 REPO_URL="https://raw.githubusercontent.com/roperi/session-workflow/main"
 VERSION="2.5.0"
+DRY_RUN=false
 
 # Colors for output
 RED='\033[0;31m'
@@ -22,17 +23,23 @@ NC='\033[0m' # No Color
 # Helper Functions
 # ============================================================================
 
-info() { echo -e "${BLUE}[INFO]${NC} $1"; }
-success() { echo -e "${GREEN}[OK]${NC} $1"; }
-warn() { echo -e "${YELLOW}[WARN]${NC} $1"; }
-error() { echo -e "${RED}[ERROR]${NC} $1"; exit 1; }
+info()     { echo -e "${BLUE}[INFO]${NC} $1"; }
+success()  { echo -e "${GREEN}[OK]${NC} $1"; }
+warn()     { echo -e "${YELLOW}[WARN]${NC} $1"; }
+error()    { echo -e "${RED}[ERROR]${NC} $1"; exit 1; }
+dry_note() { echo -e "${YELLOW}[DRY-RUN]${NC} $1"; }
 
 download_file() {
     local url="$1"
     local dest="$2"
-    
+
+    if $DRY_RUN; then
+        dry_note "Would download: $dest"
+        return
+    fi
+
     mkdir -p "$(dirname "$dest")"
-    
+
     if command -v curl &> /dev/null; then
         curl -sSL "$url" -o "$dest"
     else
@@ -179,6 +186,10 @@ SECTION
         fi
 
         if grep -q "^## Session Workflow" "$file" 2>/dev/null; then
+            if $DRY_RUN; then
+                dry_note "Would replace Session Workflow section in $file"
+                continue
+            fi
             # Replace existing block: strip from ## Session Workflow up to (but not
             # including) the next ## heading, or to EOF if it's the last section.
             local tmp
@@ -193,6 +204,10 @@ SECTION
             rm -f "$tmp"
             success "Replaced Session Workflow section in $file"
         else
+            if $DRY_RUN; then
+                dry_note "Would add Session Workflow section to $file"
+                continue
+            fi
             printf '\n%s\n' "$section" >> "$file"
             success "Added Session Workflow section to $file"
         fi
@@ -202,7 +217,7 @@ SECTION
 
 
 main() {
-    # Parse --version flag to pin download to a specific release tag
+    # Parse flags
     local arg_version=""
     local args=()
     while [[ $# -gt 0 ]]; do
@@ -210,6 +225,10 @@ main() {
             --version)
                 arg_version="$2"
                 shift 2
+                ;;
+            --dry-run)
+                DRY_RUN=true
+                shift
                 ;;
             *)
                 args+=("$1")
@@ -228,6 +247,8 @@ main() {
     echo -e "${BLUE}╔════════════════════════════════════════╗${NC}"
     echo -e "${BLUE}║     Session Workflow Updater v${VERSION}     ║${NC}"
     echo -e "${BLUE}╚════════════════════════════════════════╝${NC}"
+    echo ""
+    $DRY_RUN && warn "DRY-RUN mode — no files will be changed"
     echo ""
     
     # Check if session-workflow is installed
@@ -249,9 +270,15 @@ main() {
     warn "Skipping project-context/ (user-customized files)"
     
     echo ""
-    echo -e "${GREEN}╔════════════════════════════════════════╗${NC}"
-    echo -e "${GREEN}║        Update Complete! ✓              ║${NC}"
-    echo -e "${GREEN}╚════════════════════════════════════════╝${NC}"
+    if $DRY_RUN; then
+        echo -e "${YELLOW}╔════════════════════════════════════════╗${NC}"
+        echo -e "${YELLOW}║     Dry-run complete (no changes made) ║${NC}"
+        echo -e "${YELLOW}╚════════════════════════════════════════╝${NC}"
+    else
+        echo -e "${GREEN}╔════════════════════════════════════════╗${NC}"
+        echo -e "${GREEN}║        Update Complete! ✓              ║${NC}"
+        echo -e "${GREEN}╚════════════════════════════════════════╝${NC}"
+    fi
     echo ""
 }
 
