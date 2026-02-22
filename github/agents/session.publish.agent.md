@@ -99,10 +99,10 @@ fi
 
 **Next Steps:**
 1. Monitor CI at [PR URL]
-2. Once CI passes and PR is merged: `/session.finalize`
-3. Then wrap up: `/session.wrap`
+2. Once CI passes and PR is merged: `session.finalize`
+3. Then wrap up: `session.wrap`
 
-**Why /session.finalize next?**
+**Why session.finalize next?**
 - session.finalize closes issues and syncs task progress (requires merged PR)
 - session.wrap documents the session (requires all work complete)
 - User must monitor CI and merge PR before finalizing
@@ -118,10 +118,10 @@ fi
 **Next Steps:**
 1. Fix issues in next session, OR
 2. If acceptable, merge as-is (draft PR)
-3. After merge: `/session.finalize`
-4. Then wrap up: `/session.wrap`
+3. After merge: `session.finalize`
+4. Then wrap up: `session.wrap`
 
-**Why /session.finalize next?**
+**Why session.finalize next?**
 - session.finalize handles post-merge issue management
 - session.wrap is the final documentation step
 - Can't finalize until PR is merged to main
@@ -131,7 +131,7 @@ fi
 
 After successful PR creation/update:
 
-**Next step:** `/session.finalize` (after PR merged to main)
+**Next step:** invoke session.finalize (after PR merged to main)
 
 ## CRITICAL: PR Merge Rules
 
@@ -150,13 +150,13 @@ After successful PR creation/update:
    ```
 
 3. **After Merge**
-   - User runs `/session.finalize` to close issues
+   - User runs `session.finalize` to close issues
    - session.finalize handles issue management
 
 ## What NOT to Do
 
 - ❌ Don't re-run tests if validation-results.json exists and is fresh
-- ❌ Don't suggest `/session.start` or `/session.wrap` immediately
+- ❌ Don't suggest `session.start` or `session.wrap` immediately
 - ❌ Don't monitor CI (that's user's responsibility in GitHub UI)
 - ❌ Don't auto-merge PRs
 - ❌ Don't auto-chain to session.finalize (PR must be merged first)
@@ -164,7 +164,7 @@ After successful PR creation/update:
 ## Usage
 
 ```bash
-/session.publish
+invoke session.publish
 ```
 
 

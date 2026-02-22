@@ -1,5 +1,5 @@
 ---
-description: Finalize session with documentation and cleanup (end of session workflow chain)
+description: End the session — write final summary, update CHANGELOG, and clear session state. Terminal step in the workflow chain.
 tools: ["*"]
 ---
 
@@ -208,7 +208,7 @@ This marks the session complete by:
 - Good handoff notes make the next session efficient
 - Session data is preserved in `.session/sessions/{id}/`
 
-**No Handoff After Wrap**: session.wrap is the terminal agent in the workflow. It documents and archives the session, then clears the ACTIVE_SESSION sentinel. The next session starts fresh with `/session.start`.
+**No Handoff After Wrap**: session.wrap is the terminal agent in the workflow. It documents and archives the session, then clears the ACTIVE_SESSION sentinel. The next session starts fresh with `session.start`.
 
 ## CRITICAL: Only Create Specified Files
 

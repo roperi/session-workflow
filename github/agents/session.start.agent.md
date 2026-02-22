@@ -1,5 +1,5 @@
 ---
-description: Initialize session tracking and load project context
+description: Start a new work session or resume an existing one — always run this first before any other session agent
 tools: ["*"]
 ---
 
@@ -222,7 +222,7 @@ Context loaded:
 - Session notes: {notes-path}
 - Tasks file: {tasks-path or spec-path}
 
-Ready for next step → {/session.plan (development/spike) | /session.execute (maintenance)}
+Ready for next step → {invoke session.plan (development/spike) | invoke session.execute (maintenance)}
 ```
 
 **Stage-specific notes:**
@@ -231,9 +231,9 @@ Ready for next step → {/session.plan (development/spike) | /session.execute (m
 - **production**: "🚀 Production mode: Full validation enabled"
 
 **Workflow-specific next steps:**
-- **development** or **spike**: handoff to `/session.plan`
-- **maintenance**: handoff directly to `/session.execute`
-- **maintenance + read-only**: handoff to `/session.execute` with reminder: "No commits — produce a report only"
+- **development** or **spike**: handoff to `session.plan`
+- **maintenance**: handoff directly to `session.execute`
+- **maintenance + read-only**: handoff to `session.execute` with reminder: "No commits — produce a report only"
 
 ## Notes
 

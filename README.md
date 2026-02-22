@@ -45,8 +45,8 @@ When AI context windows reset, work continuity is lost. Session workflow solves 
 **Agent Chain**: `start → [brainstorm →] plan → task → execute → validate → publish → finalize → wrap`
 
 **Optional knowledge agents** (version-controlled docs):
-- `/session.brainstorm` → writes to `{session_dir}/brainstorm.md` (clarify WHAT/WHY before planning)
-- `/session.compound` → writes to `docs/solutions/` (capture reusable learnings after solving)
+- `session.brainstorm` → writes to `{session_dir}/brainstorm.md` (clarify WHAT/WHY before planning)
+- `session.compound` → writes to `docs/solutions/` (capture reusable learnings after solving)
 
 ---
 
@@ -78,7 +78,7 @@ cd your-project
 
 **What gets installed:**
 - `.github/agents/session.*.agent.md` - AI agent definitions
-- `.github/prompts/session.*.prompt.md` - Slash command links
+- `.github/prompts/session.*.prompt.md` - Prompt link files (IDE integration, e.g. VS Code)
 - `.session/` - Scripts, templates, project context
 - `AGENTS.md` - AI bootstrap file (created if missing)
 - `.github/copilot-instructions.md` - Copilot config (created if missing)
@@ -96,38 +96,38 @@ cd your-project
 
 ```
 Will this produce a PR?
-├─ Yes → /session.start --issue 123        (development — full chain)
-├─ Maybe / exploring → /session.start --spike "Research caching"
-├─ Small change, no PR → /session.start --maintenance "Reorder docs/"
-└─ Read-only audit → /session.start --maintenance --read-only "Find stale files"
+├─ Yes → invoke session.start --issue 123        (development — full chain)
+├─ Maybe / exploring → invoke session.start --spike "Research caching"
+├─ Small change, no PR → invoke session.start --maintenance "Reorder docs/"
+└─ Read-only audit → invoke session.start --maintenance --read-only "Find stale files"
 
-Not sure what to build yet? → /session.brainstorm first, then /session.start
+Not sure what to build yet? → invoke session.brainstorm first, then session.start
 ```
 
 ```bash
 # Development workflow (full chain → PR)
-/session.start --issue 123
-/session.start "Fix performance bug"
+invoke session.start --issue 123
+invoke session.start "Fix performance bug"
 
 # Spike (exploration, no PR)
-/session.start --spike "Explore Redis caching"
+invoke session.start --spike "Explore Redis caching"
 
 # Maintenance (small change or housekeeping, no PR)
-/session.start --maintenance "Reorder docs/ and update TOC"
-/session.start --maintenance "Remove stray .DS_Store files"
+invoke session.start --maintenance "Reorder docs/ and update TOC"
+invoke session.start --maintenance "Remove stray .DS_Store files"
 
 # Audit (read-only, no commits)
-/session.start --maintenance --read-only "Find files not referenced in any import"
+invoke session.start --maintenance --read-only "Find files not referenced in any import"
 
 # Resume interrupted work
-/session.start --resume
-/session.execute --resume --comment "Continue from task 5"
+invoke session.start --resume
+invoke session.execute --resume --comment "Continue from task 5"
 
 # After PR merged
-/session.finalize
+invoke session.finalize
 
 # End session
-/session.wrap
+invoke session.wrap
 ```
 
 **Note**: When consuming preflight or session-start JSON, use `repo_root` to resolve repo paths.
@@ -146,8 +146,8 @@ Use for:
 - Work that needs PR review
 
 ```bash
-/session.start --issue 123
-/session.start "Add caching layer"
+invoke session.start --issue 123
+invoke session.start "Add caching layer"
 ```
 
 ### 2. Spike
@@ -160,7 +160,7 @@ Use for:
 - Work that may be discarded
 
 ```bash
-/session.start --spike "Benchmark Redis vs Memcached"
+invoke session.start --spike "Benchmark Redis vs Memcached"
 ```
 
 **Note**: Spike still includes planning and task generation - it only skips PR steps (validate, publish, finalize).
@@ -175,8 +175,8 @@ Use for:
 - Work that doesn't warrant a branch or PR
 
 ```bash
-/session.start --maintenance "Reorder docs/ and update TOC"
-/session.start --maintenance "Remove stray .DS_Store and build artifacts"
+invoke session.start --maintenance "Reorder docs/ and update TOC"
+invoke session.start --maintenance "Remove stray .DS_Store and build artifacts"
 ```
 
 No branch is created by default; work happens on the current branch.  
@@ -188,8 +188,8 @@ Add `--read-only` to prevent any commits or file modifications.
 The session produces a report file instead of committing changes.
 
 ```bash
-/session.start --maintenance --read-only "Audit files not referenced by any import"
-/session.start --maintenance --read-only "Find TODO comments older than 6 months"
+invoke session.start --maintenance --read-only "Audit files not referenced by any import"
+invoke session.start --maintenance --read-only "Find TODO comments older than 6 months"
 ```
 
 ---
@@ -208,14 +208,14 @@ The `--stage` flag controls validation strictness and documentation requirements
 
 ```bash
 # PoC: PoC work, don't know the stack yet
-/session.start --stage poc "Prototype auth flow"
+invoke session.start --stage poc "Prototype auth flow"
 
 # MVP: Building first version, core requirements defined
-/session.start --stage mvp --issue 123
+invoke session.start --stage mvp --issue 123
 
 # Production: Full quality (default, flag optional)
-/session.start --issue 456
-/session.start --stage production --issue 456
+invoke session.start --issue 456
+invoke session.start --stage production --issue 456
 ```
 
 ### Stage Behavior
@@ -243,10 +243,10 @@ The `--stage` flag controls validation strictness and documentation requirements
 As your project matures, upgrade the stage:
 ```bash
 # Started as PoC, now building MVP
-/session.start --stage mvp --issue 123
+invoke session.start --stage mvp --issue 123
 
 # MVP proven, now going to production
-/session.start --stage production --issue 456
+invoke session.start --stage production --issue 456
 ```
 
 ---
@@ -277,8 +277,7 @@ As your project matures, upgrade the stage:
 
 **Maintenance workflow** uses: `start → execute → wrap` (skips plan, task, validate, publish, finalize)
 
-At the end of each step, the agent will suggest the next `/session.*` command.
-You run the suggested command (or choose a different step as needed).
+At the end of each step, the agent will suggest the next step — invoke it by name or select it from the `/agent` picker.
 
 ---
 
@@ -289,46 +288,46 @@ You run the suggested command (or choose a different step as needed).
 - Load project context
 - Create feature branch
 - Review previous session notes
-- **Next step:** /session.plan
+- **Next step:** invoke session.plan
 
 ### session.plan
 - Create implementation plan and approach
 - Analyze requirements and identify components
 - Or reference existing Speckit plan
-- **Next step:** /session.task
+- **Next step:** invoke session.task
 
 ### session.task
 - Generate detailed task breakdown
 - Organize by user story with priorities
 - Add parallelization markers [P] and dependencies
 - Use tasks-template.md structure
-- **Next step:** /session.execute
+- **Next step:** invoke session.execute
 
 ### session.execute
 - Single-task focus
 - TDD: test → implement → verify
 - Commit after each task
-- **Next step:** /session.validate (development) or /session.wrap (spike)
+- **Next step:** invoke session.validate (development) or session.wrap (spike)
 
 ### session.validate
 - Run lint, tests
 - Check git state
 - Offer fixes if failures
 - **Stage-aware**: poc=warnings only, mvp=standard, production=strict
-- **Suggested next command (if validation passes):** /session.publish
+- **Suggested next command (if validation passes):** session.publish
 - **Only for**: development workflow
 
 ### session.publish
 - Create or update PR
 - Link issues
-- **Next step:** After the PR is merged, run /session.finalize
+- **Next step:** After the PR is merged, run session.finalize
 - **Only for**: development workflow
 
 ### session.finalize
 - Validate PR is merged
 - Close issues
 - Update parent issues
-- **Next step:** /session.wrap
+- **Next step:** invoke session.wrap
 - **Only for**: development workflow
 
 ### session.wrap
@@ -351,8 +350,8 @@ These create **version-controlled** artifacts under `docs/`.
 ### session.brainstorm
 - Clarify **WHAT/WHY** and explore 2-3 approaches
 - Captures decisions + open questions in `{session_dir}/brainstorm.md`
-- **Best used**: After `/session.start`, before `/session.plan` — when you're unsure what to build
-- **Skip if**: you already know what you want to do; just `/session.plan` directly
+- **Best used**: After `session.start`, before `session.plan` — when you're unsure what to build
+- **Skip if**: you already know what you want to do; just `session.plan` directly
 
 ### session.compound
 - Capture solved problems as reusable solution docs in `docs/solutions/`
@@ -366,13 +365,13 @@ Use these for requirements hygiene and consistency checks at any time.
 ### session.clarify
 - Ask up to 5 targeted questions to reduce ambiguity
 - Records clarifications in session notes
-- **Best used**: Before `/session.task` when requirements are vague
+- **Best used**: Before `session.task` when requirements are vague
 - **Inspired by**: Speckit's `/speckit.clarify`
 
 ### session.analyze
 - Cross-artifact consistency and coverage analysis
 - **STRICTLY READ-ONLY** - produces report only
-- **Best used**: After `/session.task`, before `/session.execute`
+- **Best used**: After `session.task`, before `session.execute`
 - **Inspired by**: Speckit's `/speckit.analyze`
 
 ### session.checklist
@@ -405,21 +404,21 @@ start → [brainstorm?] → plan → task → execute → ... → wrap → [comp
 
 ```bash
 # Session types
-/session.start --issue 123           # GitHub issue
-/session.start --spec 001-feature    # Speckit feature
-/session.start "Fix the bug"         # Unstructured (goal as positional arg)
+invoke session.start --issue 123           # GitHub issue
+invoke session.start --spec 001-feature    # Speckit feature
+invoke session.start "Fix the bug"         # Unstructured (goal as positional arg)
 
 # Workflow selection
-/session.start --spike "Research"          # Spike workflow (explore, no PR)
-/session.start --maintenance "Reorder docs/" # Maintenance workflow (small tasks, no branch/PR)
+invoke session.start --spike "Research"          # Spike workflow (explore, no PR)
+invoke session.start --maintenance "Reorder docs/" # Maintenance workflow (small tasks, no branch/PR)
 
 # Modifiers
-/session.start --maintenance --read-only "Audit stale files"  # No commits, report only
-/session.start --stage poc "Prototype auth"                   # Relaxed validation
+invoke session.start --maintenance --read-only "Audit stale files"  # No commits, report only
+invoke session.start --stage poc "Prototype auth"                   # Relaxed validation
 
 # Resume
-/session.start --resume
-/session.start --resume --comment "Continue from task 5"
+invoke session.start --resume
+invoke session.start --resume --comment "Continue from task 5"
 ```
 
 ### All agents
@@ -449,54 +448,54 @@ start → [brainstorm?] → plan → task → execute → ... → wrap → [comp
 
 ```bash
 # Start
-/session.start --issue 456
+invoke session.start --issue 456
 
 # Suggested flow: plan → task → execute → validate → publish
 # You interact at each step
 
 # After PR merged
-/session.finalize
+invoke session.finalize
 
 # Document and close
-/session.wrap
+invoke session.wrap
 ```
 
 ### Example 2: Research (Spike)
 
 ```bash
-/session.start --spike "Research WebSocket vs SSE"
+invoke session.start --spike "Research WebSocket vs SSE"
 
 # Work through exploration
 # No planning, no PR
 
-/session.wrap  # Document findings
+invoke session.wrap  # Document findings
 ```
 
 ### Example 3: Docs Housekeeping (Maintenance)
 
 ```bash
-/session.start --maintenance "Reorder docs/ sections and update TOC"
+invoke session.start --maintenance "Reorder docs/ sections and update TOC"
 
 # Go straight to execute — no plan, no branch, no PR
-/session.execute
-/session.wrap
+invoke session.execute
+invoke session.wrap
 ```
 
 ### Example 4: Read-only Audit (Maintenance + read-only)
 
 ```bash
-/session.start --maintenance --read-only "Find files not referenced by any import"
+invoke session.start --maintenance --read-only "Find files not referenced by any import"
 
 # Execute produces a report; no commits happen
-/session.execute
-/session.wrap  # Saves report, no git changes
+invoke session.execute
+invoke session.wrap  # Saves report, no git changes
 ```
 
 ### Example 5: Resuming After Interruption
 
 ```bash
 # Started working, pressed ESC mid-task
-/session.execute --resume --comment "Continue from task 7"
+invoke session.execute --resume --comment "Continue from task 7"
 ```
 
 ---
@@ -597,20 +596,20 @@ Previous session wasn't closed properly.
 
 ```bash
 rm .session/ACTIVE_SESSION
-/session.start --issue 123
+invoke session.start --issue 123
 ```
 
 ### "Git has uncommitted changes (BLOCKING)"
 
 ```bash
 git add -A && git commit -m "wip"
-/session.wrap
+invoke session.wrap
 ```
 
 ### "No active session"
 
 ```bash
-/session.start --issue 123
+invoke session.start --issue 123
 ```
 
 ### Interrupted Session / CLI Restart
@@ -622,14 +621,14 @@ If the CLI crashes or is killed mid-workflow, the next invocation detects this:
 Previous session was interrupted during: validate
 
 RECOMMENDED ACTION:
-Run: /session.validate --resume
+Run: session.validate --resume
 ```
 
 **Recovery:**
-```bash
+```
 # Resume the interrupted step
-/session.[step] --resume
+invoke session.[step] --resume
 
 # Or force skip (may cause data loss)
-/session.[next-step] --force
+invoke session.[next-step] --force
 ```

@@ -1,5 +1,5 @@
 ---
-description: Execute tasks with TDD discipline and single-task focus
+description: Implement the session task list with TDD discipline and single-task focus
 tools: ["*"]
 ---
 
@@ -58,7 +58,7 @@ This validates the session, marks step in_progress, and outputs JSON context inc
 # Get the active session ID from ACTIVE_SESSION marker
 ACTIVE_SESSION_FILE=".session/ACTIVE_SESSION"
 if [ ! -f "$ACTIVE_SESSION_FILE" ]; then
-  echo "ERROR: No active session found. Run /session.start first."
+  echo "ERROR: No active session found. Run session.start first."
   exit 1
 fi
 
@@ -251,11 +251,11 @@ Completed: {count} tasks
 Remaining: {count} tasks
 
 Recommend pausing now.
-You can resume with /session.execute in next session.
+You can resume with session.execute in next session.
 
 Options:
-- /session.validate → Run quality checks and chain to publish
-- /session.wrap → Skip validation and wrap directly
+- session.validate → Run quality checks and chain to publish
+- session.wrap → Skip validation and wrap directly
 ```
 
 ### 7. Phase Completion (Speckit Sessions Only)
@@ -306,14 +306,14 @@ Ready for validation and publishing
 
 {If more tasks remain}:
 Remaining: {count} tasks
-Can resume with /session.execute
+Can resume with session.execute
 
 Next steps:
-→ /session.validate (recommended) - Run quality checks before publishing
-→ /session.wrap - Skip validation and document only
+→ invoke session.validate (recommended) - Run quality checks before publishing
+→ invoke session.wrap - Skip validation and document only
 ```
 
-**Next step:** /session.validate (development) or /session.wrap (spike)
+**Next step:** invoke session.validate (development) or invoke session.wrap (spike)
 
 **Reasoning**: session.execute completes implementation tasks but doesn't verify quality or create PRs. session.validate runs comprehensive quality checks (lint, tests, coverage) before publishing, ensuring nothing broken is pushed. session.wrap is for documentation only without validation.
 
@@ -335,4 +335,4 @@ Next steps:
 - **TDD discipline**: Test → implement → verify → commit
 - **Manual verification**: Required for UI-visible changes
 - **Small commits**: One task per commit
-- **Next step**: /session.validate (development) or /session.wrap (spike)
+- **Next step**: invoke session.validate (development) or invoke session.wrap (spike)

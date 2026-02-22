@@ -334,7 +334,7 @@ If user chooses "Publish anyway":
 
 If user chooses "Wrap session":
 - Save validation-results.json
-- Suggest using `/session.wrap`
+- Suggest using `session.wrap`
 
 ## What NOT to Do
 
@@ -347,7 +347,7 @@ If user chooses "Wrap session":
 ## Usage
 
 ```bash
-/session.validate
+invoke session.validate
 ```
 
 Typically invoked automatically by `session.execute` after task completion.

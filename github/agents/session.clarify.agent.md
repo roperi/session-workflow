@@ -12,13 +12,13 @@ Identify underspecified areas in the current work by asking up to 5 highly targe
 - **Read `.session/docs/shared-workflow.md`** for shared workflow rules.
 - **Read `.session/project-context/technical-context.md`** for project context.
 - This is an **optional** agent - not part of the 8-agent chain.
-- Can be invoked at any time, but most useful **before** `/session.task`.
+- Can be invoked at any time, but most useful **before** `session.task`.
 
 ---
 
 ## When to Use
 
-- **Before task breakdown**: Run before `/session.task` to reduce ambiguity
+- **Before task breakdown**: Run before `session.task` to reduce ambiguity
 - **Unclear requirements**: When goals, scope, or behavior are vague
 - **Complex features**: When multiple valid implementation approaches exist
 - **User request**: When explicitly asked to clarify requirements
@@ -46,7 +46,7 @@ Consider user input before proceeding.
    source .session/scripts/bash/session-common.sh
    SESSION_ID=$(get_active_session)
    ```
-2. If no active session, abort with: "No active session. Run `/session.start` first."
+2. If no active session, abort with: "No active session. invoke session.start first."
 
 3. Load available context:
    - `.session/sessions/$SESSION_ID/session-info.json` - Session metadata
@@ -167,7 +167,7 @@ Output completion summary:
 | Dependencies | ✅ Clear |
 | Constraints | ✅ Clear |
 
-**Next step:** Run `/session.task` to generate detailed task breakdown.
+**Next step:** invoke session.task to generate detailed task breakdown.
 ```
 
 ---
@@ -187,15 +187,15 @@ Output completion summary:
 
 ```bash
 # Before task generation
-/session.clarify
+invoke session.clarify
 
 # With specific focus
-/session.clarify --comment "Focus on error handling and data model"
+invoke session.clarify --comment "Focus on error handling and data model"
 
 # After planning
-/session.plan
-/session.clarify  # Optional: reduce ambiguity before tasks
-/session.task
+invoke session.plan
+invoke session.clarify  # Optional: reduce ambiguity before tasks
+invoke session.task
 ```
 
 ---
@@ -205,6 +205,6 @@ Output completion summary:
 This agent does not auto-handoff. After clarification:
 
 **Suggested next steps:**
-- `/session.task` - Generate detailed task breakdown (most common)
-- `/session.plan` - Refine plan based on clarifications
-- `/session.execute` - If tasks already exist and clarifications were minor
+- invoke session.task - Generate detailed task breakdown (most common)
+- invoke session.plan - Refine plan based on clarifications
+- invoke session.execute - If tasks already exist and clarifications were minor

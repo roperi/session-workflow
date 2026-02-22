@@ -51,7 +51,7 @@ This validates the session, checks for interrupts, and outputs JSON context.
 ```bash
 ACTIVE_SESSION_FILE=".session/ACTIVE_SESSION"
 if [ ! -f "$ACTIVE_SESSION_FILE" ]; then
-  echo "ERROR: No active session found. Run /session.start first."
+  echo "ERROR: No active session found. Run session.start first."
   exit 1
 fi
 
@@ -138,7 +138,7 @@ EOF
    Feature: {feature-name}
    Plan: {FEATURE_DIR}/plan.md
    
-   Ready for task generation → /session.task
+   Ready for task generation → invoke session.task
 
    Incomplete tasks:
    - [ ] T146 Create useProjectModels.ts
@@ -203,7 +203,7 @@ EOF
    Issue: #{issue-number} - {title}
    Plan saved to: $SESSION_DIR/notes.md
 
-   Ready for task generation → /session.task
+   Ready for task generation → invoke session.task
    ```
 
 #### C. Unstructured Session Path
@@ -253,10 +253,10 @@ Session: $SESSION_ID
 Type: {speckit|github_issue|unstructured}
 Plan: Written to notes.md
 
-Ready for task generation → /session.task
+Ready for task generation → invoke session.task
 ```
 
-**Next step:** `/session.task`
+**Next step:** invoke session.task
 
 **Why:** session.plan creates the high-level implementation plan but doesn't break it into detailed tasks. session.task generates the structured task list with user story organization, parallelization markers, and dependencies.
 
@@ -298,4 +298,4 @@ Include:
 - **GitHub issues**: Create plan from issue content
 - **Unstructured**: Create plan from goal
 - **Single responsibility**: Planning only, no task generation
-- **Next step:** `/session.task`
+- **Next step:** invoke session.task

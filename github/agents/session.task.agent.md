@@ -54,7 +54,7 @@ This validates the session, marks step in_progress, and outputs JSON context.
 ```bash
 ACTIVE_SESSION_FILE=".session/ACTIVE_SESSION"
 if [ ! -f "$ACTIVE_SESSION_FILE" ]; then
-  echo "ERROR: No active session found. Run /session.start first."
+  echo "ERROR: No active session found. Run session.start first."
   exit 1
 fi
 
@@ -286,7 +286,7 @@ Parallel opportunities: {count} task groups
 
 MVP Scope: Phases 1-3 ({n} tasks)
 
-Ready to execute → /session.execute
+Ready to execute → invoke session.execute
 ```
 
 **Handoff Reasoning**: session.task generates the detailed task breakdown but doesn't execute any work. Task execution is session.execute's responsibility, which implements tasks following TDD discipline.
@@ -340,4 +340,4 @@ If plan contains user stories or acceptance criteria:
 - **GitHub issues**: Generate from issue + plan context
 - **Unstructured**: Generate from goal + plan context
 - **Single purpose**: Task generation only, no execution
-- **Next step**: /session.execute
+- **Next step**: invoke session.execute

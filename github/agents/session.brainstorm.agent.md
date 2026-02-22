@@ -1,6 +1,6 @@
 ---
 description: Clarify WHAT to build and capture decisions as a version-controlled brainstorm doc.
-tools: ["read", "write", "search"]
+tools: ["read", "edit", "search"]
 ---
 
 # session.brainstorm
@@ -106,7 +106,7 @@ Rationale:
 
 ## Next Step
 
-Run `/session.plan` and reference this brainstorm.
+invoke session.plan and reference this brainstorm.
 ```
 
 ### 5) Record reference in session notes
@@ -120,5 +120,5 @@ Append to `{session_dir}/notes.md`:
 ### 6) Handoff
 
 Suggest next step:
-- `/session.plan` (most common)
-- or `/session.clarify` if unresolved questions remain
+- invoke session.plan (most common)
+- or `session.clarify` if unresolved questions remain

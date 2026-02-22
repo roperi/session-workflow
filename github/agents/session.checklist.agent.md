@@ -64,7 +64,7 @@ Consider user input before proceeding. User may specify:
    source .session/scripts/bash/session-common.sh
    SESSION_ID=$(get_active_session)
    ```
-2. If no active session, abort with: "No active session. Run `/session.start` first."
+2. If no active session, abort with: "No active session. invoke session.start first."
 
 3. Load artifacts:
    - `.session/sessions/$SESSION_ID/session-info.json` - Session metadata
@@ -290,15 +290,15 @@ Create checklist file:
 
 ```bash
 # General quality checklist
-/session.checklist
+invoke session.checklist
 
 # Domain-specific
-/session.checklist --comment "security checklist for auth feature"
-/session.checklist --comment "ux checklist, quick depth"
+invoke session.checklist --comment "security checklist for auth feature"
+invoke session.checklist --comment "ux checklist, quick depth"
 
 # Multiple checklists
-/session.checklist --comment "api"
-/session.checklist --comment "security"
+invoke session.checklist --comment "api"
+invoke session.checklist --comment "security"
 ```
 
 ---
@@ -309,6 +309,6 @@ This agent does not auto-handoff. After checklist generation:
 
 **Suggested next steps:**
 - Review and check off items as requirements are verified
-- `/session.clarify` - Address identified ambiguities
-- `/session.task` - Update tasks based on gaps found
-- `/session.execute` - Proceed with implementation
+- invoke session.clarify - Address identified ambiguities
+- invoke session.task - Update tasks based on gaps found
+- invoke session.execute - Proceed with implementation

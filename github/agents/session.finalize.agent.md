@@ -1,5 +1,5 @@
 ---
-description: Finalize session by managing issues and syncing tasks post-merge
+description: Close GitHub issues and sync task progress after a pull request is merged — run after PR merge, before session.wrap
 tools: ["*"]
 ---
 
@@ -293,13 +293,13 @@ Phase X (#issue-number) complete. All Y tasks finished.
 
 ## Handoff
 
-After finalization, **auto-suggest** `/session.wrap`:
+After finalization, **auto-suggest** `session.wrap`:
 
 ```
 ✅ Session finalized successfully
 
 **Next step:** Document and close session
-→ `/session.wrap`
+→ invoke session.wrap
 ```
 
 **Reasoning**: session.finalize completes all post-merge issue management (closing phase issues, updating parent issue, syncing tasks to GitHub). The final step is session.wrap, which documents the session in CHANGELOG.md and daily summary, then archives the session. This separation ensures issue management is complete before documentation.
@@ -307,7 +307,7 @@ After finalization, **auto-suggest** `/session.wrap`:
 ## Usage
 
 ```bash
-/session.finalize
+invoke session.finalize
 ```
 
 Invoke after:
@@ -326,5 +326,5 @@ Invoke after:
 **PR Updated**: #661 - Phase 6 marked complete in description
 
 **Next step:** Document and close session
-→ `/session.wrap`
+→ invoke session.wrap
 ```
