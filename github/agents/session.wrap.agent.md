@@ -191,7 +191,17 @@ git fetch --prune
 - ✅ Feature branches spanning multiple sessions are preserved
 - ❌ NEVER delete unmerged branches
 
-### 7. Finalize Session
+### 7. Clean Up Session Workspace
+
+```bash
+.session/scripts/bash/session-cleanup.sh --json
+```
+
+This removes errant files left behind by previous agents (e.g., files accidentally written to `.session/` root instead of the session directory), misplaced session directories, orphaned state files, and empty legacy directories. It is idempotent and safe to run on a clean workspace.
+
+Report the cleanup result (what was removed/moved, if anything) in the final-summary.
+
+### 8. Finalize Session
 
 ```bash
 .session/scripts/bash/session-wrap.sh --json

@@ -265,7 +265,40 @@ TMPL
   task_counts=$(count_tasks "$phase_tasks_file")
   assert_eq "3:1" "$task_counts" "count_tasks on phase-based template (3 total, 1 done)"
 
-  log "All tests passed (start, preflight, wrap)."
+  # 13) session-cleanup: removes errant root files, moves misplaced session dir
+  log "13) session-cleanup removes errant files and moves misplaced session dir"
+  # Drop errant files at .session/ root
+  echo "junk" > .session/errant-file.txt
+  mkdir -p .session/daily-summaries
+  # Create a misplaced session dir directly under .session/sessions/
+  local misplaced_id="2026-01-01-9"
+  mkdir -p ".session/sessions/${misplaced_id}"
+  echo '{}' > ".session/sessions/${misplaced_id}/state.json"
+  # Create an orphaned file directly under .session/sessions/
+  echo "orphaned" > .session/sessions/orphaned.txt
+  # Run cleanup
+  ./.session/scripts/bash/session-cleanup.sh --json > /tmp/cleanup_out.json
+  vlog "cleanup output: $(cat /tmp/cleanup_out.json)"
+  # Errant root file should be gone
+  [[ ! -f .session/errant-file.txt ]] || fail "errant-file.txt should have been removed"
+  # Empty legacy dir should be gone
+  [[ ! -d .session/daily-summaries ]] || fail "daily-summaries/ should have been removed"
+  # Orphaned file should be gone
+  [[ ! -f .session/sessions/orphaned.txt ]] || fail "orphaned.txt should have been removed"
+  # Misplaced session dir should be at correct path
+  [[ -d ".session/sessions/2026-01/${misplaced_id}" ]] || fail "misplaced session dir not moved to sessions/2026-01/"
+  [[ ! -d ".session/sessions/${misplaced_id}" ]] || fail "misplaced session dir should be gone from sessions/ root"
+  # validation-results.json is allowlisted — should NOT have been removed
+  echo '{"overall":"pass"}' > .session/validation-results.json
+  ./.session/scripts/bash/session-cleanup.sh --json >/dev/null
+  [[ -f .session/validation-results.json ]] || fail "validation-results.json (allowlisted) should NOT have been removed"
+  rm -f .session/validation-results.json
+  # JSON output should be status:ok
+  local cleanup_status
+  cleanup_status=$(jq -r '.status' /tmp/cleanup_out.json)
+  assert_eq "ok" "$cleanup_status" "cleanup status should be ok"
+
+  log "All tests passed (start, preflight, wrap, cleanup)."
 }
 
 main "$@"

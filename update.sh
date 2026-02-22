@@ -63,6 +63,7 @@ update_scripts() {
         "session-finalize.sh"
         "session-preflight.sh"
         "session-handoff-list.sh"
+        "session-cleanup.sh"
     )
 
     local lib_scripts=(
