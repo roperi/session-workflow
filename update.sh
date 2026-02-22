@@ -9,7 +9,7 @@ set -euo pipefail
 # ============================================================================
 
 REPO_URL="https://raw.githubusercontent.com/roperi/session-workflow/main"
-VERSION="2.4.0"
+VERSION="2.5.0"
 
 # Colors for output
 RED='\033[0;31m'
@@ -146,9 +146,60 @@ update_prompts() {
     success "Prompts updated"
 }
 
-# ============================================================================
-# Main
-# ============================================================================
+update_bootstrap_sections() {
+    info "Updating Session Workflow sections in AGENTS.md and copilot-instructions.md..."
+
+    # The canonical section content — kept in sync with stubs/
+    local section
+    section=$(cat << 'SECTION'
+## Session Workflow
+
+This project uses session workflow for AI context continuity.
+See `.session/docs/README.md` for quick reference.
+
+**Agents:**
+- `invoke session.start --issue N` - Development session from GitHub issue
+- `invoke session.start --spec 001-feature` - Spec Kit session
+- `invoke session.start "description"` - Development session (positional description)
+- `invoke session.start --spike "description"` - Spike/research (no PR)
+- `invoke session.start --resume` - Resume active session
+- `invoke session.finalize` - Post-merge cleanup (after PR merge)
+- `invoke session.wrap` - End session
+
+**Project context:**
+- `.session/project-context/technical-context.md` - Stack, build/test commands
+- `.session/project-context/constitution-summary.md` - Quality standards
+SECTION
+)
+
+    for file in "AGENTS.md" ".github/copilot-instructions.md"; do
+        if [[ ! -f "$file" ]]; then
+            warn "$file not found, skipping"
+            continue
+        fi
+
+        if grep -q "^## Session Workflow" "$file" 2>/dev/null; then
+            # Replace existing block: strip from ## Session Workflow up to (but not
+            # including) the next ## heading, or to EOF if it's the last section.
+            local tmp
+            tmp=$(mktemp)
+            awk '
+                /^## Session Workflow/ { skip=1; next }
+                /^## / && skip        { skip=0 }
+                !skip                 { print }
+            ' "$file" > "$tmp"
+            # Remove trailing blank lines, then append refreshed section
+            printf '%s\n\n%s\n' "$(sed -e 's/[[:space:]]*$//' "$tmp" | awk 'NF{found=NR} {lines[NR]=$0} END{for(i=1;i<=found;i++) print lines[i]}')" "$section" > "$file"
+            rm -f "$tmp"
+            success "Replaced Session Workflow section in $file"
+        else
+            printf '\n%s\n' "$section" >> "$file"
+            success "Added Session Workflow section to $file"
+        fi
+    done
+}
+
+
 
 main() {
     # Parse --version flag to pin download to a specific release tag
@@ -192,6 +243,7 @@ main() {
     update_docs
     update_agents
     update_prompts
+    update_bootstrap_sections
     
     # Note: We don't update project-context (user customized)
     warn "Skipping project-context/ (user-customized files)"

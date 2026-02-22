@@ -18,7 +18,8 @@ This is the single source of truth for session workflow documentation.
 
 1. [Overview](#overview)
 2. [Installation](#installation)
-3. [Quick Start](#quick-start)
+3. [Updating](#updating)
+4. [Quick Start](#quick-start)
 4. [Workflow Types](#workflow-types)
 5. [Project Stages](#project-stages)
 6. [Agent Chain](#agent-chain)
@@ -87,6 +88,28 @@ cd your-project
 1. Customize `.session/project-context/technical-context.md` with your stack
 2. Customize `.session/project-context/constitution-summary.md` with quality standards
 3. Review `AGENTS.md` for project-specific additions
+
+## Updating
+
+When a new version is released, run `update.sh` from inside the target repo:
+
+```bash
+curl -sSL https://raw.githubusercontent.com/roperi/session-workflow/main/update.sh | bash
+
+# Or pin to a specific version
+bash update.sh --version v2.5.0
+```
+
+**What gets updated** (safe to re-run at any time):
+- All agent files (`.github/agents/session.*.agent.md`)
+- All prompt files (`.github/prompts/session.*.prompt.md`)
+- All bash scripts (`.session/scripts/bash/`)
+- Templates and documentation (`.session/templates/`, `.session/docs/`)
+- The `## Session Workflow` section in `AGENTS.md` and `.github/copilot-instructions.md`
+
+**What is never touched:**
+- `.session/project-context/` — your customized stack and quality context
+- Any content in `AGENTS.md` or `.github/copilot-instructions.md` outside the `## Session Workflow` block
 
 ---
 
