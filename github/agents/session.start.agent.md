@@ -110,7 +110,7 @@ When the user's goal or `$ARGUMENTS` are provided without an explicit workflow f
 
 | Signal words in goal | Suggested workflow |
 |---|---|
-| `reorder`, `reorganize`, `rename`, `move`, `update toc`, `cleanup docs` | `--maintenance` |
+| `reorder`, `reorganize`, `rename`, `move`, `update TOC`, `cleanup docs` | `--maintenance` |
 | `audit`, `find stale`, `check for`, `inventory`, `list all`, `scan` | `--maintenance --read-only` |
 | `explore`, `research`, `benchmark`, `compare options`, `spike` | `--spike` |
 | `remove`, `clean`, `delete`, `purge` (without code context) | ask: "Should this be read-only first?" |
