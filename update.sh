@@ -9,7 +9,7 @@ set -euo pipefail
 # ============================================================================
 
 REPO_URL="https://raw.githubusercontent.com/roperi/session-workflow/main"
-VERSION="2.5.0"
+VERSION="2.6.0"
 DRY_RUN=false
 
 # Colors for output
