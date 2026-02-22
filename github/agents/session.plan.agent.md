@@ -212,7 +212,18 @@ EOF
 
 1. **Parse goal** from session-start arguments
 
-2. **Analyze scope**:
+2. **If `workflow == "spike"`: check for tech stack presence**
+
+   Inspect the goal description for explicit technology, framework, language, database, or architecture choices (e.g., "Redis Streams", "evaluate FastAPI vs Django", "Rust async runtime").
+
+   If absent, ask the user:
+
+   > "This is a spike session. The goal doesn't specify a tech stack or approach to evaluate. What technology or architecture should I focus on? (Leave blank to use the project's default stack from `technical-context.md`)"
+
+   - If the user provides context → use it as the evaluation target for the plan; do **not** load `technical-context.md` constraints
+   - If the user leaves it blank → load `.session/project-context/technical-context.md` as the reference stack and note this explicitly in the plan
+
+3. **Analyze scope**:
    - What needs to be done?
    - What components are affected?
    - What's the technical approach?
@@ -224,6 +235,8 @@ EOF
 ## Implementation Plan
 
 **Goal**: {goal-description}
+
+**Tech Stack**: {user-provided tech / "Project default (technical-context.md)" if blank}  ← spike only; omit for non-spike
 
 ### Scope
 {what's in scope, what's out}
@@ -239,6 +252,8 @@ EOF
 
 EOF
    ```
+
+   > **Note**: For spike sessions, the `**Tech Stack**` field must always be present — either the user-specified technology or a note that the project default stack is being used.
 
 4. **Display summary**
 
