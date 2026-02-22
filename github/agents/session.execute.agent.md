@@ -97,18 +97,31 @@ Determine task file location:
 source .session/scripts/bash/session-common.sh
 
 # Check if execution is allowed for this workflow
-if ! check_workflow_allowed "$SESSION_ID" "development" "spike"; then
-    echo "❌ session.execute is only for development or spike workflows"
-    echo "Advisory workflow does not include code execution"
+if ! check_workflow_allowed "$SESSION_ID" "development" "spike" "maintenance"; then
+    echo "❌ session.execute is not compatible with the current workflow"
     exit 1
 fi
 
 echo "✓ Workflow check passed - proceeding with execution"
 ```
 
-**Allowed workflows**: development, spike
+**Allowed workflows**: development, spike, maintenance
 
-**Note**: Spike workflow proceeds with lighter validation (no PR required).
+**Note**: Spike workflow proceeds with lighter validation (no PR required).  
+**Note**: Maintenance workflow skips planning — execute is the first active step.
+
+**Read-only enforcement**: If `session-info.json` contains `"read_only": true`, you **MUST**:
+- Make no file modifications (read and analyse only)
+- Issue no `git add`, `git commit`, or `git push` commands
+- Issue no `rm`, `mv`, or write commands
+- Produce a report (e.g., `audit-report.md`) and surface findings in the session notes
+
+```bash
+READ_ONLY=$(jq -r '.read_only // false' "$SESSION_DIR/session-info.json")
+if [[ "$READ_ONLY" == "true" ]]; then
+  echo "⚠️  READ-ONLY session — analysis only, no commits or file changes"
+fi
+```
 
 ### 2. Review Task List
 

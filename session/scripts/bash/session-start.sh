@@ -23,6 +23,7 @@ RESUME_MODE=false
 COMMENT=""
 CONTINUES_FROM=""
 GIT_CONTEXT=false
+READ_ONLY=false
 
 # ============================================================================
 # Usage
@@ -38,6 +39,8 @@ OPTIONS:
     --issue NUMBER    GitHub issue number (starts github_issue session)
     --spec DIR        Spec directory name (starts speckit session)
     --spike           Spike workflow: exploration/research, no PR expected
+    --maintenance     Maintenance workflow: small tasks, docs, housekeeping (no branch/PR)
+    --read-only       Audit/read-only mode: no commits or file changes (use with --maintenance)
     --stage STAGE     Project stage: poc, mvp, or production (default: production)
     --resume                   Resume an active session (including interrupted)
     --comment "TEXT"           Additional instructions for the session
@@ -53,6 +56,10 @@ GOAL:
 WORKFLOWS:
     development (default) - Full chain: start → plan → execute → validate → publish → finalize → wrap
     spike (--spike)       - Light chain: start → execute → wrap (no PR)
+    maintenance           - Minimal chain: start → execute → wrap (no branch, no PR)
+
+MODIFIERS:
+    --read-only           No commits or file modifications; produce report only (use with --maintenance)
 
 STAGES:
     poc        - Proof of concept: relaxed validation, minimal docs required
@@ -71,6 +78,12 @@ EXAMPLES:
 
     # Spike/research (no PR expected)
     session-start.sh --spike "Explore Redis caching options"
+
+    # Maintenance: small change, no branch or PR
+    session-start.sh --maintenance "Reorder docs/ and update TOC"
+
+    # Audit: read-only, no commits
+    session-start.sh --maintenance --read-only "Find stale files in src/"
 
     # PoC project with relaxed validation
     session-start.sh --stage poc "Prototype new auth flow"
@@ -104,6 +117,14 @@ parse_args() {
                 ;;
             --spike)
                 WORKFLOW="spike"
+                shift
+                ;;
+            --maintenance)
+                WORKFLOW="maintenance"
+                shift
+                ;;
+            --read-only)
+                READ_ONLY=true
                 shift
                 ;;
             --stage)
@@ -178,11 +199,17 @@ create_session_info() {
     local created_at
     created_at=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
     
-    # Workflow is either "development" (default) or "spike"
+    # Workflow is either "development" (default), "spike", or "maintenance"
     local workflow="${WORKFLOW}"
     
     # Stage is "poc", "mvp", or "production" (default)
     local stage="${STAGE}"
+
+    # read_only is only meaningful for maintenance workflow
+    local read_only_json=""
+    if [[ "$READ_ONLY" == "true" ]]; then
+        read_only_json=$',\n  "read_only": true'
+    fi
 
     local parent_json=""
     if [[ -n "$CONTINUES_FROM" ]]; then
@@ -205,7 +232,7 @@ create_session_info() {
   "workflow": "${workflow}",
   "stage": "${stage}",
   "created_at": "${created_at}",
-  "spec_dir": "specs/${SPEC_DIR}"${parent_json}
+  "spec_dir": "specs/${SPEC_DIR}"${parent_json}${read_only_json}
 }
 SESSIONEOF
             ;;
@@ -223,7 +250,7 @@ SESSIONEOF
   "stage": "${stage}",
   "created_at": "${created_at}",
   "issue_number": ${ISSUE_NUMBER},
-  "issue_title": "$(json_escape "$issue_title")"${parent_json}
+  "issue_title": "$(json_escape "$issue_title")"${parent_json}${read_only_json}
 }
 SESSIONEOF
             ;;
@@ -236,7 +263,7 @@ SESSIONEOF
   "workflow": "${workflow}",
   "stage": "${stage}",
   "created_at": "${created_at}",
-  "goal": "$(json_escape "$GOAL")"${parent_json}
+  "goal": "$(json_escape "$GOAL")"${parent_json}${read_only_json}
 }
 SESSIONEOF
             ;;
@@ -516,6 +543,12 @@ EOF
     local sess_stage
     sess_stage=$(echo "$session_info" | jq -r '.stage // "production"')
 
+    local sess_workflow
+    sess_workflow=$(echo "$session_info" | jq -r '.workflow // "development"')
+
+    local sess_read_only
+    sess_read_only=$(echo "$session_info" | jq -r '.read_only // false')
+
     local sess_parent
     sess_parent=$(echo "$session_info" | jq -r '.parent_session_id // empty')
     local sess_parent_escaped
@@ -542,7 +575,9 @@ EOF
   "session": {
     "id": "${session_id}",
     "type": "${sess_type}",
+    "workflow": "${sess_workflow}",
     "stage": "${sess_stage}",
+    "read_only": ${sess_read_only},
     "dir": "${session_dir}"$(if [[ -n "$sess_parent" ]]; then echo ",
     \"parent_session_id\": \"${sess_parent_escaped}\""; fi),
     "files": {
@@ -762,11 +797,67 @@ main() {
             SESSION_TYPE="speckit"
         elif [[ -n "$GOAL" ]]; then
             SESSION_TYPE="unstructured"
-        else
-            echo "ERROR: Must specify --issue, --spec, or a goal description" >&2
-            usage
+        elif $JSON_OUTPUT; then
+            # In JSON/automation mode, no interactive triage — error immediately
+            echo '{"status":"error","message":"Must specify --issue, --spec, or a goal description"}' >&2
             exit 1
+        else
+            # Interactive triage: help the user choose the right workflow
+            echo ""
+            echo "What kind of work is this?"
+            echo "  1) Code change — will open a PR          (development)"
+            echo "  2) Research or exploration — no PR       (--spike)"
+            echo "  3) Docs, housekeeping, small fixes       (--maintenance)"
+            echo "  4) Read-only audit — no commits          (--maintenance --read-only)"
+            echo ""
+            printf "Enter 1-4, or type your goal directly: "
+            read -r triage_input
+
+            case "$triage_input" in
+                1)
+                    printf "Goal / description: "
+                    read -r GOAL
+                    SESSION_TYPE="unstructured"
+                    WORKFLOW="development"
+                    ;;
+                2)
+                    printf "Goal / description: "
+                    read -r GOAL
+                    SESSION_TYPE="unstructured"
+                    WORKFLOW="spike"
+                    ;;
+                3)
+                    printf "Goal / description: "
+                    read -r GOAL
+                    SESSION_TYPE="unstructured"
+                    WORKFLOW="maintenance"
+                    ;;
+                4)
+                    printf "Goal / description: "
+                    read -r GOAL
+                    SESSION_TYPE="unstructured"
+                    WORKFLOW="maintenance"
+                    READ_ONLY=true
+                    ;;
+                "")
+                    echo "ERROR: Must specify --issue, --spec, or a goal description" >&2
+                    usage
+                    exit 1
+                    ;;
+                *)
+                    # Treat free-form input as the goal
+                    GOAL="$triage_input"
+                    SESSION_TYPE="unstructured"
+                    WORKFLOW="development"
+                    ;;
+            esac
         fi
+    fi
+
+    # --read-only is only meaningful with --maintenance
+    if [[ "$READ_ONLY" == "true" && "$WORKFLOW" != "maintenance" ]]; then
+        echo "ERROR: --read-only requires --maintenance workflow" >&2
+        exit 1
     fi
     
     # Validate required args for type
