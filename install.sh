@@ -298,33 +298,6 @@ install_bootstrap() {
     # Create .github directory
     mkdir -p .github
     
-    # Install AGENTS.md if it doesn't exist
-    if [[ ! -f "AGENTS.md" ]]; then
-        download_file "${REPO_URL}/stubs/AGENTS.md" "AGENTS.md"
-        success "Created AGENTS.md"
-    else
-        # Append session workflow section if not already present
-        if ! grep -q "Session Workflow" AGENTS.md 2>/dev/null; then
-            echo "" >> AGENTS.md
-            echo "## Session Workflow" >> AGENTS.md
-            echo "" >> AGENTS.md
-            echo "This project uses session workflow for AI context continuity." >> AGENTS.md
-            echo "See \`.session/docs/README.md\` for quick reference." >> AGENTS.md
-            echo "" >> AGENTS.md
-            echo "**Agents:**" >> AGENTS.md
-            echo "- \`invoke session.start --issue N\` - Development session from GitHub issue" >> AGENTS.md
-            echo "- \`invoke session.start --spec 001-feature\` - Spec Kit session" >> AGENTS.md
-            echo "- \`invoke session.start \"description\"\` - Development session (positional description)" >> AGENTS.md
-            echo "- \`invoke session.start --spike \"description\"\` - Spike/research (no PR)" >> AGENTS.md
-            echo "- \`invoke session.start --resume\` - Resume active session" >> AGENTS.md
-            echo "- \`invoke session.finalize\` - Post-merge cleanup (after PR merge)" >> AGENTS.md
-            echo "- \`invoke session.wrap\` - End session" >> AGENTS.md
-            success "Updated AGENTS.md with session workflow section"
-        else
-            warn "AGENTS.md already has session workflow section, skipping"
-        fi
-    fi
-    
     # Install copilot-instructions.md if it doesn't exist
     if [[ ! -f ".github/copilot-instructions.md" ]]; then
         download_file "${REPO_URL}/stubs/copilot-instructions.md" ".github/copilot-instructions.md"

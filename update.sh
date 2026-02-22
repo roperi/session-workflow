@@ -155,7 +155,7 @@ update_prompts() {
 }
 
 update_bootstrap_sections() {
-    info "Updating Session Workflow sections in AGENTS.md and copilot-instructions.md..."
+    info "Updating Session Workflow section in .github/copilot-instructions.md..."
 
     # The canonical section content — kept in sync with stubs/
     local section
@@ -180,7 +180,7 @@ See `.session/docs/README.md` for quick reference.
 SECTION
 )
 
-    for file in "AGENTS.md" ".github/copilot-instructions.md"; do
+    for file in ".github/copilot-instructions.md"; do
         if [[ ! -f "$file" ]]; then
             warn "$file not found, skipping"
             continue
