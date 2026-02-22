@@ -220,8 +220,9 @@ check_workflow_allowed() {
 # Note: session.start creates the session but does not track step state.
 # The first tracked step is typically "plan" (development/spike) or "execute" (maintenance).
 declare -A WORKFLOW_TRANSITIONS=(
-    ["none"]="plan execute"
-    ["start"]="plan execute"
+    ["none"]="brainstorm plan execute"
+    ["start"]="brainstorm plan execute"
+    ["brainstorm"]="plan"
     ["plan"]="task execute"
     ["task"]="execute"
     ["execute"]="validate execute wrap"

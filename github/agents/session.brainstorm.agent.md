@@ -29,11 +29,11 @@ You MUST consider user input (topic, scope, constraints) before proceeding.
 
 Run preflight:
 ```bash
-.session/scripts/bash/session-preflight.sh --step plan --json
+.session/scripts/bash/session-preflight.sh --step brainstorm --json
 ```
 
 Notes:
-- Using `--step plan` is intentional: brainstorm feeds planning; it should not advance execution steps.
+- `--step brainstorm` marks this optional step without advancing to `plan` prematurely.
 - Use `repo_root` from JSON as the source of truth.
 
 ### 2) Read current context
@@ -50,22 +50,9 @@ Read (when present):
 If key inputs are missing, ask up to **3** clarifying questions (one at a time). Prefer multiple-choice.
 Stop early if sufficient.
 
-### 4) Produce brainstorm doc in docs/brainstorms/
+### 4) Produce brainstorm doc in session directory
 
-Ensure directory exists:
-```bash
-mkdir -p docs/brainstorms
-```
-
-Create a new file:
-- `docs/brainstorms/YYYY-MM-DD-{slug}-brainstorm.md`
-
-Slug rules:
-- lowercase
-- hyphen-separated
-- max ~6 words
-
-Doc template:
+Create a new file at `{session_dir}/brainstorm.md` (the session directory already exists from `session.start`):
 ```markdown
 ---
 date: YYYY-MM-DD
@@ -127,7 +114,7 @@ Run `/session.plan` and reference this brainstorm.
 Append to `{session_dir}/notes.md`:
 ```markdown
 ## Brainstorm
-- {relative path to brainstorm doc}
+- {session_dir}/brainstorm.md
 ```
 
 ### 6) Handoff

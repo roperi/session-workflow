@@ -121,9 +121,9 @@ Add entry under `## [Unreleased]`:
   - Detail 2
 ```
 
-### 4. Create Daily Summary
+### 4. Create Final Summary
 
-Create `docs/reports/daily/YYYY-MM/daily-summary-{SESSION_ID}.md`:
+Create `{session_dir}/final-summary.md`:
 
 ```markdown
 # Daily Summary: {SESSION_ID}
@@ -218,7 +218,7 @@ The ONLY files you should create or modify are:
 1. `{session_dir}/notes.md` - Update with summary
 2. `{session_dir}/tasks.md` - Mark tasks complete
 3. `CHANGELOG.md` - Add session entry
-4. `docs/reports/daily/YYYY-MM/daily-summary-{SESSION_ID}.md` - Create daily summary
+4. `{session_dir}/final-summary.md` - Create final summary
 
 **DO NOT create:**
 - ❌ WRAP_SUMMARY.md

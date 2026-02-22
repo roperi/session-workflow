@@ -72,23 +72,21 @@ echo "Workflow: $WORKFLOW"
 
 **Allowed workflows**: development, spike (both need planning!)
 
-### 2.5. OPTIONAL: Check for Recent Brainstorm (Version-Controlled)
+### 2.5. OPTIONAL: Check for Brainstorm in Session Directory
 
-If `docs/brainstorms/` exists, look for a recent brainstorm relevant to the current goal/issue and use it as planning input (do not rewrite it).
+If `{session_dir}/brainstorm.md` exists, use it as planning input (do not rewrite it).
 
 ```bash
-# Optional knowledge base (committed to git)
-if [ -d "docs/brainstorms" ]; then
-  ls -1t docs/brainstorms/*.md 2>/dev/null | head -10
-fi
+# Check for a brainstorm produced earlier in this session
+ls "{session_dir}/brainstorm.md" 2>/dev/null
 ```
 
-If a brainstorm looks relevant:
+If a brainstorm exists:
 - Read it and treat its **Recommendation / Key Decisions** as planning constraints.
 - Add a reference in session notes:
   ```markdown
   ## Brainstorm
-  - docs/brainstorms/<file>.md
+  - {session_dir}/brainstorm.md
   ```
 
 If none exists, proceed normally (do NOT create one automatically).

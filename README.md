@@ -42,10 +42,10 @@ When AI context windows reset, work continuity is lost. Session workflow solves 
 3. **8-agent chain** - Structured workflow with clear next-step suggestions
 4. **Git hygiene** - Ensures clean state before session ends
 
-**Agent Chain**: `start → plan → task → execute → validate → publish → finalize → wrap`
+**Agent Chain**: `start → [brainstorm →] plan → task → execute → validate → publish → finalize → wrap`
 
 **Optional knowledge agents** (version-controlled docs):
-- `/session.brainstorm` → writes to `docs/brainstorms/` (clarify WHAT/WHY before planning)
+- `/session.brainstorm` → writes to `{session_dir}/brainstorm.md` (clarify WHAT/WHY before planning)
 - `/session.compound` → writes to `docs/solutions/` (capture reusable learnings after solving)
 
 ---
@@ -350,9 +350,9 @@ These create **version-controlled** artifacts under `docs/`.
 
 ### session.brainstorm
 - Clarify **WHAT/WHY** and explore 2-3 approaches
-- Captures decisions + open questions in `docs/brainstorms/`
-- **Best used**: When you're unsure what to build — run this *before* `/session.start`
-- **Skip if**: you already know what you want to do; just `/session.start` directly
+- Captures decisions + open questions in `{session_dir}/brainstorm.md`
+- **Best used**: After `/session.start`, before `/session.plan` — when you're unsure what to build
+- **Skip if**: you already know what you want to do; just `/session.plan` directly
 
 ### session.compound
 - Capture solved problems as reusable solution docs in `docs/solutions/`
