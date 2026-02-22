@@ -310,14 +310,14 @@ install_bootstrap() {
             echo "This project uses session workflow for AI context continuity." >> AGENTS.md
             echo "See \`.session/docs/README.md\` for quick reference." >> AGENTS.md
             echo "" >> AGENTS.md
-            echo "**Commands:**" >> AGENTS.md
-            echo "- \`/session.start --issue N\` - Development session from GitHub issue" >> AGENTS.md
-            echo "- \`/session.start --spec 001-feature\` - Spec Kit session" >> AGENTS.md
-            echo "- \`/session.start \"description\"\` - Development session (positional description)" >> AGENTS.md
-            echo "- \`/session.start --spike \"description\"\` - Spike/research (no PR)" >> AGENTS.md
-            echo "- \`/session.start --resume\` - Resume active session" >> AGENTS.md
-            echo "- \`/session.finalize\` - Post-merge cleanup (after PR merge)" >> AGENTS.md
-            echo "- \`/session.wrap\` - End session" >> AGENTS.md
+            echo "**Agents:**" >> AGENTS.md
+            echo "- \`invoke session.start --issue N\` - Development session from GitHub issue" >> AGENTS.md
+            echo "- \`invoke session.start --spec 001-feature\` - Spec Kit session" >> AGENTS.md
+            echo "- \`invoke session.start \"description\"\` - Development session (positional description)" >> AGENTS.md
+            echo "- \`invoke session.start --spike \"description\"\` - Spike/research (no PR)" >> AGENTS.md
+            echo "- \`invoke session.start --resume\` - Resume active session" >> AGENTS.md
+            echo "- \`invoke session.finalize\` - Post-merge cleanup (after PR merge)" >> AGENTS.md
+            echo "- \`invoke session.wrap\` - End session" >> AGENTS.md
             success "Updated AGENTS.md with session workflow section"
         else
             warn "AGENTS.md already has session workflow section, skipping"
@@ -336,14 +336,14 @@ install_bootstrap() {
             echo "" >> .github/copilot-instructions.md
             echo "This project uses session workflow for AI context continuity." >> .github/copilot-instructions.md
             echo "" >> .github/copilot-instructions.md
-            echo "**Commands:**" >> .github/copilot-instructions.md
-            echo "- \`/session.start --issue N\` - Development session from GitHub issue" >> .github/copilot-instructions.md
-            echo "- \`/session.start --spec 001-feature\` - Spec Kit session" >> .github/copilot-instructions.md
-            echo "- \`/session.start \"description\"\` - Development session (positional description)" >> .github/copilot-instructions.md
-            echo "- \`/session.start --spike \"description\"\` - Spike/research (no PR)" >> .github/copilot-instructions.md
-            echo "- \`/session.start --resume\` - Resume active session" >> .github/copilot-instructions.md
-            echo "- \`/session.finalize\` - Post-merge cleanup (after PR merge)" >> .github/copilot-instructions.md
-            echo "- \`/session.wrap\` - End session" >> .github/copilot-instructions.md
+            echo "**Agents:**" >> .github/copilot-instructions.md
+            echo "- \`invoke session.start --issue N\` - Development session from GitHub issue" >> .github/copilot-instructions.md
+            echo "- \`invoke session.start --spec 001-feature\` - Spec Kit session" >> .github/copilot-instructions.md
+            echo "- \`invoke session.start \"description\"\` - Development session (positional description)" >> .github/copilot-instructions.md
+            echo "- \`invoke session.start --spike \"description\"\` - Spike/research (no PR)" >> .github/copilot-instructions.md
+            echo "- \`invoke session.start --resume\` - Resume active session" >> .github/copilot-instructions.md
+            echo "- \`invoke session.finalize\` - Post-merge cleanup (after PR merge)" >> .github/copilot-instructions.md
+            echo "- \`invoke session.wrap\` - End session" >> .github/copilot-instructions.md
             echo "" >> .github/copilot-instructions.md
             echo "**Project context:**" >> .github/copilot-instructions.md
             echo "- \`.session/project-context/technical-context.md\` - Stack, build/test commands" >> .github/copilot-instructions.md
@@ -765,12 +765,12 @@ main() {
     echo ""
     echo -e "${BLUE}Next steps:${NC}"
     echo "  1. Review generated context files (already populated!)"
-    echo "  2. Start a session: /session.start 'Your goal'"
+    echo "  2. Start a session: invoke session.start 'Your goal'"
     echo ""
     echo -e "${BLUE}Quick start:${NC}"
-    echo "  /session.start --issue 123       # Work on GitHub issue"
-    echo "  /session.start 'Description'            # Development session (positional description)"
-    echo "  /session.start --spike 'Research' # Spike/research"
+    echo "  invoke session.start --issue 123       # Work on GitHub issue"
+    echo "  invoke session.start 'Description'     # Development session (positional description)"
+    echo "  invoke session.start --spike 'Research' # Spike/research"
     echo ""
 }
 
