@@ -3,11 +3,14 @@
 All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
-- **NEW**: Optional knowledge capture agents:
-  - `/session.brainstorm` writes brainstorm docs to `docs/brainstorms/`
-  - `/session.compound` writes solution docs to `docs/solutions/`
-- **CHANGE**: Installer/updater now includes brainstorm/compound agents and prompts
-- **CHANGE**: `session.plan` can now optionally reference recent brainstorm docs from `docs/brainstorms/`
+
+## [2.6.0] - 2026-02-22
+
+- **FIX (#31)**: `session.brainstorm` absorbed as a proper workflow step — fixes state-machine poisoning bug where calling `--step plan` inside brainstorm would block subsequent `session.plan` runs; brainstorm output now written to `{session_dir}/brainstorm.md`; `session.plan` reads it from there; `session.wrap` daily summary moved to `{session_dir}/final-summary.md`
+- **CHANGE**: All `/session.X` slash commands replaced with `invoke session.X` throughout agents, scripts, stubs, installer and docs — adapts to Copilot CLI deprecating custom slash commands; `invoke` keyword triggers agent loading automatically
+- **NEW**: `update.sh --dry-run` flag — shows every file that would be downloaded and every bootstrap section that would be replaced/added, without making any changes
+- **FIX**: `update.sh` now surgically replaces the `## Session Workflow` section in `AGENTS.md` and `.github/copilot-instructions.md` using awk, instead of only appending when missing — stale content is correctly refreshed on update
+- **DOCS**: README `## Updating` section added; compatibility section updated (all models — OpenAI, Anthropic, Google)
 
 ## [2.5.0] - 2026-02-21
 
