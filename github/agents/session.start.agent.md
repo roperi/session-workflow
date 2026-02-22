@@ -55,6 +55,8 @@ If no arguments provided, the script will resume an active session or prompt for
 - `.session/scripts/bash/session-start.sh --json --spec 001-feature` - Work on Speckit feature  
 - `.session/scripts/bash/session-start.sh --json "Fix the bug"` - Unstructured work (goal as positional arg)
 - `.session/scripts/bash/session-start.sh --json --spike "Explore caching"` - Spike/research session
+- `.session/scripts/bash/session-start.sh --json --maintenance "Reorder docs/"` - Maintenance (no branch/PR)
+- `.session/scripts/bash/session-start.sh --json --maintenance --read-only "Audit stale files"` - Audit (no commits)
 - `.session/scripts/bash/session-start.sh --json --stage poc "Prototype auth"` - PoC with relaxed validation
 - `.session/scripts/bash/session-start.sh --json --resume` - Resume active session
 - `.session/scripts/bash/session-start.sh --json --resume --comment "Continue from task 5"` - Resume with context
@@ -85,20 +87,45 @@ Extract from the script output:
 Check workflow and stage fields from JSON output:
 
 ```bash
-# Extract workflow and stage from session-info.json
-WORKFLOW=$(jq -r '.workflow' "$SESSION_DIR/session-info.json")
-STAGE=$(jq -r '.stage' "$SESSION_DIR/session-info.json")
-echo "Workflow: $WORKFLOW, Stage: $STAGE"
+# Extract workflow, stage, and read_only from session JSON
+WORKFLOW=$(echo "$SESSION_JSON" | jq -r '.session.workflow // "development"')
+STAGE=$(echo "$SESSION_JSON" | jq -r '.session.stage // "production"')
+READ_ONLY=$(echo "$SESSION_JSON" | jq -r '.session.read_only // false')
+echo "Workflow: $WORKFLOW, Stage: $STAGE, Read-only: $READ_ONLY"
 ```
 
-**Workflows (both go to session.plan):**
+**Workflows and their chains:**
 - **development**: Full chain (plan → task → execute → validate → publish → finalize → wrap)
-- **spike**: Light chain (plan → task → execute → wrap) - skips PR steps, not planning!
+- **spike**: Light chain (plan → task → execute → wrap) — skips PR steps, not planning
+- **maintenance**: Minimal chain (execute → wrap) — skips branch, planning, validation, and PR
+
+**Read-only mode** (`read_only: true`):
+- Only valid with `maintenance` workflow
+- No `git add`, `git commit`, or file deletions during execute
+- Wrap produces a report file; no git changes are committed
+
+**Smart routing — intent inference:**
+
+When the user's goal or `$ARGUMENTS` are provided without an explicit workflow flag, check the text for intent signals **before** accepting the default `development` workflow:
+
+| Signal words in goal | Suggested workflow |
+|---|---|
+| `reorder`, `reorganize`, `rename`, `move`, `update TOC`, `cleanup docs` | `--maintenance` |
+| `audit`, `find stale`, `check for`, `inventory`, `list all`, `scan` | `--maintenance --read-only` |
+| `explore`, `research`, `benchmark`, `compare options`, `spike` | `--spike` |
+| `remove`, `clean`, `delete`, `purge` (without code context) | ask: "Should this be read-only first?" |
+
+If signals are detected and no explicit workflow flag was given, surface a brief note:
+```
+ℹ️  This looks like a [maintenance / audit] task. Using --maintenance workflow
+   (no branch created, no PR). Mention "development" to override.
+```
+Do NOT block or re-prompt; just inform and proceed with the inferred workflow.
 
 **Stages (affect validation strictness):**
-- **poc**: Relaxed - constitution/context optional, validation warnings only
-- **mvp**: Standard - core docs required, standard validation
-- **production**: Strict (default) - full docs required, all checks must pass
+- **poc**: Relaxed — constitution/context optional, validation warnings only
+- **mvp**: Standard — core docs required, standard validation
+- **production**: Strict (default) — full docs required, all checks must pass
 
 ### 4. Load Project Context
 
@@ -128,7 +155,9 @@ git log --oneline -5
 
 ⚠️ **CRITICAL: NEVER work directly on main branch for code changes.**
 
-**If current branch is `main` AND session involves code changes:**
+**Skip this step entirely if workflow is `maintenance`** — maintenance sessions work on the current branch by design.
+
+**If current branch is `main` AND workflow is `development` or `spike`:**
 
 ```bash
 # For GitHub issues
@@ -150,6 +179,7 @@ git checkout -b spike/{short-description}
 - `docs/` - Documentation-only changes
 
 **Exceptions (can work on main):**
+- `maintenance` workflow (always works on current branch)
 - Documentation-only changes (use `[skip ci]` in commit message)
 - Session wrap commits (documentation updates)
 
@@ -180,8 +210,9 @@ Display session summary:
 
 Session ID: {session.id}
 Type: {speckit|github_issue|unstructured}
-Workflow: {development|spike}
+Workflow: {development|spike|maintenance}
 Stage: {poc|mvp|production}
+Read-only: {yes|no}
 Branch: {current-branch}
 Previous session: {session-id or "none"}
 
@@ -191,7 +222,7 @@ Context loaded:
 - Session notes: {notes-path}
 - Tasks file: {tasks-path or spec-path}
 
-Ready for next step → /session.plan
+Ready for next step → {/session.plan (development/spike) | /session.execute (maintenance)}
 ```
 
 **Stage-specific notes:**
@@ -199,14 +230,17 @@ Ready for next step → /session.plan
 - **mvp**: "📦 MVP mode: Core validation enabled"
 - **production**: "🚀 Production mode: Full validation enabled"
 
-The CLI will automatically present the handoff to session.plan (for both workflows).
-
-**Handoff Reasoning**: session.start only initializes session infrastructure. Both development and spike workflows need planning - the difference is spike skips PR steps (validate, publish, finalize), not planning.
+**Workflow-specific next steps:**
+- **development** or **spike**: handoff to `/session.plan`
+- **maintenance**: handoff directly to `/session.execute`
+- **maintenance + read-only**: handoff to `/session.execute` with reminder: "No commits — produce a report only"
 
 ## Notes
 
 - **Single responsibility**: Initialize session infrastructure only
-- **No task generation**: That's session.plan's job
+- **No task generation**: That's session.plan's job (skipped for maintenance)
 - **No task execution**: That's session.execute's job
-- **Two workflows**: development (full) or spike (no PR)
-- **Both need planning**: Spike skips PR steps, not planning
+- **Three workflows**: development (full), spike (no PR), maintenance (no branch, no PR, no planning)
+- **Both development and spike need planning**: Spike skips PR steps, not planning
+- **Maintenance goes straight to execute**: Skip plan, task, validate, publish, finalize
+- **Read-only is maintenance-only**: A contract that no commits or destructive changes happen

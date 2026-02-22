@@ -149,7 +149,7 @@ get_for_next_session_section() {
 detect_workflow() {
     # Get workflow from session-info.json (no auto-detection)
     # Args: session_id
-    # Returns: development|spike
+    # Returns: development|spike|maintenance
     
     local session_id="$1"
     local session_dir
@@ -218,13 +218,13 @@ check_workflow_allowed() {
 
 # Valid workflow transitions
 # Note: session.start creates the session but does not track step state.
-# The first tracked step is typically "plan".
+# The first tracked step is typically "plan" (development/spike) or "execute" (maintenance).
 declare -A WORKFLOW_TRANSITIONS=(
-    ["none"]="plan"
+    ["none"]="plan execute"
     ["start"]="plan execute"
     ["plan"]="task execute"
     ["task"]="execute"
-    ["execute"]="validate execute"
+    ["execute"]="validate execute wrap"
     ["validate"]="publish execute"
     ["publish"]="finalize"
     ["finalize"]="wrap"

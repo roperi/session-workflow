@@ -92,13 +92,32 @@ cd your-project
 
 ## Quick Start
 
+**Pick a workflow:**
+
+```
+Will this produce a PR?
+├─ Yes → /session.start --issue 123        (development — full chain)
+├─ Maybe / exploring → /session.start --spike "Research caching"
+├─ Small change, no PR → /session.start --maintenance "Reorder docs/"
+└─ Read-only audit → /session.start --maintenance --read-only "Find stale files"
+
+Not sure what to build yet? → /session.brainstorm first, then /session.start
+```
+
 ```bash
-# Development workflow (full chain)
+# Development workflow (full chain → PR)
 /session.start --issue 123
 /session.start "Fix performance bug"
 
 # Spike (exploration, no PR)
 /session.start --spike "Explore Redis caching"
+
+# Maintenance (small change or housekeeping, no PR)
+/session.start --maintenance "Reorder docs/ and update TOC"
+/session.start --maintenance "Remove stray .DS_Store files"
+
+# Audit (read-only, no commits)
+/session.start --maintenance --read-only "Find files not referenced in any import"
 
 # Resume interrupted work
 /session.start --resume
@@ -145,6 +164,33 @@ Use for:
 ```
 
 **Note**: Spike still includes planning and task generation - it only skips PR steps (validate, publish, finalize).
+
+### 3. Maintenance
+
+**Chain**: `start → execute → wrap`
+
+Use for:
+- Documentation updates, reordering, or cleanup
+- Small housekeeping tasks (remove files, rename, reformat)
+- Work that doesn't warrant a branch or PR
+
+```bash
+/session.start --maintenance "Reorder docs/ and update TOC"
+/session.start --maintenance "Remove stray .DS_Store and build artifacts"
+```
+
+No branch is created by default; work happens on the current branch.  
+Skips planning and validation — go straight from start to execute.
+
+#### Read-only / Audit mode
+
+Add `--read-only` to prevent any commits or file modifications.  
+The session produces a report file instead of committing changes.
+
+```bash
+/session.start --maintenance --read-only "Audit files not referenced by any import"
+/session.start --maintenance --read-only "Find TODO comments older than 6 months"
+```
 
 ---
 
@@ -229,6 +275,8 @@ As your project matures, upgrade the stage:
 
 **Spike workflow** uses: `start → plan → task → execute → wrap` (skips validate, publish, finalize)
 
+**Maintenance workflow** uses: `start → execute → wrap` (skips plan, task, validate, publish, finalize)
+
 At the end of each step, the agent will suggest the next `/session.*` command.
 You run the suggested command (or choose a different step as needed).
 
@@ -303,7 +351,8 @@ These create **version-controlled** artifacts under `docs/`.
 ### session.brainstorm
 - Clarify **WHAT/WHY** and explore 2-3 approaches
 - Captures decisions + open questions in `docs/brainstorms/`
-- **Best used**: Before `/session.plan` (or before `/session.task` if plan already exists)
+- **Best used**: When you're unsure what to build — run this *before* `/session.start`
+- **Skip if**: you already know what you want to do; just `/session.start` directly
 
 ### session.compound
 - Capture solved problems as reusable solution docs in `docs/solutions/`
@@ -361,7 +410,12 @@ start → [brainstorm?] → plan → task → execute → ... → wrap → [comp
 /session.start "Fix the bug"         # Unstructured (goal as positional arg)
 
 # Workflow selection
-/session.start --spike "Research"    # Spike workflow
+/session.start --spike "Research"          # Spike workflow (explore, no PR)
+/session.start --maintenance "Reorder docs/" # Maintenance workflow (small tasks, no branch/PR)
+
+# Modifiers
+/session.start --maintenance --read-only "Audit stale files"  # No commits, report only
+/session.start --stage poc "Prototype auth"                   # Relaxed validation
 
 # Resume
 /session.start --resume
@@ -418,7 +472,27 @@ start → [brainstorm?] → plan → task → execute → ... → wrap → [comp
 /session.wrap  # Document findings
 ```
 
-### Example 3: Resuming After Interruption
+### Example 3: Docs Housekeeping (Maintenance)
+
+```bash
+/session.start --maintenance "Reorder docs/ sections and update TOC"
+
+# Go straight to execute — no plan, no branch, no PR
+/session.execute
+/session.wrap
+```
+
+### Example 4: Read-only Audit (Maintenance + read-only)
+
+```bash
+/session.start --maintenance --read-only "Find files not referenced by any import"
+
+# Execute produces a report; no commits happen
+/session.execute
+/session.wrap  # Saves report, no git changes
+```
+
+### Example 5: Resuming After Interruption
 
 ```bash
 # Started working, pressed ESC mid-task

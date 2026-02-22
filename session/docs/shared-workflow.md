@@ -85,25 +85,32 @@ Projects can upgrade stage as they mature:
 
 The session workflow follows a defined state machine. Each step must complete before the next can begin.
 
-**8-agent chain**: `start → plan → task → execute → validate → publish → finalize → wrap`
+**Development (8-agent chain)**: `start → plan → task → execute → validate → publish → finalize → wrap`
+
+**Spike (5-agent chain)**: `start → plan → task → execute → wrap`
+
+**Maintenance (3-agent chain)**: `start → execute → wrap`
 
 ```
 START → PLAN → TASK → EXECUTE → VALIDATE → PUBLISH → [MERGE PR] → FINALIZE → WRAP
                                                           │                  │
                                                           └── Manual Step ───┘
+
+Maintenance shortcut:
+START → EXECUTE → WRAP
 ```
 
-**⚠️ IMPORTANT**: PR must be merged BEFORE finalize/wrap!
+**⚠️ IMPORTANT**: PR must be merged BEFORE finalize/wrap (development workflow only)!
 
 ## Valid Transitions
 
 | From State | Valid Next States |
 |------------|-------------------|
-| `none` | `start` |
+| `none` | `plan`, `execute` |
 | `start` | `plan`, `execute` |
-| `plan` | `task` |
+| `plan` | `task`, `execute` |
 | `task` | `execute` |
-| `execute` | `validate`, `execute` (loop for more tasks) |
+| `execute` | `validate`, `execute` (loop), `wrap` (maintenance) |
 | `validate` | `publish`, `execute` (if fix needed) |
 | `publish` | `finalize` |
 | `finalize` | `wrap` |
