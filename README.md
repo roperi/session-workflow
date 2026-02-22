@@ -569,6 +569,7 @@ TEST_KEEP_TMP=1 bash tests/run.sh  # keeps the temp repo and prints its path
 - `session-start.sh --json`: JSON contract (including deterministic `repo_root`) and session file creation
 - `session-preflight.sh --json`: workflow gating (detects interrupted sessions and returns exit code `2`)
 - `session-wrap.sh --json`: clears `.session/ACTIVE_SESSION`
+- `session-cleanup.sh --json`: errant file/dir removal (misplaced session dirs, unknown root files, orphaned files, empty dirs)
 
 ### Why we test this (and not the LLM)
 
@@ -588,6 +589,7 @@ We intentionally do not invoke Copilot/LLMs in CI because that would be flaky (m
 │   ├── session-common.sh
 │   ├── session-start.sh
 │   ├── session-wrap.sh
+│   ├── session-cleanup.sh
 │   └── ...
 ├── templates/
 │   └── session-notes.md

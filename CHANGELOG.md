@@ -11,6 +11,7 @@ All notable changes to this project will be documented in this file.
 - **NEW**: `update.sh --dry-run` flag — shows every file that would be downloaded and every bootstrap section that would be replaced/added, without making any changes
 - **FIX**: `update.sh` now surgically replaces the `## Session Workflow` section in `AGENTS.md` and `.github/copilot-instructions.md` using awk, instead of only appending when missing — stale content is correctly refreshed on update
 - **DOCS**: README `## Updating` section added; compatibility section updated (all models — OpenAI, Anthropic, Google)
+- **NEW (#32)**: `session-cleanup.sh` — removes errant files/dirs from `.session/` tree automatically: unknown items at `.session/` root (allowlist-based), misplaced session dirs (moved to correct `sessions/YYYY-MM/` path), orphaned files under `sessions/`, and empty legacy dirs. Integrated into `session.wrap` as step 7. `session.publish` now writes `pr_url.txt` / `pr-summary.md` into `{session_dir}/` to prevent recurrence.
 
 ## [2.5.0] - 2026-02-21
 
