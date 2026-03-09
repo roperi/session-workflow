@@ -14,23 +14,78 @@ This is the single source of truth for session workflow documentation.
 
 ---
 
+## SDD Positioning
+
+Session-workflow implements a lightweight **Specification-Driven Development (SDD)** process — inspired by [GitHub Spec Kit](https://github.com/github/spec-kit) but designed to work standalone.
+
+### Standalone (Personal / Small Projects)
+
+Session-workflow on its own gives you a structured development loop:
+
+- `session.scope` → define problem boundaries and success criteria
+- `session.spec` → write acceptance criteria and verification contracts
+- `session.plan` → create implementation plan from the spec
+- `session.task` → generate task breakdown
+- `session.execute` → TDD implementation
+- `session.validate` → automated quality gates
+
+All artifacts live in `.session/sessions/` — no external tooling required.
+
+### With Spec Kit (Teams / Enterprise)
+
+When used with `--spec <feature>`, session-workflow maps its steps into Spec Kit's `specs/<feature>/` structure:
+
+| Artifact | Standalone path | Speckit path |
+|----------|----------------|--------------|
+| Scope | `{session_dir}/scope.md` | `specs/{feature}/scope.md` |
+| Spec | `{session_dir}/spec.md` | `specs/{feature}/spec.md` |
+| Plan | `{session_dir}/plan.md` | `specs/{feature}/plan.md` (reference) |
+| Tasks | `{session_dir}/tasks.md` | `specs/{feature}/tasks.md` |
+
+This lets teams use Spec Kit's review and governance workflow while keeping session-workflow's agent chain for implementation.
+
+### When to Use Which
+
+| Scenario | Recommendation |
+|----------|---------------|
+| Solo developer, quick iteration | Session-workflow standalone |
+| Small team, informal process | Session-workflow standalone |
+| Team with formal spec review | Session-workflow + Spec Kit |
+| Enterprise governance requirements | Session-workflow + Spec Kit |
+| Research / spike | Session-workflow standalone (spike workflow) |
+
+### SDD Alignment: Session-Workflow ↔ Spec Kit Commands
+
+| Spec Kit Command | Session-Workflow Equivalent | Notes |
+|---|---|---|
+| `/speckit.constitution` | `constitution-summary.md` (project-context) | Quality standards and conventions |
+| `/speckit.specify` | `session.scope` + `session.spec` | Split into boundary-setting and acceptance criteria |
+| `/speckit.clarify` | `session.clarify` (optional) | Requirements disambiguation |
+| `/speckit.plan` | `session.plan` | Implementation approach and architecture |
+| `/speckit.tasks` | `session.task` | Task breakdown with dependencies |
+| `/speckit.implement` | `session.execute` | TDD implementation loop |
+| `/speckit.analyze` | `session.analyze` (optional) | Cross-artifact consistency check |
+
+---
+
 ## Table of Contents
 
 1. [Overview](#overview)
-2. [Installation](#installation)
-3. [Updating](#updating)
-4. [Quick Start](#quick-start)
-4. [Workflow Types](#workflow-types)
-5. [Project Stages](#project-stages)
-6. [Agent Chain](#agent-chain)
-7. [Agent Responsibilities](#agent-responsibilities)
-8. [Optional Quality Agents](#optional-quality-agents)
-9. [Arguments](#arguments)
-10. [Workflow Examples](#workflow-examples)
-11. [Session Lifecycle](#session-lifecycle)
-12. [Testing](#testing)
-13. [File Structure](#file-structure)
-14. [Troubleshooting](#troubleshooting)
+2. [SDD Positioning](#sdd-positioning)
+3. [Installation](#installation)
+4. [Updating](#updating)
+5. [Quick Start](#quick-start)
+6. [Workflow Types](#workflow-types)
+7. [Project Stages](#project-stages)
+8. [Agent Chain](#agent-chain)
+9. [Agent Responsibilities](#agent-responsibilities)
+10. [Optional Quality Agents](#optional-quality-agents)
+11. [Arguments](#arguments)
+12. [Workflow Examples](#workflow-examples)
+13. [Session Lifecycle](#session-lifecycle)
+14. [Testing](#testing)
+15. [File Structure](#file-structure)
+16. [Troubleshooting](#troubleshooting)
 
 ---
 
@@ -47,8 +102,8 @@ When AI context windows reset, work continuity is lost. Session workflow solves 
 
 **Optional knowledge agents** (version-controlled docs):
 - `session.brainstorm` → writes to `{session_dir}/brainstorm.md` (clarify WHAT/WHY before planning)
-- `session.scope` → writes to `{session_dir}/scope.md` (define problem boundaries and success criteria)
-- `session.spec` → writes to `{session_dir}/spec.md` (acceptance criteria and verification contracts)
+- `session.scope` → writes to `{session_dir}/scope.md` or `specs/{feature}/scope.md` (define problem boundaries and success criteria)
+- `session.spec` → writes to `{session_dir}/spec.md` or `specs/{feature}/spec.md` (acceptance criteria and verification contracts)
 - `session.compound` → writes to `docs/solutions/` (capture reusable learnings after solving)
 
 ---
@@ -318,7 +373,7 @@ At the end of each step, the agent will suggest the next step — invoke it by n
 ### session.scope
 - Define problem boundaries and success criteria
 - Interactive dialogue to clarify what's in/out of scope
-- Writes `{session_dir}/scope.md`
+- Writes `{session_dir}/scope.md` (or `specs/{feature}/scope.md` for speckit sessions)
 - **Next step:** invoke session.spec (development) or session.plan (spike)
 
 ### session.spec
@@ -326,7 +381,7 @@ At the end of each step, the agent will suggest the next step — invoke it by n
 - Derives user stories from scope, defines Given/When/Then criteria
 - Identifies edge cases, error scenarios, and non-functional requirements
 - Marks ambiguities with `[NEEDS CLARIFICATION]`
-- Writes `{session_dir}/spec.md`
+- Writes `{session_dir}/spec.md` (or `specs/{feature}/spec.md` for speckit sessions)
 - **Only for**: development workflow (skipped in spike)
 - **Next step:** invoke session.plan
 

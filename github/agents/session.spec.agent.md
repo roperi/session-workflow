@@ -11,7 +11,9 @@ Define **WHAT** to build with acceptance criteria and verification contracts. Th
 
 - This is a **formal workflow step** (part of the development chain only).
 - The spec agent is **interactive/dialogue-driven**: for each user story, ask about edge cases, error handling, and acceptance criteria rather than assuming.
-- **Write output to**: `{session_dir}/spec.md`
+- **Write output to**:
+  - **Speckit sessions** (`type: speckit`): `specs/{feature}/spec.md` (read `spec_dir` from `session-info.json`)
+  - **All other sessions**: `{session_dir}/spec.md`
 - Reads `scope.md` as primary input — the spec must stay within scope boundaries.
 - Skipped in **spike** workflows (scope goes directly to plan).
 
@@ -92,13 +94,24 @@ If the workflow is not development, inform the user:
 
 Read available context (in priority order):
 
-- **Scope document (REQUIRED)**: `{session_dir}/scope.md` — this is the primary input
+- **Scope document (REQUIRED)**: resolve based on session type:
   ```bash
-  if [ ! -f "$SESSION_DIR/scope.md" ]; then
+  SESSION_TYPE=$(jq -r '.type' "$SESSION_DIR/session-info.json")
+  if [[ "$SESSION_TYPE" == "speckit" ]]; then
+    SPEC_DIR=$(jq -r '.spec_dir' "$SESSION_DIR/session-info.json")
+    SCOPE_FILE="${SPEC_DIR}/scope.md"
+    # Also check for existing spec
+    EXISTING_SPEC="${SPEC_DIR}/spec.md"
+  else
+    SCOPE_FILE="${SESSION_DIR}/scope.md"
+    EXISTING_SPEC="${SESSION_DIR}/spec.md"
+  fi
+
+  if [ ! -f "$SCOPE_FILE" ]; then
     echo "WARNING: No scope.md found. Run session.scope first for best results."
     echo "Proceeding with available context..."
   fi
-  cat "$SESSION_DIR/scope.md" 2>/dev/null
+  cat "$SCOPE_FILE" 2>/dev/null
   ```
 
 - **Session info**: `{session_dir}/session-info.json`
@@ -159,9 +172,24 @@ For each user story, engage in dialogue to define acceptance criteria. **Ask que
 - Mark anything unclear with `[NEEDS CLARIFICATION]`
 - Use the user's exact language where possible (don't over-formalize)
 
-### 6. Produce Specification Document
+### 6. Resolve Output Path
 
-Create `{session_dir}/spec.md`:
+Determine the correct output path based on session type:
+
+```bash
+SESSION_TYPE=$(jq -r '.type' "$SESSION_DIR/session-info.json")
+if [[ "$SESSION_TYPE" == "speckit" ]]; then
+  SPEC_DIR=$(jq -r '.spec_dir' "$SESSION_DIR/session-info.json")
+  SPEC_FILE="${SPEC_DIR}/spec.md"
+  mkdir -p "$SPEC_DIR"
+else
+  SPEC_FILE="${SESSION_DIR}/spec.md"
+fi
+```
+
+### 7. Produce Specification Document
+
+Create the spec file at the resolved path (`$SPEC_FILE`):
 
 ```markdown
 ---
@@ -240,21 +268,22 @@ status: draft
 - Verification checklist items should be checkable yes/no during implementation
 - Keep language precise but accessible — avoid implementation details
 
-### 7. Record Reference in Session Notes
+### 8. Record Reference in Session Notes
 
 Append to `{session_dir}/notes.md` (idempotent — skip if already present):
 
 ```bash
+SPEC_REL="$SPEC_FILE"  # Already relative to repo root
 if ! grep -q "^## Spec" "$SESSION_DIR/notes.md" 2>/dev/null; then
   cat >> "$SESSION_DIR/notes.md" << EOF
 
 ## Spec
-- ${SESSION_DIR}/spec.md
+- ${SPEC_REL}
 EOF
 fi
 ```
 
-### 8. Present Spec for Review
+### 9. Present Spec for Review
 
 Display the specification summary and ask the user to confirm:
 
@@ -262,7 +291,7 @@ Display the specification summary and ask the user to confirm:
 ✅ Specification complete
 
 Session: {SESSION_ID}
-Spec: {session_dir}/spec.md
+Spec: {SPEC_FILE path}
 
 --- spec.md summary ---
 User stories: {count}
