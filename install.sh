@@ -590,6 +590,7 @@ install_agents() {
         "session.brainstorm.agent.md"
         "session.compound.agent.md"
         "session.scope.agent.md"
+        "session.spec.agent.md"
     )
     
     mkdir -p .github/agents
@@ -623,6 +624,7 @@ install_prompts() {
         "session.brainstorm.prompt.md"
         "session.compound.prompt.md"
         "session.scope.prompt.md"
+        "session.spec.prompt.md"
     )
     
     mkdir -p .github/prompts

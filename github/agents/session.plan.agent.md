@@ -72,9 +72,26 @@ echo "Workflow: $WORKFLOW"
 
 **Allowed workflows**: development, spike (both need planning!)
 
-### 2.5. Check for Scope and Brainstorm in Session Directory
+### 2.5. Check for Spec, Scope, and Brainstorm in Session Directory
 
-If `{session_dir}/scope.md` exists, use it as primary planning input (do not rewrite it).
+If `{session_dir}/spec.md` exists (development workflow), use it as the **primary** planning input (do not rewrite it).
+
+```bash
+# Check for a specification produced earlier in this session
+ls "$SESSION_DIR/spec.md" 2>/dev/null
+```
+
+If a spec exists:
+- Read it and treat its **User Stories**, **Acceptance Criteria**, **Edge Cases**, and **Verification Checklist** as the planning contract.
+- The plan MUST satisfy all acceptance criteria and verification items.
+- Resolve any `[NEEDS CLARIFICATION]` items during planning or flag them as blockers.
+- Add a reference in session notes (idempotent — skip if already present):
+  ```markdown
+  ## Spec
+  - {session_dir}/spec.md
+  ```
+
+If `{session_dir}/scope.md` exists, use it as planning input (do not rewrite it).
 
 ```bash
 # Check for a scope document produced earlier in this session
@@ -89,6 +106,8 @@ If a scope exists:
   ## Scope
   - {session_dir}/scope.md
   ```
+
+**Priority**: When both spec.md and scope.md exist, spec.md takes precedence for requirements (it is derived from scope). Use scope.md for boundary validation.
 
 If `{session_dir}/brainstorm.md` exists, use it as planning input (do not rewrite it).
 
