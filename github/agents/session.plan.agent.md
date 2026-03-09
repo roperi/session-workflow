@@ -86,9 +86,14 @@ If a spec exists:
 - The plan MUST satisfy all acceptance criteria and verification items.
 - Resolve any `[NEEDS CLARIFICATION]` items during planning or flag them as blockers.
 - Add a reference in session notes (idempotent — skip if already present):
-  ```markdown
+  ```bash
+  if ! grep -q "^## Spec" "$SESSION_DIR/notes.md" 2>/dev/null; then
+    cat >> "$SESSION_DIR/notes.md" << EOF
+
   ## Spec
-  - {session_dir}/spec.md
+  - ${SESSION_DIR}/spec.md
+  EOF
+  fi
   ```
 
 If `{session_dir}/scope.md` exists, use it as planning input (do not rewrite it).

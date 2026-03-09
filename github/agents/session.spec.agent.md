@@ -108,7 +108,7 @@ Read available context (in priority order):
   ```bash
   gh issue view {issue_number} --json title,body,labels,assignees
   ```
-- **Project context**: `.session/project-context/technical-context.md` and `constitution-summary.md`
+- **Project context**: `.session/project-context/technical-context.md` and `.session/project-context/constitution-summary.md`
 
 If scope.md is missing, warn the user but continue — derive what you can from the issue body, brainstorm, and session notes.
 

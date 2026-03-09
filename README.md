@@ -40,7 +40,7 @@ When AI context windows reset, work continuity is lost. Session workflow solves 
 
 1. **Session tracking** - What's in progress, what's done
 2. **Handoff notes** - Context for the next AI session
-3. **8-agent chain** - Structured workflow with clear next-step suggestions
+3. **Agent chain** - Structured workflow with clear next-step suggestions
 4. **Git hygiene** - Ensures clean state before session ends
 
 **Agent Chain**: `start → [brainstorm →] [scope →] [spec →] plan → task → execute → validate → publish → finalize → wrap`
@@ -296,7 +296,7 @@ invoke session.start --stage production --issue 456
 └──────────┘    └──────────┘    └──────────┘                    └──────────┘
 ```
 
-**Development workflow** uses all 8 agents.
+**Development workflow** uses the full agent chain (8 core agents + optional scope/spec).
 
 **Spike workflow** uses: `start → [scope →] plan → task → execute → wrap` (skips spec, validate, publish, finalize)
 
