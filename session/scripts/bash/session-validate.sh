@@ -74,6 +74,7 @@ ENVIRONMENT:
     VALIDATE_TIMEOUT     Default timeout seconds (300)
     VALIDATE_RUN_TESTS   Whether to run tests (true)
     VALIDATE_RUN_LINT    Whether to run lint (true)
+    VALIDATE_RUN_SPEC    Whether to run spec verification (true)
 EOF
 }
 
@@ -229,10 +230,10 @@ resolve_spec_file() {
     fi
 
     if [[ "$session_type" == "speckit" ]]; then
-        local feature
-        feature=$(jq -r '.feature // ""' "$info_file" 2>/dev/null)
-        if [[ -n "$feature" && -f "specs/${feature}/spec.md" ]]; then
-            echo "specs/${feature}/spec.md"
+        local spec_dir
+        spec_dir=$(jq -r '.spec_dir // ""' "$info_file" 2>/dev/null)
+        if [[ -n "$spec_dir" && -f "${spec_dir}/spec.md" ]]; then
+            echo "${spec_dir}/spec.md"
             return
         fi
     fi
@@ -301,16 +302,12 @@ check_spec_verification() {
                 total=$((total + 1))
                 verified=$((verified + 1))
                 local item_text="${BASH_REMATCH[1]}"
-                local escaped_item
-                escaped_item=$(echo "$item_text" | jq -Rs '.' | sed 's/^"//;s/"$//')
-                items_json=$(echo "$items_json" | jq --arg item "$escaped_item" --arg status "met" '. + [{"item": $item, "status": $status}]')
+                items_json=$(echo "$items_json" | jq --arg item "$item_text" --arg status "met" '. + [{"item": $item, "status": $status}]')
             # Match unchecked items: - [ ]
             elif [[ "$line" =~ ^[[:space:]]*-[[:space:]]\[[[:space:]]\][[:space:]]+(.*) ]]; then
                 total=$((total + 1))
                 local item_text="${BASH_REMATCH[1]}"
-                local escaped_item
-                escaped_item=$(echo "$item_text" | jq -Rs '.' | sed 's/^"//;s/"$//')
-                items_json=$(echo "$items_json" | jq --arg item "$escaped_item" --arg status "unmet" '. + [{"item": $item, "status": $status}]')
+                items_json=$(echo "$items_json" | jq --arg item "$item_text" --arg status "unmet" '. + [{"item": $item, "status": $status}]')
             fi
         fi
     done < "$spec_file"
@@ -532,7 +529,7 @@ main() {
     fi
     
     # -------------------------------------------------------------------------
-    # Check 3.5: Spec verification (if enabled and session active)
+    # Check 4: Spec verification (if enabled and session active)
     # -------------------------------------------------------------------------
     if [[ "$RUN_SPEC" == "true" && -n "$session_id" ]]; then
         local spec_file stage spec_check
@@ -551,10 +548,12 @@ main() {
         fi
     elif [[ "$RUN_SPEC" != "true" ]]; then
         checks+=('{"check": "spec_verification", "status": "skipped", "message": "Spec verification skipped via --skip-spec"}')
+    else
+        checks+=('{"check": "spec_verification", "status": "skipped", "message": "Spec verification skipped (no active session)"}')
     fi
     
     # -------------------------------------------------------------------------
-    # Check 4: Lint (if enabled)
+    # Check 5: Lint (if enabled)
     # -------------------------------------------------------------------------
     if [[ "$RUN_LINT" == "true" ]]; then
         local lint_cmd
@@ -589,7 +588,7 @@ main() {
     fi
     
     # -------------------------------------------------------------------------
-    # Check 5: Tests (if enabled)
+    # Check 6: Tests (if enabled)
     # -------------------------------------------------------------------------
     if [[ "$RUN_TESTS" == "true" ]]; then
         local test_cmd
