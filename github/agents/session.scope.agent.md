@@ -205,7 +205,7 @@ if ! grep -q "^## Scope" "$SESSION_DIR/notes.md" 2>/dev/null; then
   cat >> "$SESSION_DIR/notes.md" << EOF
 
 ## Scope
-See \`scope.md\` for problem boundaries and success criteria.
+- ${SESSION_DIR}/scope.md
 EOF
 fi
 ```

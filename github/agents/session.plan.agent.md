@@ -78,7 +78,7 @@ If `{session_dir}/scope.md` exists, use it as primary planning input (do not rew
 
 ```bash
 # Check for a scope document produced earlier in this session
-ls "{session_dir}/scope.md" 2>/dev/null
+ls "$SESSION_DIR/scope.md" 2>/dev/null
 ```
 
 If a scope exists:
