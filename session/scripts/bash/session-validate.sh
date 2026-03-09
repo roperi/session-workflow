@@ -15,6 +15,7 @@ source "${SCRIPT_DIR}/session-common.sh"
 TIMEOUT_SECONDS=${VALIDATE_TIMEOUT:-300}  # 5 minutes default
 RUN_TESTS=${VALIDATE_RUN_TESTS:-true}
 RUN_LINT=${VALIDATE_RUN_LINT:-true}
+RUN_SPEC=${VALIDATE_RUN_SPEC:-true}
 JSON_OUTPUT=false
 
 # ============================================================================
@@ -34,6 +35,10 @@ parse_args() {
                 ;;
             --skip-lint)
                 RUN_LINT=false
+                shift
+                ;;
+            --skip-spec)
+                RUN_SPEC=false
                 shift
                 ;;
             --timeout)
@@ -61,6 +66,7 @@ OPTIONS:
     --json          Output JSON for AI consumption
     --skip-tests    Skip test execution
     --skip-lint     Skip lint execution
+    --skip-spec     Skip spec verification
     --timeout N     Set timeout for lint/test commands (default: 300s)
     -h, --help      Show this help
 
@@ -199,6 +205,148 @@ get_test_command() {
             echo ""
             ;;
     esac
+}
+
+# ============================================================================
+# Spec Verification
+# ============================================================================
+
+resolve_spec_file() {
+    # Find spec.md for the active session.
+    # For speckit sessions: specs/<feature>/spec.md
+    # For other sessions: <session_dir>/spec.md
+    # Args: session_id
+    # Returns: path to spec.md or empty string
+    local session_id="$1"
+    local session_dir
+    session_dir=$(get_session_dir "$session_id")
+    local info_file="${session_dir}/session-info.json"
+
+    # Check for speckit session type
+    local session_type=""
+    if [[ -f "$info_file" ]]; then
+        session_type=$(jq -r '.type // ""' "$info_file" 2>/dev/null)
+    fi
+
+    if [[ "$session_type" == "speckit" ]]; then
+        local feature
+        feature=$(jq -r '.feature // ""' "$info_file" 2>/dev/null)
+        if [[ -n "$feature" && -f "specs/${feature}/spec.md" ]]; then
+            echo "specs/${feature}/spec.md"
+            return
+        fi
+    fi
+
+    # Default: session directory spec.md
+    if [[ -f "${session_dir}/spec.md" ]]; then
+        echo "${session_dir}/spec.md"
+        return
+    fi
+
+    echo ""
+}
+
+get_session_stage() {
+    # Get stage from session-info.json, defaulting to "production"
+    # Args: session_id
+    local session_id="$1"
+    local session_dir
+    session_dir=$(get_session_dir "$session_id")
+    local info_file="${session_dir}/session-info.json"
+
+    if [[ -f "$info_file" ]]; then
+        jq -r '.stage // "production"' "$info_file" 2>/dev/null
+    else
+        echo "production"
+    fi
+}
+
+check_spec_verification() {
+    # Parse spec.md and verify checklist items.
+    # Args: spec_file stage
+    # Outputs: JSON check object to stdout
+    # Returns: 0 if pass/skipped, 1 if fail
+    local spec_file="$1"
+    local stage="$2"
+
+    if [[ -z "$spec_file" || ! -f "$spec_file" ]]; then
+        echo '{"check": "spec_verification", "status": "skipped", "message": "No spec.md found"}'
+        return 0
+    fi
+
+    if [[ "$stage" == "poc" ]]; then
+        echo '{"check": "spec_verification", "status": "skipped", "message": "Spec verification skipped (poc stage)"}'
+        return 0
+    fi
+
+    # Extract Verification Checklist section
+    local in_section=false
+    local total=0
+    local verified=0
+    local items_json="[]"
+
+    while IFS= read -r line; do
+        # Detect start of Verification Checklist section
+        if [[ "$line" =~ ^##[[:space:]]+Verification[[:space:]]+Checklist ]]; then
+            in_section=true
+            continue
+        fi
+        # Stop at next heading
+        if $in_section && [[ "$line" =~ ^## ]]; then
+            break
+        fi
+        if $in_section; then
+            # Match checked items: - [x] or - [X]
+            if [[ "$line" =~ ^[[:space:]]*-[[:space:]]\[[xX]\][[:space:]]+(.*) ]]; then
+                total=$((total + 1))
+                verified=$((verified + 1))
+                local item_text="${BASH_REMATCH[1]}"
+                local escaped_item
+                escaped_item=$(echo "$item_text" | jq -Rs '.' | sed 's/^"//;s/"$//')
+                items_json=$(echo "$items_json" | jq --arg item "$escaped_item" --arg status "met" '. + [{"item": $item, "status": $status}]')
+            # Match unchecked items: - [ ]
+            elif [[ "$line" =~ ^[[:space:]]*-[[:space:]]\[[[:space:]]\][[:space:]]+(.*) ]]; then
+                total=$((total + 1))
+                local item_text="${BASH_REMATCH[1]}"
+                local escaped_item
+                escaped_item=$(echo "$item_text" | jq -Rs '.' | sed 's/^"//;s/"$//')
+                items_json=$(echo "$items_json" | jq --arg item "$escaped_item" --arg status "unmet" '. + [{"item": $item, "status": $status}]')
+            fi
+        fi
+    done < "$spec_file"
+
+    if [[ "$total" -eq 0 ]]; then
+        echo '{"check": "spec_verification", "status": "skipped", "message": "No verification checklist found in spec.md"}'
+        return 0
+    fi
+
+    local unmet=$((total - verified))
+    local check_status="pass"
+    local check_message="All ${total} spec verification items met"
+    local return_code=0
+
+    if [[ "$unmet" -gt 0 ]]; then
+        if [[ "$stage" == "production" ]]; then
+            check_status="fail"
+            check_message="${unmet} of ${total} spec verification items unmet"
+            return_code=1
+        else
+            # mvp: warn on unmet items
+            check_status="warning"
+            check_message="${unmet} of ${total} spec verification items unmet"
+        fi
+    fi
+
+    jq -n \
+        --arg check "spec_verification" \
+        --arg status "$check_status" \
+        --arg message "$check_message" \
+        --argjson verified "$verified" \
+        --argjson total "$total" \
+        --argjson items "$items_json" \
+        '{check: $check, status: $status, message: $message, verified: $verified, total: $total, items: $items}'
+
+    return $return_code
 }
 
 # ============================================================================
@@ -381,6 +529,28 @@ main() {
         fi
     else
         checks+=('{"check": "active_session", "status": "warning", "message": "No active session file"}')
+    fi
+    
+    # -------------------------------------------------------------------------
+    # Check 3.5: Spec verification (if enabled and session active)
+    # -------------------------------------------------------------------------
+    if [[ "$RUN_SPEC" == "true" && -n "$session_id" ]]; then
+        local spec_file stage spec_check
+        spec_file=$(resolve_spec_file "$session_id")
+        stage=$(get_session_stage "$session_id")
+
+        set +e
+        spec_check=$(check_spec_verification "$spec_file" "$stage")
+        local spec_exit=$?
+        set -e
+
+        checks+=("$spec_check")
+        if [[ $spec_exit -ne 0 ]]; then
+            failures+=("spec_verification")
+            status="error"
+        fi
+    elif [[ "$RUN_SPEC" != "true" ]]; then
+        checks+=('{"check": "spec_verification", "status": "skipped", "message": "Spec verification skipped via --skip-spec"}')
     fi
     
     # -------------------------------------------------------------------------

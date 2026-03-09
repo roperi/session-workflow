@@ -99,11 +99,11 @@ SESSION_DIR=$(get_session_dir "$SESSION_ID")
 STAGE=$(jq -r '.stage // "production"' "$SESSION_DIR/session-info.json")
 ```
 
-| Stage | Lint Failures | Test Failures | Missing Commands | Overall |
-|-------|---------------|---------------|------------------|---------|
-| **poc** | ⚠️ Warning only | ⚠️ Warning only | ✅ OK to proceed | Proceed with warnings |
-| **mvp** | ❌ Block | ⚠️ Warning on minor | ⚠️ Warning | Fail on errors, warn on style |
-| **production** | ❌ Block | ❌ Block | ⚠️ Warning | All checks must pass |
+| Stage | Lint Failures | Test Failures | Missing Commands | Unmet Spec Criteria | Overall |
+|-------|---------------|---------------|------------------|---------------------|---------|
+| **poc** | ⚠️ Warning only | ⚠️ Warning only | ✅ OK to proceed | ○ Skipped | Proceed with warnings |
+| **mvp** | ❌ Block | ⚠️ Warning on minor | ⚠️ Warning | ⚠️ Warning | Fail on errors, warn on style |
+| **production** | ❌ Block | ❌ Block | ⚠️ Warning | ❌ Block | All checks must pass |
 
 **Stage-specific behavior:**
 - **poc**: Collect all results but never block. Add note: "⚠️ PoC validation: Warnings only"
@@ -235,6 +235,42 @@ Check session tasks.md or Speckit tasks.md:
 - Count [x] vs [ ] tasks
 - Verify all non-[SKIP] tasks complete
 
+### 7. Spec Verification (if spec.md exists)
+
+**Purpose**: Verify implementation satisfies the acceptance criteria and verification checklist from the specification contract (`spec.md`).
+
+**When to run**: Only for development workflow sessions that have a `spec.md` (produced by `session.spec`).
+
+**How it works**:
+1. Locate `spec.md`: session directory for standard sessions, `specs/<feature>/spec.md` for speckit sessions
+2. Parse the **Verification Checklist** section (checkbox items `- [x]` / `- [ ]`)
+3. Compare checked vs unchecked items
+4. Report which criteria are met/unmet
+
+**Stage-aware behavior**:
+
+| Stage | Unmet Criteria | No spec.md | No Checklist |
+|-------|----------------|------------|--------------|
+| **poc** | ○ Skipped entirely | ○ Skipped | ○ Skipped |
+| **mvp** | ⚠️ Warning | ○ Skipped | ○ Skipped |
+| **production** | ❌ Block | ○ Skipped | ○ Skipped |
+
+```bash
+# The validate script handles this automatically:
+.session/scripts/bash/session-validate.sh --json
+# spec_verification check appears in validation_checks array
+```
+
+**As the validating agent, you MUST also**:
+- Review each unmet verification item and assess whether the implementation actually satisfies it
+- Mark checklist items as `[x]` in spec.md if the implementation demonstrably meets the criterion
+- For production stage: ensure every acceptance criterion (AC-x.x) in spec.md has at least one corresponding test
+- Report findings in the validation output alongside the mechanical check results
+
+**Skip criteria**: No spec.md found, no verification checklist in spec.md, or poc stage
+**Pass criteria**: All verification checklist items marked `[x]`
+**Fail (production)**: Any unchecked verification items remain
+
 ## Validation Results Storage
 
 **ALWAYS create** `.session/validation-results.json`:
@@ -272,6 +308,16 @@ Check session tasks.md or Speckit tasks.md:
       "completed": 47,
       "total": 47,
       "details": "All tasks complete"
+    },
+    "spec_verification": {
+      "status": "pass|fail|warning|skipped",
+      "verified": 8,
+      "total": 8,
+      "items": [
+        {"item": "All acceptance criteria have at least one happy-path test", "status": "met"},
+        {"item": "Edge cases identified for each user story", "status": "met"}
+      ],
+      "details": "All 8 spec verification items met"
     }
   },
   "overall": "pass|fail",
