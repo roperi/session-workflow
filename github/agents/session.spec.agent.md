@@ -31,7 +31,7 @@ $ARGUMENTS
 
 **Behavior**:
 - **If `--resume` flag present**:
-  - Load existing spec from `{session_dir}/spec.md`
+  - Load existing spec from the resolved path (see Step 6 — `specs/{feature}/spec.md` for speckit, `{session_dir}/spec.md` otherwise)
   - Update/refine rather than replace
 - **If `--comment` provided**:
   - Use as guidance for spec focus
@@ -100,11 +100,8 @@ Read available context (in priority order):
   if [[ "$SESSION_TYPE" == "speckit" ]]; then
     SPEC_DIR=$(jq -r '.spec_dir' "$SESSION_DIR/session-info.json")
     SCOPE_FILE="${SPEC_DIR}/scope.md"
-    # Also check for existing spec
-    EXISTING_SPEC="${SPEC_DIR}/spec.md"
   else
     SCOPE_FILE="${SESSION_DIR}/scope.md"
-    EXISTING_SPEC="${SESSION_DIR}/spec.md"
   fi
 
   if [ ! -f "$SCOPE_FILE" ]; then
