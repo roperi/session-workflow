@@ -589,6 +589,7 @@ install_agents() {
         "session.checklist.agent.md"
         "session.brainstorm.agent.md"
         "session.compound.agent.md"
+        "session.scope.agent.md"
     )
     
     mkdir -p .github/agents
@@ -621,6 +622,7 @@ install_prompts() {
         "session.checklist.prompt.md"
         "session.brainstorm.prompt.md"
         "session.compound.prompt.md"
+        "session.scope.prompt.md"
     )
     
     mkdir -p .github/prompts

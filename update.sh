@@ -119,6 +119,7 @@ update_agents() {
         "session.checklist.agent.md"
         "session.brainstorm.agent.md"
         "session.compound.agent.md"
+        "session.scope.agent.md"
     )
 
     for agent in "${agents[@]}"; do
@@ -145,6 +146,7 @@ update_prompts() {
         "session.checklist.prompt.md"
         "session.brainstorm.prompt.md"
         "session.compound.prompt.md"
+        "session.scope.prompt.md"
     )
 
     for prompt in "${prompts[@]}"; do
