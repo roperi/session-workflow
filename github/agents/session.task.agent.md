@@ -109,7 +109,8 @@ EOF
 ### 3. Load Planning Context
 
 Read available context:
-- **Session notes** (`$SESSION_DIR/notes.md`) - Contains plan from session.plan
+- **Plan** (`$SESSION_DIR/plan.md`) - Standalone plan artifact from session.plan
+- **Session notes** (`$SESSION_DIR/notes.md`) - Running notes and decisions
 - **Issue details** (if GitHub issue session)
 - **Technical context** (`.session/project-context/technical-context.md`)
 - **Constitution** (`.session/project-context/constitution-summary.md`)

@@ -54,6 +54,7 @@ SESSION_ROOT_ALLOWLIST=(
     "validation-results.json"
     "scope.md"
     "spec.md"
+    "plan.md"
     "docs"
     "scripts"
     "sessions"

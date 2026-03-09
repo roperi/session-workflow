@@ -17,7 +17,7 @@ $ARGUMENTS
 
 **Behavior**:
 - **If `--resume` flag present**: 
-  - Load existing plan from notes.md
+  - Load existing plan from `{session_dir}/plan.md`
   - Update/refine rather than replace
 - **If `--comment` provided**: 
   - Use as guidance for planning scope/focus
@@ -117,18 +117,27 @@ For Speckit sessions, plan already exists in `specs/{feature}/plan.md`.
    - Count complete vs incomplete items
    - **If any checklist incomplete**: Ask user to proceed or wait
 
-4. **Write plan reference to session notes**:
+4. **Write plan reference to `{session_dir}/plan.md`**:
    ```bash
-   cat >> "$SESSION_DIR/notes.md" << EOF
-
-## Implementation Plan
+   cat > "$SESSION_DIR/plan.md" << EOF
+# Implementation Plan
 
 Plan managed in Speckit: \`{FEATURE_DIR}/plan.md\`
 
 **Tech Stack**: {from plan.md}
 **Architecture**: {summary from plan.md}
-
 EOF
+   ```
+
+   Also add a cross-reference in session notes (idempotent — skip if already present):
+   ```bash
+   if ! grep -q "^## Plan" "$SESSION_DIR/notes.md" 2>/dev/null; then
+     cat >> "$SESSION_DIR/notes.md" << EOF
+
+## Plan
+See \`plan.md\` for implementation plan (references Speckit plan).
+EOF
+   fi
    ```
 
 5. **Display summary**:
@@ -165,11 +174,10 @@ EOF
    - `.session/project-context/technical-context.md` - Stack, commands
    - `.session/project-context/constitution-summary.md` - Quality standards
 
-4. **Create implementation plan** and write to notes.md:
+4. **Create implementation plan** and write to `{session_dir}/plan.md`:
    ```bash
-   cat >> "$SESSION_DIR/notes.md" << EOF
-
-## Implementation Plan
+   cat > "$SESSION_DIR/plan.md" << EOF
+# Implementation Plan
 
 **Issue**: #{issue-number} - {title}
 **Type**: {bug|feature|improvement}
@@ -192,8 +200,18 @@ EOF
 
 ### Risks/Considerations
 - {any risks or dependencies}
-
 EOF
+   ```
+
+   Also add a cross-reference in session notes (idempotent — skip if already present):
+   ```bash
+   if ! grep -q "^## Plan" "$SESSION_DIR/notes.md" 2>/dev/null; then
+     cat >> "$SESSION_DIR/notes.md" << EOF
+
+## Plan
+See \`plan.md\` for implementation plan.
+EOF
+   fi
    ```
 
 5. **Display summary**:
@@ -201,7 +219,7 @@ EOF
    ✅ Implementation plan created
 
    Issue: #{issue-number} - {title}
-   Plan saved to: $SESSION_DIR/notes.md
+   Plan saved to: $SESSION_DIR/plan.md
 
    Ready for task generation → invoke session.task
    ```
@@ -228,11 +246,10 @@ EOF
    - What components are affected?
    - What's the technical approach?
 
-3. **Write plan to session notes**:
+4. **Write plan to `{session_dir}/plan.md`**:
    ```bash
-   cat >> "$SESSION_DIR/notes.md" << EOF
-
-## Implementation Plan
+   cat > "$SESSION_DIR/plan.md" << EOF
+# Implementation Plan
 
 **Goal**: {goal-description}
 
@@ -249,13 +266,23 @@ EOF
 
 ### Success Criteria
 - {how to verify completion}
-
 EOF
+   ```
+
+   Also add a cross-reference in session notes (idempotent — skip if already present):
+   ```bash
+   if ! grep -q "^## Plan" "$SESSION_DIR/notes.md" 2>/dev/null; then
+     cat >> "$SESSION_DIR/notes.md" << EOF
+
+## Plan
+See \`plan.md\` for implementation plan.
+EOF
+   fi
    ```
 
    > **Note**: For spike sessions, the `**Tech Stack**` field must always be present — either the user-specified technology or a note that the project default stack is being used.
 
-4. **Display summary**
+5. **Display summary**
 
 ### 4. Report Completion
 
@@ -266,7 +293,7 @@ Display final summary with handoff suggestion:
 
 Session: $SESSION_ID
 Type: {speckit|github_issue|unstructured}
-Plan: Written to notes.md
+Plan: Written to plan.md
 
 Ready for task generation → invoke session.task
 ```
