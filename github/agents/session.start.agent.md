@@ -222,7 +222,7 @@ Context loaded:
 - Session notes: {notes-path}
 - Tasks file: {tasks-path or spec-path}
 
-Ready for next step → {invoke session.plan (development/spike) | invoke session.execute (maintenance)}
+Ready for next step → {invoke session.scope (development/spike) | invoke session.execute (maintenance)}
 ```
 
 **Stage-specific notes:**
@@ -231,7 +231,7 @@ Ready for next step → {invoke session.plan (development/spike) | invoke sessio
 - **production**: "🚀 Production mode: Full validation enabled"
 
 **Workflow-specific next steps:**
-- **development** or **spike**: handoff to `session.plan`
+- **development** or **spike**: handoff to `session.scope`
 - **maintenance**: handoff directly to `session.execute`
 - **maintenance + read-only**: handoff to `session.execute` with reminder: "No commits — produce a report only"
 

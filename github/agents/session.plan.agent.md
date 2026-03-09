@@ -72,7 +72,23 @@ echo "Workflow: $WORKFLOW"
 
 **Allowed workflows**: development, spike (both need planning!)
 
-### 2.5. OPTIONAL: Check for Brainstorm in Session Directory
+### 2.5. Check for Scope and Brainstorm in Session Directory
+
+If `{session_dir}/scope.md` exists, use it as primary planning input (do not rewrite it).
+
+```bash
+# Check for a scope document produced earlier in this session
+ls "{session_dir}/scope.md" 2>/dev/null
+```
+
+If a scope exists:
+- Read it and treat its **Problem Statement**, **In Scope/Out of Scope**, and **Success Criteria** as planning constraints.
+- The plan MUST align with the scope boundaries — do not introduce items outside scope.
+- Add a reference in session notes (idempotent — skip if already present):
+  ```markdown
+  ## Scope
+  - {session_dir}/scope.md
+  ```
 
 If `{session_dir}/brainstorm.md` exists, use it as planning input (do not rewrite it).
 
