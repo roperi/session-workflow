@@ -54,8 +54,8 @@ GOAL:
     Not needed if --issue or --spec is provided.
 
 WORKFLOWS:
-    development (default) - Full chain: start → plan → execute → validate → publish → finalize → wrap
-    spike (--spike)       - Light chain: start → execute → wrap (no PR)
+    development (default) - Full chain: start → scope → spec → plan → task → execute → validate → publish → finalize → wrap
+    spike (--spike)       - Light chain: start → scope → plan → task → execute → wrap (no PR)
     maintenance           - Minimal chain: start → execute → wrap (no branch, no PR)
 
 MODIFIERS:

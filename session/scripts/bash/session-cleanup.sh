@@ -52,6 +52,8 @@ EOF
 SESSION_ROOT_ALLOWLIST=(
     "ACTIVE_SESSION"
     "validation-results.json"
+    "scope.md"
+    "spec.md"
     "docs"
     "scripts"
     "sessions"

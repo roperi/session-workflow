@@ -33,3 +33,6 @@ node_modules/
 build/
 dist/
 coverage/
+
+# Session workflow local state
+.session/

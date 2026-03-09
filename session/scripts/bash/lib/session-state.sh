@@ -218,11 +218,14 @@ check_workflow_allowed() {
 
 # Valid workflow transitions
 # Note: session.start creates the session but does not track step state.
-# The first tracked step is typically "plan" (development/spike) or "execute" (maintenance).
+# The first tracked step is typically "scope" (development/spike) or "execute" (maintenance).
+# Transition map is workflow-agnostic; workflow-specific routing is handled by agent prompts.
 declare -A WORKFLOW_TRANSITIONS=(
-    ["none"]="brainstorm plan execute"
-    ["start"]="brainstorm plan execute"
-    ["brainstorm"]="plan"
+    ["none"]="brainstorm scope plan execute"
+    ["start"]="brainstorm scope plan execute"
+    ["brainstorm"]="scope plan"
+    ["scope"]="spec plan"
+    ["spec"]="plan"
     ["plan"]="task execute"
     ["task"]="execute"
     ["execute"]="validate execute wrap"
@@ -404,7 +407,7 @@ format_workflow_guidance() {
     echo "  Requested: $target_step"
     echo ""
     echo "  Workflow sequence:"
-    echo "  start → plan → task → execute → validate → publish → finalize → wrap"
+    echo "  start → scope → spec → plan → task → execute → validate → publish → finalize → wrap"
     echo ""
     
     if [[ "$status" == "in_progress" ]]; then

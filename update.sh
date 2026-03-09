@@ -180,6 +180,7 @@ See `.session/docs/README.md` for quick reference.
 SECTION
 )
 
+    # shellcheck disable=SC2043  # single-item loop kept for future expansion
     for file in ".github/copilot-instructions.md"; do
         if [[ ! -f "$file" ]]; then
             warn "$file not found, skipping"

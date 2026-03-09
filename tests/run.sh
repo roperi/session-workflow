@@ -299,6 +299,90 @@ TMPL
   assert_eq "ok" "$cleanup_status" "cleanup status should be ok"
 
   log "All tests passed (start, preflight, wrap, cleanup)."
+
+  # === Scope/Spec Transition Tests (Issue #38) ===
+
+  # 14) scope → spec → plan transition (development workflow)
+  log "14) scope → spec → plan transition (development)"
+  local start_dev_json s_dev_id s_dev_ym s_dev_dir
+  start_dev_json=$(./.session/scripts/bash/session-start.sh --json "Dev scope-spec test")
+  s_dev_id=$(echo "$start_dev_json" | jq -r '.session.id')
+  s_dev_ym=$(echo "$s_dev_id" | cut -d'-' -f1,2)
+  s_dev_dir=".session/sessions/${s_dev_ym}/${s_dev_id}"
+  assert_eq "development" "$(jq -r '.workflow' "$s_dev_dir/session-info.json")" "workflow should be development"
+
+  # Preflight scope should succeed (none → scope)
+  local preflight_scope_json
+  preflight_scope_json=$(./.session/scripts/bash/session-preflight.sh --step scope --json)
+  assert_eq "ok" "$(echo "$preflight_scope_json" | jq -r '.status')" "preflight scope status"
+  # Complete scope, then spec should be allowed (scope → spec)
+  set_workflow_step "$s_dev_id" "scope" "completed" >/dev/null
+  local preflight_spec_json
+  preflight_spec_json=$(./.session/scripts/bash/session-preflight.sh --step spec --json)
+  assert_eq "ok" "$(echo "$preflight_spec_json" | jq -r '.status')" "preflight spec status"
+  # Complete spec, then plan should be allowed (spec → plan)
+  set_workflow_step "$s_dev_id" "spec" "completed" >/dev/null
+  local preflight_plan14_json
+  preflight_plan14_json=$(./.session/scripts/bash/session-preflight.sh --step plan --json)
+  assert_eq "ok" "$(echo "$preflight_plan14_json" | jq -r '.status')" "preflight plan after spec status"
+  # Wrap
+  set_workflow_step "$s_dev_id" "plan" "completed" >/dev/null
+  set_workflow_step "$s_dev_id" "execute" "completed" >/dev/null
+  ./.session/scripts/bash/session-wrap.sh --json >/dev/null
+
+  # 15) scope → plan transition (spike, skipping spec)
+  log "15) scope → plan transition (spike, skipping spec)"
+  local start_spike_json s_spike_id s_spike_ym s_spike_dir
+  start_spike_json=$(./.session/scripts/bash/session-start.sh --json --spike "Spike scope test")
+  s_spike_id=$(echo "$start_spike_json" | jq -r '.session.id')
+  s_spike_ym=$(echo "$s_spike_id" | cut -d'-' -f1,2)
+  s_spike_dir=".session/sessions/${s_spike_ym}/${s_spike_id}"
+  assert_eq "spike" "$(jq -r '.workflow' "$s_spike_dir/session-info.json")" "workflow should be spike"
+
+  # Preflight scope
+  local preflight_spike_scope_json
+  preflight_spike_scope_json=$(./.session/scripts/bash/session-preflight.sh --step scope --json)
+  assert_eq "ok" "$(echo "$preflight_spike_scope_json" | jq -r '.status')" "preflight scope (spike) status"
+  # Complete scope, then plan should be allowed (scope → plan, skipping spec)
+  set_workflow_step "$s_spike_id" "scope" "completed" >/dev/null
+  local preflight_spike_plan_json
+  preflight_spike_plan_json=$(./.session/scripts/bash/session-preflight.sh --step plan --json)
+  assert_eq "ok" "$(echo "$preflight_spike_plan_json" | jq -r '.status')" "preflight plan after scope (spike) status"
+  # Wrap
+  set_workflow_step "$s_spike_id" "plan" "completed" >/dev/null
+  set_workflow_step "$s_spike_id" "execute" "completed" >/dev/null
+  ./.session/scripts/bash/session-wrap.sh --json >/dev/null
+
+  # 16) start → plan backward compatibility with deprecation warning
+  log "16) start → plan backward compatibility (deprecation warning)"
+  local start_bc_json s_bc_id s_bc_ym
+  start_bc_json=$(./.session/scripts/bash/session-start.sh --json "Backward compat test")
+  s_bc_id=$(echo "$start_bc_json" | jq -r '.session.id')
+  s_bc_ym=$(echo "$s_bc_id" | cut -d'-' -f1,2)
+  assert_eq "development" "$(jq -r '.workflow' ".session/sessions/${s_bc_ym}/${s_bc_id}/session-info.json")" "workflow should be development"
+
+  # Preflight plan directly (skipping scope/spec) — should succeed with deprecation warning
+  # Capture stderr separately to check for deprecation warning
+  local preflight_bc_json preflight_bc_stderr
+  preflight_bc_stderr=$(./.session/scripts/bash/session-preflight.sh --step plan --json 2>&1 1>/tmp/preflight_bc.json)
+  preflight_bc_json=$(cat /tmp/preflight_bc.json)
+  vlog "preflight_bc_json: $preflight_bc_json"
+  vlog "preflight_bc_stderr: $preflight_bc_stderr"
+  # Transition should succeed (status ok)
+  assert_eq "ok" "$(echo "$preflight_bc_json" | jq -r '.status')" "start→plan backward compat should succeed"
+  # JSON should contain deprecation_warning field
+  local json_warning
+  json_warning=$(echo "$preflight_bc_json" | jq -r '.deprecation_warning // ""')
+  [[ -n "$json_warning" ]] || fail "expected deprecation_warning in JSON output"
+  echo "$json_warning" | grep -q "scope/spec" || fail "deprecation_warning should mention scope/spec"
+  # Stderr should also contain the deprecation warning
+  echo "$preflight_bc_stderr" | grep -q "scope/spec" || fail "expected deprecation warning on stderr"
+  # Wrap
+  set_workflow_step "$s_bc_id" "plan" "completed" >/dev/null
+  set_workflow_step "$s_bc_id" "execute" "completed" >/dev/null
+  ./.session/scripts/bash/session-wrap.sh --json >/dev/null
+
+  log "All scope/spec transition tests passed."
 }
 
 main "$@"
