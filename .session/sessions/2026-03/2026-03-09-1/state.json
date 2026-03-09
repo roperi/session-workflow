@@ -1,0 +1,17 @@
+{
+  "schema_version": "1.0",
+  "session_id": "2026-03-09-1",
+  "status": "active",
+  "started_at": "2026-03-09T13:01:48Z",
+  "ended_at": null,
+  "tasks": {
+    "total": 0,
+    "completed": 0,
+    "current": null
+  },
+  "git": {
+    "branch": "main",
+    "last_commit": "f44b019"
+  },
+  "notes_summary": ""
+}

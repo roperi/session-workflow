@@ -407,7 +407,7 @@ format_workflow_guidance() {
     echo "  Requested: $target_step"
     echo ""
     echo "  Workflow sequence:"
-    echo "  start → plan → task → execute → validate → publish → finalize → wrap"
+    echo "  start → scope → spec → plan → task → execute → validate → publish → finalize → wrap"
     echo ""
     
     if [[ "$status" == "in_progress" ]]; then

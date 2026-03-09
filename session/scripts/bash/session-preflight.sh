@@ -190,9 +190,9 @@ main() {
         fi
     fi
     
-    # 3b. Deprecation warning: start/none → plan skips scope/spec
+    # 3b. Deprecation warning: start/none/brainstorm → plan skips scope/spec
     local deprecation_warning=""
-    if [[ "$STEP_NAME" == "plan" && ("$current_step" == "none" || "$current_step" == "start") ]]; then
+    if [[ "$STEP_NAME" == "plan" && ("$current_step" == "none" || "$current_step" == "start" || "$current_step" == "brainstorm") ]]; then
         local _workflow
         _workflow=$(detect_workflow "$session_id")
         if [[ "$_workflow" == "development" || "$_workflow" == "spike" ]]; then

@@ -375,6 +375,8 @@ TMPL
   json_warning=$(echo "$preflight_bc_json" | jq -r '.deprecation_warning // ""')
   [[ -n "$json_warning" ]] || fail "expected deprecation_warning in JSON output"
   echo "$json_warning" | grep -q "scope/spec" || fail "deprecation_warning should mention scope/spec"
+  # Stderr should also contain the deprecation warning
+  echo "$preflight_bc_stderr" | grep -q "scope/spec" || fail "expected deprecation warning on stderr"
   # Wrap
   set_workflow_step "$s_bc_id" "plan" "completed" >/dev/null
   set_workflow_step "$s_bc_id" "execute" "completed" >/dev/null

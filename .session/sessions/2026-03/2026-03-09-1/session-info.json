@@ -1,0 +1,10 @@
+{
+  "schema_version": "2.2",
+  "session_id": "2026-03-09-1",
+  "type": "github_issue",
+  "workflow": "development",
+  "stage": "production",
+  "created_at": "2026-03-09T13:01:48Z",
+  "issue_number": 38,
+  "issue_title": "Update state machine transitions for scope → spec → plan"
+}
