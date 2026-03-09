@@ -26,7 +26,7 @@ Usage: session-preflight.sh --step <step_name> [OPTIONS]
 Pre-flight validation for session agents. Run before any agent work.
 
 OPTIONS:
-    --step NAME     Required. The workflow step about to run (plan, execute, validate, etc.)
+    --step NAME     Required. The workflow step about to run (scope, spec, plan, execute, validate, etc.)
     --json          Output JSON for AI consumption
     --force         Skip workflow validation (use with caution)
     -h, --help      Show this help
@@ -39,6 +39,7 @@ WHAT IT DOES:
     5. Outputs session context JSON
 
 EXAMPLES:
+    session-preflight.sh --step scope --json
     session-preflight.sh --step plan --json
     session-preflight.sh --step execute --json
     session-preflight.sh --step validate --json --force
@@ -189,6 +190,17 @@ main() {
         fi
     fi
     
+    # 3b. Deprecation warning: start/none → plan skips scope/spec
+    local deprecation_warning=""
+    if [[ "$STEP_NAME" == "plan" && ("$current_step" == "none" || "$current_step" == "start") ]]; then
+        local _workflow
+        _workflow=$(detect_workflow "$session_id")
+        if [[ "$_workflow" == "development" || "$_workflow" == "spike" ]]; then
+            deprecation_warning="ℹ️  Consider using scope/spec steps for better requirement clarity"
+            echo -e "${YELLOW}${deprecation_warning}${NC}" >&2
+        fi
+    fi
+    
     # 4. Mark step as in_progress
     set_workflow_step "$session_id" "$STEP_NAME" "in_progress" >/dev/null
     
@@ -229,6 +241,7 @@ main() {
             --argjson task_completed "$task_completed" \
             --arg previous_step "$current_step" \
             --arg previous_status "$step_status" \
+            --arg deprecation_warning "$deprecation_warning" \
             '{
                 status: $status,
                 step: $step,
@@ -249,7 +262,7 @@ main() {
                     step: $previous_step,
                     status: $previous_status
                 }
-            }'
+            } | if $deprecation_warning != "" then . + {deprecation_warning: $deprecation_warning} else . end'
     else
         print_success "Preflight checks passed for '$STEP_NAME'"
         echo "Session: $session_id"
