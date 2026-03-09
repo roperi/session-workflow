@@ -291,20 +291,20 @@ STAGE=$(jq -r '.stage // "production"' "$SESSION_DIR/session-info.json")
 ### IF stage is "poc":
 1. Create validation-results.json with all results
 2. Report warnings but proceed regardless
-3. **Auto-chain to session.publish** (with warnings noted)
+3. **Proceed now** to `session.publish` (with warnings noted)
 4. Add note: "⚠️ PoC mode: Proceeding despite validation warnings"
 
 ### IF all checks PASS:
 1. Create validation-results.json with overall: "pass"
 2. Report success clearly
-3. **Auto-chain to session.publish**
+3. **Proceed now** to `session.publish`
 
-**Handoff Reasoning**: All quality gates passed, so work is ready to publish. session.publish creates/updates the PR with validation results. User still needs to monitor CI and merge PR before calling session.finalize.
+**Why:** All quality gates passed, so work is ready to publish. session.publish creates/updates the PR with validation results. User still needs to monitor CI and merge PR before calling session.finalize.
 
 ### IF any checks FAIL:
 1. Create validation-results.json with overall: "fail"
 2. Report failures in detail
-3. **DO NOT auto-chain**
+3. **DO NOT auto-chain** — failures block automatic handoff
 4. Present user with options:
 
 ```
@@ -318,7 +318,7 @@ Options:
 What would you like to do?
 ```
 
-**Handoff Reasoning**: Failures block automatic handoff to session.publish. User must decide whether to fix issues, publish as draft with known issues, or wrap session for later. This prevents broken code from being published without explicit user approval.
+**Why:** Failures block automatic handoff to session.publish. User must decide whether to fix issues, publish as draft with known issues, or wrap session for later. This prevents broken code from being published without explicit user approval.
 
 ## Handling Failures
 

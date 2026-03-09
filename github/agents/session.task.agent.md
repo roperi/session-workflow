@@ -287,10 +287,16 @@ Parallel opportunities: {count} task groups
 
 MVP Scope: Phases 1-3 ({n} tasks)
 
-Ready to execute → invoke session.execute
+Task breakdown complete — proceeding to execution.
 ```
 
-**Handoff Reasoning**: session.task generates the detailed task breakdown but doesn't execute any work. Task execution is session.execute's responsibility, which implements tasks following TDD discipline.
+## Chaining & Handoff
+
+**Proceed now** to `session.execute`.
+
+**Why:** session.task generates the detailed task breakdown but doesn't execute any work. Task execution is session.execute's responsibility, which implements tasks following TDD discipline.
+
+If the user's original request includes subsequent steps beyond execution, continue the chain without waiting.
 
 ## Task Generation Guidelines
 
@@ -340,5 +346,5 @@ If plan contains user stories or acceptance criteria:
 - **Speckit sessions**: Reference existing tasks, don't generate
 - **GitHub issues**: Generate from issue + plan context
 - **Unstructured**: Generate from goal + plan context
-- **Single purpose**: Task generation only, no execution
-- **Next step**: invoke session.execute
+- **Task generation only**: No execution — that's session.execute's job
+- **Auto-chain**: After task generation, proceed directly to session.execute

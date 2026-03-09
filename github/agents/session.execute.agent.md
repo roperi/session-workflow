@@ -254,7 +254,7 @@ Recommend pausing now.
 You can resume with session.execute in next session.
 
 Options:
-- session.validate → Run quality checks and chain to publish
+- session.validate → Run quality checks then proceed to publish
 - session.wrap → Skip validation and wrap directly
 ```
 
@@ -302,20 +302,24 @@ Commits: {count} commits made
 
 {If Speckit phase complete}:
 Phase {N} complete - all tasks [x]
-Ready for validation and publishing
+Execution complete — ready for validation and publishing.
 
 {If more tasks remain}:
 Remaining: {count} tasks
 Can resume with session.execute
-
-Next steps:
-→ invoke session.validate (recommended) - Run quality checks before publishing
-→ invoke session.wrap - Skip validation and document only
 ```
 
-**Next step:** invoke session.validate (development) or invoke session.wrap (spike)
+## Chaining & Handoff
 
-**Reasoning**: session.execute completes implementation tasks but doesn't verify quality or create PRs. session.validate runs comprehensive quality checks (lint, tests, coverage) before publishing, ensuring nothing broken is pushed. session.wrap is for documentation only without validation.
+**If all tasks complete and no [MANUAL] tasks are pending:**
+- **development**: **Proceed now** to `session.validate` — run quality checks before publishing
+- **spike**: **Proceed now** to `session.wrap` — skip validation and document session
+
+**If [MANUAL] tasks remain:**
+- Report pending manual tasks and wait for user to complete them
+- After user confirms manual tasks are done, proceed to session.validate (development) or session.wrap (spike)
+
+**Why:** session.execute completes implementation tasks but doesn't verify quality or create PRs. For development work, session.validate runs comprehensive quality checks (lint, tests, coverage) before publishing, ensuring nothing broken is pushed. For spike workflows, session.wrap skips full validation and focuses on documenting what was tried, what was learned, and any follow-up tasks.
 
 ## Failure Modes to Avoid
 
@@ -329,10 +333,10 @@ Next steps:
 
 ## Notes
 
-- **Single responsibility**: Execute tasks only
+- **Task execution only**: Execute tasks, don't plan or validate
 - **No planning**: session.plan already handled that
 - **Validation & finalization**: session.validate/publish/finalize chain handles that
 - **TDD discipline**: Test → implement → verify → commit
 - **Manual verification**: Required for UI-visible changes
 - **Small commits**: One task per commit
-- **Next step**: invoke session.validate (development) or invoke session.wrap (spike)
+- **Auto-chain**: After all tasks complete, proceed to session.validate (development) or session.wrap (spike)

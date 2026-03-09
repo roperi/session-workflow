@@ -222,7 +222,7 @@ Context loaded:
 - Session notes: {notes-path}
 - Tasks file: {tasks-path or spec-path}
 
-Ready for next step → {invoke session.scope (development/spike) | invoke session.execute (maintenance)}
+Next step: see Chaining & Handoff below.
 ```
 
 **Stage-specific notes:**
@@ -230,17 +230,33 @@ Ready for next step → {invoke session.scope (development/spike) | invoke sessi
 - **mvp**: "📦 MVP mode: Core validation enabled"
 - **production**: "🚀 Production mode: Full validation enabled"
 
+## Chaining & Handoff
+
+**Detect chaining intent**: Check `$ARGUMENTS` and the user's original message for:
+- Explicit step names (e.g., "then invoke session.plan", "run the full workflow")
+- Multi-step instructions (e.g., "initialize, plan, execute, and publish")
+- Chain keywords: "then", "followed by", "full workflow", "all the way through"
+
+**If chaining intent detected OR the user's message references subsequent steps:**
+- **Proceed immediately** to the next agent without waiting for user input
+- Do not ask "What would you like to do next?" — the user already told you
+
+**If invoked standalone** (no chaining signals in `$ARGUMENTS` or user message):
+- Report completion summary and suggest the next step
+- Wait for user direction
+
 **Workflow-specific next steps:**
-- **development** or **spike**: handoff to `session.scope`
-- **maintenance**: handoff directly to `session.execute`
-- **maintenance + read-only**: handoff to `session.execute` with reminder: "No commits — produce a report only"
+- **development** or **spike**: **Proceed now** to `session.scope`
+- **maintenance**: **Proceed now** to `session.execute`
+- **maintenance + read-only**: **Proceed now** to `session.execute` with reminder: "No commits — produce a report only"
 
 ## Notes
 
-- **Single responsibility**: Initialize session infrastructure only
+- **Initialization only**: This agent sets up session infrastructure — planning, tasks, and execution are handled by downstream agents
 - **No task generation**: That's session.plan's job (skipped for maintenance)
 - **No task execution**: That's session.execute's job
 - **Three workflows**: development (full), spike (no PR), maintenance (no branch, no PR, no planning)
 - **Both development and spike need planning**: Spike skips PR steps, not planning
 - **Maintenance goes straight to execute**: Skip plan, task, validate, publish, finalize
 - **Read-only is maintenance-only**: A contract that no commits or destructive changes happen
+- **Chaining default**: When chaining intent is detected, proceed without waiting. When invoked standalone, suggest the next step and wait for user direction

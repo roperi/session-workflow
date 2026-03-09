@@ -280,6 +280,14 @@ Items needing clarification: {count}
 → invoke session.clarify to resolve ambiguities before planning
 ```
 
+## Chaining & Handoff
+
+**⚠️ Human review gate**: The user MUST review `spec.md` before proceeding. Do not auto-chain past this point.
+
+After user confirms spec is acceptable:
+- **Proceed now** to `session.plan` (create implementation plan from this spec)
+- If items need clarification: suggest `session.clarify` first
+
 **If user has corrections**: Update spec.md and re-present. Do not proceed until the user confirms.
 
 ## Spec Quality Guidelines
@@ -314,10 +322,10 @@ Items needing clarification: {count}
 
 ## Notes
 
-- **Single responsibility**: Define specification only, no planning or task generation
+- **Specification only**: No planning or task generation
 - **Human review gate**: User MUST review spec before proceeding to plan
 - **Interactive first**: Ask questions for each story, don't assume acceptance criteria
 - **Scope is law**: Every spec item must trace back to an "In Scope" item — flag anything that doesn't
 - **Clarification path**: `[NEEDS CLARIFICATION]` items can be resolved via `invoke session.clarify`
 - **Input from scope**: If `scope.md` exists (expected), use it as primary input
-- **Next step:** invoke session.plan
+- **Auto-chain after approval**: Once user confirms, proceed directly to session.plan

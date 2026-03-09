@@ -293,16 +293,16 @@ Phase X (#issue-number) complete. All Y tasks finished.
 
 ## Handoff
 
-After finalization, **auto-suggest** `session.wrap`:
+After finalization, **proceed now** to `session.wrap`:
 
 ```
 ✅ Session finalized successfully
 
-**Next step:** Document and close session
+**Proceeding** to session.wrap to document and close session.
 → invoke session.wrap
 ```
 
-**Reasoning**: session.finalize completes all post-merge issue management (closing phase issues, updating parent issue, syncing tasks to GitHub). The final step is session.wrap, which documents the session in CHANGELOG.md and daily summary, then archives the session. This separation ensures issue management is complete before documentation.
+**Why:** session.finalize completes all post-merge issue management (closing phase issues, updating parent issue, syncing tasks to GitHub). The final step is session.wrap, which documents the session in CHANGELOG.md and daily summary, then archives the session. This separation ensures issue management is complete before documentation.
 
 ## Usage
 
@@ -325,6 +325,6 @@ Invoke after:
 **Tasks Synced**: 47 tasks updated in GitHub milestone "003-project-model-config"
 **PR Updated**: #661 - Phase 6 marked complete in description
 
-**Next step:** Document and close session
+**Proceeding** to session.wrap to document and close session.
 → invoke session.wrap
 ```
