@@ -4,6 +4,8 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+- **NEW (#36)**: `session.spec` agent — formal specification step between scope and plan; produces `{session_dir}/spec.md` with user stories, acceptance criteria (Given/When/Then), edge cases, error scenarios, non-functional requirements, `[NEEDS CLARIFICATION]` markers, and verification checklist; interactive/dialogue-driven; reads `scope.md` as primary input; development workflow only (spike skips spec); `session.plan` now reads spec.md as planning contract when present; `install.sh` and `update.sh` updated
+
 ## [2.6.0] - 2026-02-22
 
 - **FIX (#31)**: `session.brainstorm` absorbed as a proper workflow step — fixes state-machine poisoning bug where calling `--step plan` inside brainstorm would block subsequent `session.plan` runs; brainstorm output now written to `{session_dir}/brainstorm.md`; `session.plan` reads it from there; `session.wrap` daily summary moved to `{session_dir}/final-summary.md`

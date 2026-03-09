@@ -40,13 +40,15 @@ When AI context windows reset, work continuity is lost. Session workflow solves 
 
 1. **Session tracking** - What's in progress, what's done
 2. **Handoff notes** - Context for the next AI session
-3. **8-agent chain** - Structured workflow with clear next-step suggestions
+3. **Agent chain** - Structured workflow with clear next-step suggestions
 4. **Git hygiene** - Ensures clean state before session ends
 
-**Agent Chain**: `start → [brainstorm →] plan → task → execute → validate → publish → finalize → wrap`
+**Agent Chain**: `start → [brainstorm →] [scope →] [spec →] plan → task → execute → validate → publish → finalize → wrap`
 
 **Optional knowledge agents** (version-controlled docs):
 - `session.brainstorm` → writes to `{session_dir}/brainstorm.md` (clarify WHAT/WHY before planning)
+- `session.scope` → writes to `{session_dir}/scope.md` (define problem boundaries and success criteria)
+- `session.spec` → writes to `{session_dir}/spec.md` (acceptance criteria and verification contracts)
 - `session.compound` → writes to `docs/solutions/` (capture reusable learnings after solving)
 
 ---
@@ -161,7 +163,7 @@ invoke session.wrap
 
 ### 1. Development (default)
 
-**Chain**: `start → plan → task → execute → validate → publish → finalize → wrap`
+**Chain**: `start → [scope →] [spec →] plan → task → execute → validate → publish → finalize → wrap`
 
 Use for:
 - Feature development
@@ -175,7 +177,7 @@ invoke session.start "Add caching layer"
 
 ### 2. Spike
 
-**Chain**: `start → plan → task → execute → wrap`
+**Chain**: `start → [scope →] plan → task → execute → wrap`
 
 Use for:
 - Research and exploration
@@ -294,11 +296,11 @@ invoke session.start --stage production --issue 456
 └──────────┘    └──────────┘    └──────────┘                    └──────────┘
 ```
 
-**Development workflow** uses all 8 agents.
+**Development workflow** uses the full agent chain (8 core agents + optional scope/spec).
 
-**Spike workflow** uses: `start → plan → task → execute → wrap` (skips validate, publish, finalize)
+**Spike workflow** uses: `start → [scope →] plan → task → execute → wrap` (skips spec, validate, publish, finalize)
 
-**Maintenance workflow** uses: `start → execute → wrap` (skips plan, task, validate, publish, finalize)
+**Maintenance workflow** uses: `start → execute → wrap` (skips scope, spec, plan, task, validate, publish, finalize)
 
 At the end of each step, the agent will suggest the next step — invoke it by name or select it from the `/agent` picker.
 
@@ -311,6 +313,21 @@ At the end of each step, the agent will suggest the next step — invoke it by n
 - Load project context
 - Create feature branch
 - Review previous session notes
+- **Next step:** invoke session.scope (development/spike) or session.plan
+
+### session.scope
+- Define problem boundaries and success criteria
+- Interactive dialogue to clarify what's in/out of scope
+- Writes `{session_dir}/scope.md`
+- **Next step:** invoke session.spec (development) or session.plan (spike)
+
+### session.spec
+- Define detailed specification with acceptance criteria
+- Derives user stories from scope, defines Given/When/Then criteria
+- Identifies edge cases, error scenarios, and non-functional requirements
+- Marks ambiguities with `[NEEDS CLARIFICATION]`
+- Writes `{session_dir}/spec.md`
+- **Only for**: development workflow (skipped in spike)
 - **Next step:** invoke session.plan
 
 ### session.plan
@@ -407,16 +424,16 @@ Use these for requirements hygiene and consistency checks at any time.
 
 Quality (requirements hygiene):
 ```
-start → plan → [clarify?] → task → [analyze?] → [checklist?] → execute → ...
-                   ↑                    ↑              ↑
-            Optional quality checks (reduce downstream rework)
+start → [scope?] → [spec?] → plan → [clarify?] → task → [analyze?] → [checklist?] → execute → ...
+           ↑           ↑                 ↑                    ↑              ↑
+        boundaries  acceptance    Optional quality checks (reduce downstream rework)
 ```
 
 Knowledge capture (compounding docs):
 ```
-start → [brainstorm?] → plan → task → execute → ... → wrap → [compound?]
-         ↑                                         ↑
-   clarify WHAT/WHY                         capture learnings
+start → [brainstorm?] → [scope?] → [spec?] → plan → task → execute → ... → wrap → [compound?]
+             ↑              ↑           ↑                                              ↑
+       clarify WHAT/WHY  boundaries  acceptance                                 capture learnings
 ```
 
 ---
