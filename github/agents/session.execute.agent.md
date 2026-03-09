@@ -319,7 +319,7 @@ Can resume with session.execute
 - Report pending manual tasks and wait for user to complete them
 - After user confirms manual tasks are done, proceed to session.validate (development) or session.wrap (spike)
 
-**Why:** session.execute completes implementation tasks but doesn't verify quality or create PRs. session.validate runs comprehensive quality checks (lint, tests, coverage) before publishing, ensuring nothing broken is pushed.
+**Why:** session.execute completes implementation tasks but doesn't verify quality or create PRs. For development work, session.validate runs comprehensive quality checks (lint, tests, coverage) before publishing, ensuring nothing broken is pushed. For spike workflows, session.wrap skips full validation and focuses on documenting what was tried, what was learned, and any follow-up tasks.
 
 ## Failure Modes to Avoid
 

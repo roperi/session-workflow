@@ -299,6 +299,7 @@ After finalization, **proceed now** to `session.wrap`:
 ✅ Session finalized successfully
 
 **Proceeding** to session.wrap to document and close session.
+→ invoke session.wrap
 ```
 
 **Why:** session.finalize completes all post-merge issue management (closing phase issues, updating parent issue, syncing tasks to GitHub). The final step is session.wrap, which documents the session in CHANGELOG.md and daily summary, then archives the session. This separation ensures issue management is complete before documentation.

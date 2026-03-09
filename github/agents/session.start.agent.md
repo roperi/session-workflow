@@ -222,7 +222,7 @@ Context loaded:
 - Session notes: {notes-path}
 - Tasks file: {tasks-path or spec-path}
 
-Proceeding to next step...
+Next step: see Chaining & Handoff below.
 ```
 
 **Stage-specific notes:**
@@ -259,4 +259,4 @@ Proceeding to next step...
 - **Both development and spike need planning**: Spike skips PR steps, not planning
 - **Maintenance goes straight to execute**: Skip plan, task, validate, publish, finalize
 - **Read-only is maintenance-only**: A contract that no commits or destructive changes happen
-- **Chaining is the default path**: When in doubt, proceed to the next step rather than stopping
+- **Chaining default**: When chaining intent is detected, proceed without waiting. When invoked standalone, suggest the next step and wait for user direction
