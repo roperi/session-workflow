@@ -129,13 +129,15 @@ Plan managed in Speckit: \`{FEATURE_DIR}/plan.md\`
 EOF
    ```
 
-   Also add a cross-reference in session notes:
+   Also add a cross-reference in session notes (idempotent — skip if already present):
    ```bash
-   cat >> "$SESSION_DIR/notes.md" << EOF
+   if ! grep -q "^## Plan" "$SESSION_DIR/notes.md" 2>/dev/null; then
+     cat >> "$SESSION_DIR/notes.md" << EOF
 
 ## Plan
 See \`plan.md\` for implementation plan (references Speckit plan).
 EOF
+   fi
    ```
 
 5. **Display summary**:
@@ -201,13 +203,15 @@ EOF
 EOF
    ```
 
-   Also add a cross-reference in session notes:
+   Also add a cross-reference in session notes (idempotent — skip if already present):
    ```bash
-   cat >> "$SESSION_DIR/notes.md" << EOF
+   if ! grep -q "^## Plan" "$SESSION_DIR/notes.md" 2>/dev/null; then
+     cat >> "$SESSION_DIR/notes.md" << EOF
 
 ## Plan
 See \`plan.md\` for implementation plan.
 EOF
+   fi
    ```
 
 5. **Display summary**:
@@ -242,7 +246,7 @@ EOF
    - What components are affected?
    - What's the technical approach?
 
-3. **Write plan to `{session_dir}/plan.md`**:
+4. **Write plan to `{session_dir}/plan.md`**:
    ```bash
    cat > "$SESSION_DIR/plan.md" << EOF
 # Implementation Plan
@@ -265,18 +269,20 @@ EOF
 EOF
    ```
 
-   Also add a cross-reference in session notes:
+   Also add a cross-reference in session notes (idempotent — skip if already present):
    ```bash
-   cat >> "$SESSION_DIR/notes.md" << EOF
+   if ! grep -q "^## Plan" "$SESSION_DIR/notes.md" 2>/dev/null; then
+     cat >> "$SESSION_DIR/notes.md" << EOF
 
 ## Plan
 See \`plan.md\` for implementation plan.
 EOF
+   fi
    ```
 
    > **Note**: For spike sessions, the `**Tech Stack**` field must always be present — either the user-specified technology or a note that the project default stack is being used.
 
-4. **Display summary**
+5. **Display summary**
 
 ### 4. Report Completion
 
