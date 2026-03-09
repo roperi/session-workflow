@@ -4,6 +4,7 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+- **FIX (#40)**: Replace passive handoff language with directive chaining across all 9 chain agents — `session.start` gets chaining intent detection (checks `$ARGUMENTS` for chain signals); auto-chain agents (start, plan, task, validate-on-pass, finalize) use "Proceed now" directives; human-gated agents (scope, spec) keep review gates with auto-chain after approval; externally-gated agents (execute, publish) document gates explicitly; "Single responsibility" terminal phrasing replaced with role descriptions
 - **NEW (#36)**: `session.spec` agent — formal specification step between scope and plan; produces `{session_dir}/spec.md` with user stories, acceptance criteria (Given/When/Then), edge cases, error scenarios, non-functional requirements, `[NEEDS CLARIFICATION]` markers, and verification checklist; interactive/dialogue-driven; reads `scope.md` as primary input; development workflow only (spike skips spec); `session.plan` now reads spec.md as planning contract when present; `install.sh` and `update.sh` updated
 
 ## [2.6.0] - 2026-02-22
