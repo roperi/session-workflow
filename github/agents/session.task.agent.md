@@ -307,6 +307,23 @@ For each feature area:
 2. **Implementation task**: `Implement X`
 3. **Manual verification** (if UI): `[MANUAL] Verify X in browser`
 
+### Acceptance Test Stubs from Spec
+
+When `spec.md` exists in the session directory (produced by `session.spec`), use its acceptance criteria to generate test skeletons:
+
+1. **Read acceptance criteria** from spec.md (`AC-x.x: Given ... when ... then ...`)
+2. **Generate test stubs** for each criterion using the Given/When/Then structure:
+   ```
+   - [ ] T0XX [TEST] [USx] AC-x.x: Given {precondition}, verify {expected result} when {action}
+   ```
+3. **Map edge cases and error scenarios** from spec to additional test tasks
+4. **Add verification task** at the end of each user story phase:
+   ```
+   - [ ] T0XX [USx] Mark spec verification checklist items for US-x as complete
+   ```
+
+This ensures the spec's acceptance criteria become executable test cases, connecting `session.spec` to `session.validate`.
+
 ### When to Add [MANUAL] Tests
 
 **Required for**:

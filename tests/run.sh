@@ -383,6 +383,117 @@ TMPL
   ./.session/scripts/bash/session-wrap.sh --json >/dev/null
 
   log "All scope/spec transition tests passed."
+
+  # === Spec Verification Tests (Issue #39) ===
+
+  # 17) spec verification with spec.md present (production stage)
+  log "17) spec verification passes with all items checked (production)"
+  local start_sv_json sv_id sv_ym sv_dir
+  start_sv_json=$(./.session/scripts/bash/session-start.sh --json "Spec verification test")
+  sv_id=$(echo "$start_sv_json" | jq -r '.session.id')
+  sv_ym=$(echo "$sv_id" | cut -d'-' -f1,2)
+  sv_dir=".session/sessions/${sv_ym}/${sv_id}"
+  # Create a spec.md with verification checklist — all items checked
+  cat > "$sv_dir/spec.md" << 'SPECMD'
+# Spec: Test Feature
+
+## User Stories and Acceptance Criteria
+
+### US-1: Basic Feature
+**Acceptance Criteria:**
+- AC-1.1: Given a user, when they act, then result happens
+
+## Verification Checklist
+- [x] All acceptance criteria have at least one happy-path test
+- [x] Edge cases identified for each user story
+- [x] Error scenarios documented
+SPECMD
+  # Run validate with --skip-lint --skip-tests to isolate spec check
+  local validate_json
+  validate_json=$(./.session/scripts/bash/session-validate.sh --json --skip-lint --skip-tests)
+  vlog "validate_json (spec pass): $validate_json"
+  # Spec verification should pass
+  local spec_status spec_verified spec_total
+  spec_status=$(echo "$validate_json" | jq -r '.validation_checks[] | select(.check == "spec_verification") | .status')
+  spec_verified=$(echo "$validate_json" | jq -r '.validation_checks[] | select(.check == "spec_verification") | .verified')
+  spec_total=$(echo "$validate_json" | jq -r '.validation_checks[] | select(.check == "spec_verification") | .total')
+  assert_eq "pass" "$spec_status" "spec verification should pass when all items checked"
+  assert_eq "3" "$spec_verified" "spec verified count should be 3"
+  assert_eq "3" "$spec_total" "spec total count should be 3"
+
+  # 18) spec verification with unmet items (production = fail)
+  log "18) spec verification fails with unmet items (production)"
+  cat > "$sv_dir/spec.md" << 'SPECMD'
+# Spec: Test Feature
+
+## Verification Checklist
+- [x] First item verified
+- [ ] Second item NOT verified
+- [x] Third item verified
+SPECMD
+  set +e
+  validate_json=$(./.session/scripts/bash/session-validate.sh --json --skip-lint --skip-tests)
+  local sv_exit=$?
+  set -e
+  vlog "validate_json (spec fail): $validate_json"
+  spec_status=$(echo "$validate_json" | jq -r '.validation_checks[] | select(.check == "spec_verification") | .status')
+  assert_eq "fail" "$spec_status" "spec verification should fail in production with unmet items"
+  assert_eq "1" "$sv_exit" "validate should exit 1 when spec verification fails in production"
+
+  # 19) spec verification skipped when no spec.md
+  log "19) spec verification skipped when no spec.md"
+  rm -f "$sv_dir/spec.md"
+  validate_json=$(./.session/scripts/bash/session-validate.sh --json --skip-lint --skip-tests)
+  vlog "validate_json (no spec): $validate_json"
+  spec_status=$(echo "$validate_json" | jq -r '.validation_checks[] | select(.check == "spec_verification") | .status')
+  assert_eq "skipped" "$spec_status" "spec verification should be skipped when no spec.md"
+
+  # 20) spec verification skipped at poc stage
+  log "20) spec verification skipped at poc stage"
+  # Patch session-info.json to poc stage
+  local info_file="${sv_dir}/session-info.json"
+  local tmp_info
+  tmp_info=$(mktemp)
+  jq '.stage = "poc"' "$info_file" > "$tmp_info" && mv "$tmp_info" "$info_file"
+  # Create spec.md with unchecked items — should still be skipped
+  cat > "$sv_dir/spec.md" << 'SPECMD'
+# Spec: Test Feature
+
+## Verification Checklist
+- [ ] Unchecked item
+SPECMD
+  validate_json=$(./.session/scripts/bash/session-validate.sh --json --skip-lint --skip-tests)
+  vlog "validate_json (poc): $validate_json"
+  spec_status=$(echo "$validate_json" | jq -r '.validation_checks[] | select(.check == "spec_verification") | .status')
+  assert_eq "skipped" "$spec_status" "spec verification should be skipped at poc stage"
+
+  # 21) spec verification warns at mvp stage with unmet items
+  log "21) spec verification warns at mvp stage (unmet items)"
+  tmp_info=$(mktemp)
+  jq '.stage = "mvp"' "$info_file" > "$tmp_info" && mv "$tmp_info" "$info_file"
+  validate_json=$(./.session/scripts/bash/session-validate.sh --json --skip-lint --skip-tests)
+  vlog "validate_json (mvp): $validate_json"
+  spec_status=$(echo "$validate_json" | jq -r '.validation_checks[] | select(.check == "spec_verification") | .status')
+  assert_eq "warning" "$spec_status" "spec verification should warn at mvp stage with unmet items"
+  # Overall status should still be success (warning doesn't block)
+  local overall_status
+  overall_status=$(echo "$validate_json" | jq -r '.status')
+  assert_eq "success" "$overall_status" "overall status should be success at mvp with spec warnings"
+
+  # 22) --skip-spec flag skips spec verification
+  log "22) --skip-spec skips spec verification"
+  tmp_info=$(mktemp)
+  jq '.stage = "production"' "$info_file" > "$tmp_info" && mv "$tmp_info" "$info_file"
+  validate_json=$(./.session/scripts/bash/session-validate.sh --json --skip-lint --skip-tests --skip-spec)
+  vlog "validate_json (skip-spec): $validate_json"
+  spec_status=$(echo "$validate_json" | jq -r '.validation_checks[] | select(.check == "spec_verification") | .status')
+  assert_eq "skipped" "$spec_status" "spec verification should be skipped with --skip-spec"
+
+  # Wrap spec verification test session
+  set_workflow_step "$sv_id" "execute" "completed" >/dev/null
+  ./.session/scripts/bash/session-wrap.sh --json >/dev/null
+
+  log "All spec verification tests passed."
 }
 
 main "$@"
