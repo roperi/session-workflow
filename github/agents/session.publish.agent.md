@@ -133,7 +133,9 @@ fi
 
 After successful PR creation/update:
 
-**Next step:** invoke session.finalize (after PR merged to main)
+**Next step:** `session.finalize` — but only after the PR is merged to main.
+
+**⚠️ This is a gated handoff**: Do NOT proceed to session.finalize automatically. The PR must be merged first (user monitors CI in GitHub UI). Once merged, **proceed to session.finalize**.
 
 ## CRITICAL: PR Merge Rules
 

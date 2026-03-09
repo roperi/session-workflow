@@ -335,12 +335,16 @@ Session: $SESSION_ID
 Type: {speckit|github_issue|unstructured}
 Plan: Written to plan.md
 
-Ready for task generation → invoke session.task
+Plan complete — proceeding to task generation.
 ```
 
-**Next step:** invoke session.task
+## Chaining & Handoff
+
+**Proceed now** to `session.task`.
 
 **Why:** session.plan creates the high-level implementation plan but doesn't break it into detailed tasks. session.task generates the structured task list with user story organization, parallelization markers, and dependencies.
+
+If the user's original request includes subsequent steps beyond task generation, continue the chain without waiting.
 
 ## Planning Guidelines
 
@@ -379,5 +383,5 @@ Include:
 - **Speckit sessions**: Reference existing plan, don't duplicate
 - **GitHub issues**: Create plan from issue content
 - **Unstructured**: Create plan from goal
-- **Single responsibility**: Planning only, no task generation
-- **Next step:** invoke session.task
+- **Planning only**: No task generation — that's session.task's job
+- **Auto-chain**: After plan completion, proceed directly to session.task

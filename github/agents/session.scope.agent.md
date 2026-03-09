@@ -233,9 +233,13 @@ Please review scope.md. When you're satisfied:
 → invoke session.plan (spike workflow — skip spec, go straight to planning)
 ```
 
-**Workflow-specific next steps:**
-- **development**: handoff to `session.spec` (write detailed specification)
-- **spike**: handoff to `session.plan` (skip spec, go straight to planning)
+## Chaining & Handoff
+
+**⚠️ Human review gate**: The user MUST review `scope.md` before proceeding. Do not auto-chain past this point.
+
+After user confirms scope is acceptable:
+- **development**: **Proceed now** to `session.spec` (write detailed specification)
+- **spike**: **Proceed now** to `session.plan` (skip spec, go straight to planning)
 
 **If user has corrections**: Update scope.md and re-present. Do not proceed until the user confirms.
 
@@ -258,8 +262,8 @@ Please review scope.md. When you're satisfied:
 
 ## Notes
 
-- **Single responsibility**: Define scope only, no planning or task generation
+- **Scope definition only**: No planning or task generation
 - **Human review gate**: User MUST review scope before proceeding
 - **Interactive first**: Ask questions, don't assume
 - **Input from brainstorm**: If `brainstorm.md` exists, use it as starting context
-- **Next step:** invoke session.spec (development) or session.plan (spike)
+- **Auto-chain after approval**: Once user confirms, proceed directly to session.spec (development) or session.plan (spike)
