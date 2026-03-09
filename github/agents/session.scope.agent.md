@@ -11,7 +11,9 @@ Define **WHAT** we're solving and **HOW we'll know it's done** before any planni
 
 - This is a **formal workflow step** (part of the development/spike chain).
 - The scope agent is **interactive/dialogue-driven**: ask clarifying questions rather than assuming.
-- **Write output to**: `{session_dir}/scope.md`
+- **Write output to**:
+  - **Speckit sessions** (`type: speckit`): `specs/{feature}/scope.md` (read `spec_dir` from `session-info.json`)
+  - **All other sessions**: `{session_dir}/scope.md`
 - Keep it concise: problem boundaries and success criteria, not implementation details.
 
 ## User Input
@@ -95,7 +97,7 @@ Read available context (when present):
   ```bash
   gh issue view {issue_number} --json title,body,labels,assignees
   ```
-- **For Speckit sessions**: read `specs/{feature}/spec.md` (if exists)
+- **For Speckit sessions**: read `specs/{feature}/spec.md` and `specs/{feature}/scope.md` (if they exist)
 - **Project context**: `.session/project-context/technical-context.md` and `constitution-summary.md`
 
 If a brainstorm exists:
@@ -139,9 +141,24 @@ This is the heart of the scope agent. **Ask questions one at a time**, using the
 - If the user provides a detailed issue or brainstorm, you may need fewer questions
 - Use the user's exact language in the scope document (don't over-formalize)
 
-### 5. Produce Scope Document
+### 5. Resolve Output Path
 
-Create `{session_dir}/scope.md`:
+Determine the correct output path based on session type:
+
+```bash
+SESSION_TYPE=$(jq -r '.type' "$SESSION_DIR/session-info.json")
+if [[ "$SESSION_TYPE" == "speckit" ]]; then
+  SPEC_DIR=$(jq -r '.spec_dir' "$SESSION_DIR/session-info.json")
+  SCOPE_FILE="${SPEC_DIR}/scope.md"
+  mkdir -p "$SPEC_DIR"
+else
+  SCOPE_FILE="${SESSION_DIR}/scope.md"
+fi
+```
+
+### 6. Produce Scope Document
+
+Create the scope file at the resolved path (`$SCOPE_FILE`):
 
 ```markdown
 ---
@@ -196,21 +213,22 @@ status: draft
 - Prefer bullet lists over paragraphs
 - Each "In Scope" item should map to at least one success criterion
 
-### 6. Record Reference in Session Notes
+### 7. Record Reference in Session Notes
 
 Append to `{session_dir}/notes.md` (idempotent — skip if already present):
 
 ```bash
+SCOPE_REL="$SCOPE_FILE"  # Already relative to repo root
 if ! grep -q "^## Scope" "$SESSION_DIR/notes.md" 2>/dev/null; then
   cat >> "$SESSION_DIR/notes.md" << EOF
 
 ## Scope
-- ${SESSION_DIR}/scope.md
+- ${SCOPE_REL}
 EOF
 fi
 ```
 
-### 7. Present Scope for Review
+### 8. Present Scope for Review
 
 Display the scope document and ask the user to confirm:
 
@@ -218,7 +236,7 @@ Display the scope document and ask the user to confirm:
 ✅ Scope document created
 
 Session: {SESSION_ID}
-Scope: {session_dir}/scope.md
+Scope: {SCOPE_FILE path}
 
 --- scope.md summary ---
 Problem: {one-line summary}
