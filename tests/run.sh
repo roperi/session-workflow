@@ -494,6 +494,75 @@ SPECMD
   ./.session/scripts/bash/session-wrap.sh --json >/dev/null
 
   log "All spec verification tests passed."
+
+  # === Step History Tests (Issue #49) ===
+
+  # 23) step_history initialized as empty array on session start
+  log "23) step_history initialized as empty array"
+  local start_sh_json sh_id sh_ym sh_dir
+  start_sh_json=$(./.session/scripts/bash/session-start.sh --json "Step history test")
+  sh_id=$(echo "$start_sh_json" | jq -r '.session.id')
+  sh_ym=$(echo "$sh_id" | cut -d'-' -f1,2)
+  sh_dir=".session/sessions/${sh_ym}/${sh_id}"
+  assert_eq "[]" "$(jq -c '.step_history' "$sh_dir/state.json")" "step_history should be empty array at creation"
+  assert_eq "1.1" "$(jq -r '.schema_version' "$sh_dir/state.json")" "state schema should be 1.1"
+
+  # 24) preflight appends in_progress entry to step_history
+  log "24) preflight appends in_progress entry to step_history"
+  local preflight_sh_json
+  preflight_sh_json=$(./.session/scripts/bash/session-preflight.sh --step scope --json)
+  assert_eq "ok" "$(echo "$preflight_sh_json" | jq -r '.status')" "preflight scope status"
+  assert_eq "1" "$(jq '.step_history | length' "$sh_dir/state.json")" "step_history should have 1 entry"
+  assert_eq "scope" "$(jq -r '.step_history[0].step' "$sh_dir/state.json")" "first entry step should be scope"
+  assert_eq "in_progress" "$(jq -r '.step_history[0].status' "$sh_dir/state.json")" "first entry status should be in_progress"
+  assert_eq "null" "$(jq -r '.step_history[0].ended_at' "$sh_dir/state.json")" "first entry ended_at should be null"
+  assert_eq "false" "$(jq -r '.step_history[0].forced' "$sh_dir/state.json")" "first entry forced should be false"
+
+  # 25) completing a step updates the last history entry
+  log "25) completing step updates history entry"
+  set_workflow_step "$sh_id" "scope" "completed" >/dev/null
+  assert_eq "1" "$(jq '.step_history | length' "$sh_dir/state.json")" "step_history should still have 1 entry"
+  assert_eq "completed" "$(jq -r '.step_history[0].status' "$sh_dir/state.json")" "entry status should be completed"
+  [[ "$(jq -r '.step_history[0].ended_at' "$sh_dir/state.json")" != "null" ]] || fail "ended_at should be set after completion"
+  [[ "$(jq -r '.step_history[0].started_at' "$sh_dir/state.json")" != "null" ]] || fail "started_at should be preserved"
+
+  # 26) full workflow builds complete step_history
+  log "26) full workflow builds multi-entry step_history"
+  set_workflow_step "$sh_id" "spec" "in_progress" >/dev/null
+  set_workflow_step "$sh_id" "spec" "completed" >/dev/null
+  set_workflow_step "$sh_id" "plan" "in_progress" >/dev/null
+  set_workflow_step "$sh_id" "plan" "completed" >/dev/null
+  set_workflow_step "$sh_id" "execute" "in_progress" >/dev/null
+  set_workflow_step "$sh_id" "execute" "completed" >/dev/null
+  assert_eq "4" "$(jq '.step_history | length' "$sh_dir/state.json")" "step_history should have 4 entries"
+  assert_eq "scope" "$(jq -r '.step_history[0].step' "$sh_dir/state.json")" "entry 0 should be scope"
+  assert_eq "spec" "$(jq -r '.step_history[1].step' "$sh_dir/state.json")" "entry 1 should be spec"
+  assert_eq "plan" "$(jq -r '.step_history[2].step' "$sh_dir/state.json")" "entry 2 should be plan"
+  assert_eq "execute" "$(jq -r '.step_history[3].step' "$sh_dir/state.json")" "entry 3 should be execute"
+  # All entries should be completed with ended_at set
+  local all_completed
+  all_completed=$(jq '[.step_history[] | select(.status == "completed" and .ended_at != null)] | length' "$sh_dir/state.json")
+  assert_eq "4" "$all_completed" "all 4 entries should be completed with ended_at"
+
+  # 27) forced flag is recorded in step_history
+  log "27) forced flag recorded in step_history"
+  set_workflow_step "$sh_id" "validate" "in_progress" "true" >/dev/null
+  assert_eq "5" "$(jq '.step_history | length' "$sh_dir/state.json")" "step_history should have 5 entries"
+  assert_eq "true" "$(jq -r '.step_history[4].forced' "$sh_dir/state.json")" "forced entry should have forced=true"
+  set_workflow_step "$sh_id" "validate" "completed" >/dev/null
+
+  # Wrap
+  set_workflow_step "$sh_id" "execute" "completed" >/dev/null
+  ./.session/scripts/bash/session-wrap.sh --json >/dev/null
+
+  # 28) step_history survives wrap (preserved in final state)
+  log "28) step_history preserved after wrap"
+  local post_wrap_count
+  post_wrap_count=$(jq '.step_history | length' "$sh_dir/state.json")
+  [[ "$post_wrap_count" -ge 5 ]] || fail "step_history should be preserved after wrap (got $post_wrap_count entries)"
+  assert_eq "completed" "$(jq -r '.status' "$sh_dir/state.json")" "session should be completed"
+
+  log "All step history tests passed."
 }
 
 main "$@"

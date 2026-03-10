@@ -237,15 +237,20 @@ declare -A WORKFLOW_TRANSITIONS=(
 
 set_workflow_step() {
     # Track workflow step state for session continuity
-    # Args: session_id, step_name, status (in_progress|completed|failed)
+    # Args: session_id, step_name, status (in_progress|completed|failed) [forced]
     # 
     # This enables detection of interrupted sessions across CLI restarts.
     # If a step is "in_progress" when a new CLI session starts, the 
     # previous session was interrupted.
+    #
+    # Maintains an append-only step_history[] array for audit:
+    #   - in_progress: appends new entry with started_at
+    #   - completed/failed: updates last matching entry with ended_at
     
     local session_id="$1"
     local step_name="$2"
     local status="$3"
+    local forced="${4:-false}"
     local timestamp
     timestamp=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
 
@@ -260,27 +265,58 @@ set_workflow_step() {
     
     # Create or update state.json
     if [[ -f "$state_file" ]]; then
-        # Update existing state
         local tmp_file
         tmp_file=$(mktemp)
-        jq --arg step "$step_name" \
-           --arg status "$status" \
-           --arg updated "$timestamp" \
-           --arg started "$timestamp" \
-           '. + {
-               current_step: $step,
-               step_status: $status,
-               step_updated_at: $updated
-           } | if .step_status == "in_progress" then . + {step_started_at: $started} else . end' \
-           "$state_file" > "$tmp_file" && mv "$tmp_file" "$state_file"
+        if [[ "$status" == "in_progress" ]]; then
+            # Append new entry to step_history
+            jq --arg step "$step_name" \
+               --arg status "$status" \
+               --arg ts "$timestamp" \
+               --argjson forced "$forced" \
+               '. + {
+                    current_step: $step,
+                    step_status: $status,
+                    step_started_at: $ts,
+                    step_updated_at: $ts
+                } | .step_history = ((.step_history // []) + [{
+                    step: $step,
+                    status: $status,
+                    started_at: $ts,
+                    ended_at: null,
+                    forced: $forced
+                }])' \
+                "$state_file" > "$tmp_file" && mv "$tmp_file" "$state_file"
+        else
+            # Update current step fields + last matching history entry
+            jq --arg step "$step_name" \
+               --arg status "$status" \
+               --arg ts "$timestamp" \
+               '. + {
+                    current_step: $step,
+                    step_status: $status,
+                    step_updated_at: $ts
+                } | .step_history = ((.step_history // []) | to_entries | map(
+                    if (.value.step == $step and .value.status == "in_progress")
+                    then .value.status = $status | .value.ended_at = $ts
+                    else . end
+                ) | [.[].value])' \
+                "$state_file" > "$tmp_file" && mv "$tmp_file" "$state_file"
+        fi
     else
-        # Create new state file
+        # Create new state file (fallback — normally state.json exists from session-start)
+        local history_json
+        if [[ "$status" == "in_progress" ]]; then
+            history_json="[{\"step\":\"$step_name\",\"status\":\"$status\",\"started_at\":\"$timestamp\",\"ended_at\":null,\"forced\":$forced}]"
+        else
+            history_json="[]"
+        fi
         cat > "$state_file" << STATEJSON
 {
     "current_step": "$step_name",
     "step_status": "$status",
     "step_started_at": "$timestamp",
-    "step_updated_at": "$timestamp"
+    "step_updated_at": "$timestamp",
+    "step_history": $history_json
 }
 STATEJSON
     fi

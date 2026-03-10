@@ -291,7 +291,7 @@ create_session_state() {
     tmp_state=$(mktemp "${state_file}.XXXXXX")
     cat > "$tmp_state" << EOF
 {
-  "schema_version": "1.0",
+  "schema_version": "1.1",
   "session_id": "${session_id}",
   "status": "active",
   "started_at": "${started_at}",
@@ -305,7 +305,8 @@ create_session_state() {
     "branch": "${branch}",
     "last_commit": "${last_commit}"
   },
-  "notes_summary": ""
+  "notes_summary": "",
+  "step_history": []
 }
 EOF
     mv "$tmp_state" "$state_file"

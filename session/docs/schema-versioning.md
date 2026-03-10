@@ -43,15 +43,15 @@ constant before trusting field names.
 
 ---
 
-## `state.json` — current version `1.0`
+## `state.json` — current version `1.1`
 
-**Constant**: `STATE_SCHEMA_VERSION="1.0"` (in `session-common.sh`)
+**Constant**: `STATE_SCHEMA_VERSION="1.1"` (in `session-common.sh`)
 
 **Fields written by `create_session_state()`**:
 
 | Field | Type | Description |
 |-------|------|-------------|
-| `schema_version` | string | Always `"1.0"` |
+| `schema_version` | string | Always `"1.1"` |
 | `session_id` | string | Matches session-info.json |
 | `status` | string | `active` \| `completed` |
 | `started_at` | ISO 8601 string | UTC |
@@ -62,6 +62,7 @@ constant before trusting field names.
 | `git.branch` | string | Branch at session start |
 | `git.last_commit` | string | Short SHA at session start |
 | `notes_summary` | string | |
+| `step_history` | array | `[]` at creation |
 
 **Fields added by `set_workflow_step()`** (first preflight call):
 
@@ -72,10 +73,21 @@ constant before trusting field names.
 | `step_started_at` | ISO 8601 string | |
 | `step_updated_at` | ISO 8601 string | |
 
+**`step_history` entry schema** (appended by `set_workflow_step()`):
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `step` | string | Workflow step name |
+| `status` | string | `in_progress` → `completed` \| `failed` |
+| `started_at` | ISO 8601 string | Set when step begins |
+| `ended_at` | ISO 8601 \| null | Set when step completes/fails |
+| `forced` | boolean | `true` if `--force` was used to bypass transition checks |
+
 ### Version history
 
 | Version | Change |
 |---------|--------|
+| `1.1` | Added `step_history` array for append-only workflow audit trail. |
 | `1.0` | Initial. All state.json fields. |
 
 ---
