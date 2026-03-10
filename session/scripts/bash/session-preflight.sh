@@ -202,7 +202,7 @@ main() {
     fi
     
     # 4. Mark step as in_progress
-    set_workflow_step "$session_id" "$STEP_NAME" "in_progress" >/dev/null
+    set_workflow_step "$session_id" "$STEP_NAME" "in_progress" "$FORCE_MODE" >/dev/null
     
     # 5. Output session context
     if $JSON_OUTPUT; then
