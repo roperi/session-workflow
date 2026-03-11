@@ -272,9 +272,7 @@ Success criteria: {count} items
 Open questions: {count} items
 ------------------------
 
-Please review scope.md. When you're satisfied:
-→ invoke session.spec (development workflow — write detailed specification)
-→ invoke session.plan (spike workflow — skip spec, go straight to planning)
+Scope complete. Returning results to orchestrating agent.
 ```
 
 ## Chaining & Handoff
@@ -284,13 +282,9 @@ Please review scope.md. When you're satisfied:
 .session/scripts/bash/session-postflight.sh --step scope --json
 ```
 
-**⚠️ Human review gate**: The user MUST review `scope.md` before proceeding. Do not auto-chain past this point.
+After postflight, **return your results** — scope.md location, key boundaries, and item counts. The orchestrating agent (session.start) will invoke the next step.
 
-After user confirms scope is acceptable:
-- **development**: **Proceed now** to `session.spec` (write detailed specification)
-- **spike**: **Proceed now** to `session.plan` (skip spec, go straight to planning)
-
-**If user has corrections**: Update scope.md and re-present. Do not proceed until the user confirms.
+⛔ Do NOT invoke session.spec, session.plan, or any other agent yourself.
 
 ## Scope Quality Guidelines
 

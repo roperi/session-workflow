@@ -217,7 +217,7 @@ EOF
    Feature: {feature-name}
    Plan: {FEATURE_DIR}/plan.md
    
-   Ready for task generation → invoke session.task
+   Plan complete. Returning results to orchestrating agent.
 
    Incomplete tasks:
    - [ ] T146 Create useProjectModels.ts
@@ -291,7 +291,7 @@ EOF
    Issue: #{issue-number} - {title}
    Plan saved to: $SESSION_DIR/plan.md
 
-   Ready for task generation → invoke session.task
+   Plan complete. Returning results to orchestrating agent.
    ```
 
 #### C. Unstructured Session Path
@@ -375,11 +375,9 @@ Plan complete — proceeding to task generation.
 .session/scripts/bash/session-postflight.sh --step plan --json
 ```
 
-**Proceed now** to `session.task`.
+After postflight, **return your results** — plan.md location, component count, and key risks. The orchestrating agent (session.start) will invoke the next step.
 
-**Why:** session.plan creates the high-level implementation plan but doesn't break it into detailed tasks. session.task generates the structured task list with user story organization, parallelization markers, and dependencies.
-
-If the user's original request includes subsequent steps beyond task generation, continue the chain without waiting.
+⛔ Do NOT invoke session.task or any other agent yourself.
 
 ## Planning Guidelines
 

@@ -129,21 +129,24 @@ These are concrete violations that agents commonly make:
 3. **Postflight** → marks `completed`, outputs valid next steps
 4. **Hand off** → proceed to the next agent (or STOP at phase boundaries)
 
-### Phase Boundaries (HARD STOPS)
+### Centralized Orchestration
 
-The workflow has three phases, each requiring a separate user invocation:
+`session.start` is the **sole orchestrator** for the entire workflow chain. It invokes each step's agent as a separate sub-agent and handles the review/merge cycle directly.
 
-| Phase | Steps | Entry Agent | Stop After |
-|-------|-------|-------------|------------|
-| **Planning** | scope → spec → plan → task | `session.start` | task (user invokes `session.execute`) |
-| **Implementation** | execute → validate → publish | `session.execute` | publish (user merges PR, invokes `session.finalize`) |
-| **Completion** | finalize → wrap | `session.finalize` | wrap (session complete) |
+| Phase | Steps | Orchestrated by |
+|-------|-------|-----------------|
+| **Planning** | scope → spec → plan → task | `session.start` (via sub-agents) |
+| **Implementation** | execute → validate → publish | `session.start` (via sub-agents) |
+| **Review Cycle** | Copilot review → address comments → merge | `session.start` (directly) |
+| **Completion** | finalize → wrap | `session.start` (via sub-agents) |
 
-**Why phases?** Each entry agent (`session.start`, `session.execute`, `session.finalize`) is loaded by the IDE with its full instruction set. Steps within a phase are **invoked as separate sub-agents** via the task tool, ensuring each agent loads its own instructions and scope boundaries.
+**Why centralized?** Each sub-agent loads its own instructions and scope boundaries, but session.start controls the sequence. Individual agents MUST NOT invoke the next agent — they return results to session.start after running postflight.
 
 ### Invoking Agents During Chain Execution
 
-When orchestrating multiple steps within a phase, the entry agent MUST invoke each step's agent as a **separate sub-agent** using the task tool with `agent_type` set to the agent name (e.g., `session.scope`, `session.spec`).
+session.start invokes each step's agent as a **separate sub-agent** using the task tool with `agent_type` set to the agent name (e.g., `session.scope`, `session.spec`).
+
+⛔ Sub-agents MUST NOT invoke other agents. After completing their work and running postflight, they return results to session.start.
 
 ⛔ Do NOT `cat` agent files and do the work yourself — this bypasses proper agent loading and breaks state tracking.
 

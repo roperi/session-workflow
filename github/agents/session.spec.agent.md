@@ -323,11 +323,7 @@ Needs clarification: {count} items
 Verification checklist: {count} items
 ------------------------
 
-Please review spec.md. When you're satisfied:
-→ invoke session.plan (create implementation plan from this spec)
-
-Items needing clarification: {count}
-→ invoke session.clarify to resolve ambiguities before planning
+Spec complete. Returning results to orchestrating agent.
 ```
 
 ## Chaining & Handoff
@@ -337,13 +333,9 @@ Items needing clarification: {count}
 .session/scripts/bash/session-postflight.sh --step spec --json
 ```
 
-**⚠️ Human review gate**: The user MUST review `spec.md` before proceeding. Do not auto-chain past this point.
+After postflight, **return your results** — spec.md location, story count, acceptance criteria count, and any items needing clarification. The orchestrating agent (session.start) will invoke the next step.
 
-After user confirms spec is acceptable:
-- **Proceed now** to `session.plan` (create implementation plan from this spec)
-- If items need clarification: suggest `session.clarify` first
-
-**If user has corrections**: Update spec.md and re-present. Do not proceed until the user confirms.
+⛔ Do NOT invoke session.plan, session.clarify, or any other agent yourself.
 
 ## Spec Quality Guidelines
 

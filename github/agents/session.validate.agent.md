@@ -338,16 +338,17 @@ STAGE=$(jq -r '.stage // "production"' "$SESSION_DIR/session-info.json")
 1. Create validation-results.json with all results
 2. Report warnings but proceed regardless
 3. Run postflight: `.session/scripts/bash/session-postflight.sh --step validate --json`
-4. **Proceed now** to `session.publish` (with warnings noted)
-4. Add note: "⚠️ PoC mode: Proceeding despite validation warnings"
+4. **Return results** to orchestrating agent. Add note: "⚠️ PoC mode: Proceeding despite validation warnings"
+
+⛔ Do NOT invoke session.publish or any other agent yourself.
 
 ### IF all checks PASS:
 1. Create validation-results.json with overall: "pass"
 2. Report success clearly
 3. Run postflight: `.session/scripts/bash/session-postflight.sh --step validate --json`
-4. **Proceed now** to `session.publish`
+4. **Return results** to orchestrating agent.
 
-**Why:** All quality gates passed, so work is ready to publish. session.publish creates/updates the PR with validation results. User still needs to monitor CI and merge PR before calling session.finalize.
+⛔ Do NOT invoke session.publish or any other agent yourself.
 
 ### IF any checks FAIL:
 1. Create validation-results.json with overall: "fail"

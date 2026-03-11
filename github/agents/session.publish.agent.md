@@ -162,9 +162,9 @@ fi
 .session/scripts/bash/session-postflight.sh --step publish --json
 ```
 
-**Next step:** `session.finalize` — but only after the PR is merged to main.
+After postflight, **return your results** — PR number, URL, and status. The orchestrating agent (session.start) will handle the review cycle and merge.
 
-**⚠️ This is a gated handoff**: Do NOT proceed to session.finalize automatically. The PR must be merged first (user monitors CI in GitHub UI). Once merged, **proceed to session.finalize**.
+⛔ Do NOT invoke session.finalize or any other agent yourself.
 
 ## CRITICAL: PR Merge Rules
 

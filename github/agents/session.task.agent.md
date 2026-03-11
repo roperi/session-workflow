@@ -327,11 +327,9 @@ Task breakdown complete — proceeding to execution.
 .session/scripts/bash/session-postflight.sh --step task --json
 ```
 
-**Proceed now** to `session.execute`.
+After postflight, **return your results** — tasks.md location, total task count, and phase breakdown. The orchestrating agent (session.start) will invoke the next step.
 
-**Why:** session.task generates the detailed task breakdown but doesn't execute any work. Task execution is session.execute's responsibility, which implements tasks following TDD discipline.
-
-If the user's original request includes subsequent steps beyond execution, continue the chain without waiting.
+⛔ Do NOT invoke session.execute or any other agent yourself.
 
 ## Task Generation Guidelines
 

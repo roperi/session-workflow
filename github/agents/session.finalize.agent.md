@@ -322,16 +322,9 @@ Phase X (#issue-number) complete. All Y tasks finished.
 .session/scripts/bash/session-postflight.sh --step finalize --json
 ```
 
-### Chain to wrap
+After postflight, **return your results** — issue closure status, task sync status, and branch cleanup status. The orchestrating agent (session.start) will invoke the next step.
 
-After finalize postflight, invoke `session.wrap` as a **separate sub-agent** (using the task tool). Do NOT read the wrap agent file and do its work yourself.
-
-```
-agent_type: "session.wrap"
-prompt: "Wrap session {session_id}. Dir: {session_dir}. Issue #{N} closed, PR #{M} merged."
-```
-
-**Why:** session.finalize completes all post-merge issue management (closing phase issues, updating parent issue, syncing tasks to GitHub). The final step is session.wrap, which documents the session in CHANGELOG.md and daily summary, then archives the session.
+⛔ Do NOT invoke session.wrap or any other agent yourself.
 
 ## Usage
 

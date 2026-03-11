@@ -232,80 +232,132 @@ Next step: see Chaining & Handoff below.
 
 ## Chain Execution Protocol
 
-After session-start.sh completes, the `start` step is already recorded as completed in `state.json`. You now orchestrate the **planning phase** by invoking each agent as a separate sub-agent.
+After session-start.sh completes, the `start` step is already recorded as completed in `state.json`. You now orchestrate the **full workflow chain** by invoking each agent as a separate sub-agent.
 
 ### ⛔ CRITICAL: Invoke Agents — Do NOT Do Their Work
 
-For each planning step, you MUST invoke the corresponding agent as a **separate sub-agent** (using the task tool with `agent_type` set to the agent name). Do NOT read their agent files and do their work yourself.
+For each step, you MUST invoke the corresponding agent as a **separate sub-agent** (using the task tool with `agent_type` set to the agent name). Do NOT read their agent files and do their work yourself.
 
 Why this matters:
 - Each agent loads its own instructions (scope boundaries, preflight/postflight)
 - Each agent appears as a distinct step in the conversation
 - State tracking happens properly within each agent's context
 
-### Development Workflow: scope → spec → plan → task → STOP
+### IMPORTANT: Do NOT ask clarifying questions in sub-agent prompts
+
+When invoking sub-agents, include this in every prompt: "Do NOT ask clarifying questions. Make reasonable decisions and proceed."
+
+### Development Workflow: scope → spec → plan → task → execute → validate → publish → review → finalize → wrap
 
 Invoke each agent **in sequence**. Wait for each to complete before invoking the next. Pass session context in the prompt.
 
-**Step 1** — Invoke `session.scope` agent:
+**Phase 1: Planning**
+
+**scope** — Invoke `session.scope` agent:
 ```
 agent_type: "session.scope"
-prompt: "Scope issue #{N}: {title}. Session: {session_id}, dir: {session_dir}, branch: {branch}, workflow: development, stage: {stage}."
+prompt: "Scope issue #{N}: {title}. Session: {session_id}, dir: {session_dir}, branch: {branch}, workflow: development, stage: {stage}. Do NOT ask clarifying questions."
 ```
 
-**Step 2** — Invoke `session.spec` agent:
+**spec** — Invoke `session.spec` agent:
 ```
 agent_type: "session.spec"
-prompt: "Write spec for issue #{N}: {title}. Session: {session_id}, dir: {session_dir}. Scope defined in {session_dir}/scope.md."
+prompt: "Write spec for issue #{N}: {title}. Session: {session_id}, dir: {session_dir}. Scope defined in {session_dir}/scope.md. Do NOT ask clarifying questions."
 ```
 
-**Step 3** — Invoke `session.plan` agent:
+**plan** — Invoke `session.plan` agent:
 ```
 agent_type: "session.plan"
-prompt: "Plan issue #{N}: {title}. Session: {session_id}, dir: {session_dir}. Spec in {session_dir}/spec.md."
+prompt: "Plan issue #{N}: {title}. Session: {session_id}, dir: {session_dir}. Spec in {session_dir}/spec.md. Do NOT ask clarifying questions."
 ```
 
-**Step 4** — Invoke `session.task` agent:
+**task** — Invoke `session.task` agent:
 ```
 agent_type: "session.task"
-prompt: "Generate tasks for issue #{N}: {title}. Session: {session_id}, dir: {session_dir}. Plan in {session_dir}/plan.md."
+prompt: "Generate tasks for issue #{N}: {title}. Session: {session_id}, dir: {session_dir}. Plan in {session_dir}/plan.md. Do NOT ask clarifying questions."
 ```
 
-**⛔ HARD STOP after task.** Do NOT proceed to execute, validate, publish, or any later step. Output:
+**Phase 2: Implementation**
 
+**execute** — Invoke `session.execute` agent:
 ```
-⏸️ Planning phase complete. Steps tracked: scope ✓ spec ✓ plan ✓ task ✓
-
-Next: invoke `session.execute` to begin implementation.
-```
-
-### Spike Workflow: scope → plan → task → STOP
-
-Same as development but skip spec. After task completes, output:
-
-```
-⏸️ Planning complete. Next: invoke `session.execute` to begin implementation.
+agent_type: "session.execute"
+prompt: "Execute tasks for issue #{N}: {title}. Session: {session_id}, dir: {session_dir}. Tasks in {tasks_file}. Do NOT ask clarifying questions. IMPORTANT: {include any containerisation or environment constraints from the user's original message}."
 ```
 
-### Maintenance Workflow: STOP (hand off to execute)
+**validate** — Invoke `session.validate` agent:
+```
+agent_type: "session.validate"
+prompt: "Validate work for issue #{N}. Session: {session_id}, dir: {session_dir}, stage: {stage}. Do NOT ask clarifying questions."
+```
 
-Maintenance has no planning phase. After initialization, output:
+**publish** — Invoke `session.publish` agent:
+```
+agent_type: "session.publish"
+prompt: "Publish PR for issue #{N}. Session: {session_id}, dir: {session_dir}, repo: {owner/repo}, branch: {branch}. Do NOT ask clarifying questions."
+```
+
+**Phase 3: Review Cycle (you handle this directly — no agent needed)**
+
+After publish completes and returns the PR number:
+
+1. **Request Copilot review** using the `request_copilot_review` tool (NOT by leaving a comment — commenting triggers Copilot coding agent, not review).
+2. **Wait ~5 minutes** for the review to complete. Check review status periodically.
+3. **Read review comments** — if Copilot left review comments, address them:
+   - Make the necessary code fixes
+   - Commit the fixes
+   - Push to the PR branch
+   - Leave a comment on the PR summarizing fixes made
+4. **Wait for CI** to pass on the PR.
+5. **Merge the PR** to main using squash merge.
+6. **Clean up branches** — delete the remote feature branch after merge.
+
+**Phase 4: Post-merge**
+
+**finalize** — Invoke `session.finalize` agent:
+```
+agent_type: "session.finalize"
+prompt: "Finalize merged PR #{pr_number} for issue #{N}. Session: {session_id}, dir: {session_dir}. PR merged to main. Do NOT ask clarifying questions."
+```
+
+**wrap** — Invoke `session.wrap` agent:
+```
+agent_type: "session.wrap"
+prompt: "Wrap session {session_id}. Dir: {session_dir}. Issue #{N} closed, PR #{pr_number} merged. Do NOT ask clarifying questions."
+```
+
+After wrap completes, output the final summary:
+```
+✅ Full workflow complete for issue #{N}.
+
+Workflow chain: start → scope → spec → plan → task → execute → validate → publish → review → merge → finalize → wrap ✓
+```
+
+### Spike Workflow: scope → plan → task → execute → wrap
+
+Same as development but skip spec, validate, publish (no PR). After execute, invoke wrap directly:
 
 ```
-⏸️ Session initialized. Next: invoke `session.execute` to begin work.
+agent_type: "session.wrap"
+prompt: "Wrap spike session {session_id}. Dir: {session_dir}. Do NOT ask clarifying questions."
 ```
+
+### Maintenance Workflow: execute → wrap
+
+Maintenance has no planning phase. After initialization, proceed directly to execute, then wrap.
 
 ### Resume Mode
 
 When resuming (`--resume`), check `state.json` to determine what step the session was on:
-- If planning steps are incomplete, resume from the last completed planning step (invoke remaining agents)
-- If planning is done (task completed), tell user to invoke the appropriate next agent
-- If the user's message references a later step (e.g., "merged PR, continue"), tell user to invoke that agent directly
+- Find the last completed step in `step_history`
+- Resume the chain from the NEXT step after the last completed one
+- If a step is `in_progress`, invoke that step's agent to retry it
 
 ## Notes
 
-- **Planning only**: This agent orchestrates start + planning steps. Implementation is `session.execute`'s job.
-- **No code changes**: Never write application code, create PRs, or merge anything
+- **Full orchestration**: This agent orchestrates the ENTIRE workflow chain from start to wrap
+- **No code changes**: Never write application code directly — that's session.execute's job
 - **Invoke, don't impersonate**: Use the task tool to invoke each agent — never `cat` their files and do their work
 - **Three workflows**: development (full), spike (no PR), maintenance (no branch, no PR, no planning)
-- **Hard stop is mandatory**: After the last planning step, STOP. Tell the user to invoke `session.execute`
+- **Review cycle**: The only phase you handle directly (not via a sub-agent) is Copilot review + merge
+- **Pass constraints through**: If the user's message includes environment constraints (e.g., "containerised app", "don't install locally"), pass them to session.execute
