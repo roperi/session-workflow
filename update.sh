@@ -62,6 +62,7 @@ update_scripts() {
         "session-publish.sh"
         "session-finalize.sh"
         "session-preflight.sh"
+        "session-postflight.sh"
         "session-handoff-list.sh"
         "session-cleanup.sh"
     )
@@ -99,6 +100,8 @@ update_docs() {
     download_file "${REPO_URL}/README.md" ".session/docs/README.md"
     download_file "${REPO_URL}/session/docs/testing.md" ".session/docs/testing.md"
     download_file "${REPO_URL}/session/docs/shared-workflow.md" ".session/docs/shared-workflow.md"
+    download_file "${REPO_URL}/session/docs/schema-versioning.md" ".session/docs/schema-versioning.md"
+    download_file "${REPO_URL}/session/docs/copilot-cli-mechanics.md" ".session/docs/copilot-cli-mechanics.md"
     success "Documentation updated"
 }
 
@@ -170,13 +173,11 @@ This project uses session workflow for AI context continuity.
 See `.session/docs/README.md` for quick reference.
 
 **Agents:**
-- `invoke session.start --issue N` - Development session from GitHub issue
-- `invoke session.start --spec 001-feature` - Spec Kit session
-- `invoke session.start "description"` - Development session (positional description)
-- `invoke session.start --spike "description"` - Spike/research (no PR)
-- `invoke session.start --resume` - Resume active session
-- `invoke session.finalize` - Post-merge cleanup (after PR merge)
-- `invoke session.wrap` - End session
+- `invoke session.start --issue N` — Development session from GitHub issue (runs full chain automatically)
+- `invoke session.start --spec 001-feature` — Spec Kit session
+- `invoke session.start "description"` — Development session (positional description)
+- `invoke session.start --spike "description"` — Spike/research (no PR)
+- `invoke session.start --resume` — Resume active session
 
 **Project context:**
 - `.session/project-context/technical-context.md` - Stack, build/test commands

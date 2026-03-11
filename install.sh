@@ -244,6 +244,7 @@ install_scripts() {
         "session-publish.sh"
         "session-finalize.sh"
         "session-preflight.sh"
+        "session-postflight.sh"
         "session-handoff-list.sh"
         "session-cleanup.sh"
     )
@@ -288,6 +289,8 @@ install_docs() {
     download_file "${REPO_URL}/README.md" ".session/docs/README.md"
     download_file "${REPO_URL}/session/docs/testing.md" ".session/docs/testing.md"
     download_file "${REPO_URL}/session/docs/shared-workflow.md" ".session/docs/shared-workflow.md"
+    download_file "${REPO_URL}/session/docs/schema-versioning.md" ".session/docs/schema-versioning.md"
+    download_file "${REPO_URL}/session/docs/copilot-cli-mechanics.md" ".session/docs/copilot-cli-mechanics.md"
     
     success "Session docs installed"
 }
@@ -311,13 +314,11 @@ install_bootstrap() {
             echo "This project uses session workflow for AI context continuity." >> .github/copilot-instructions.md
             echo "" >> .github/copilot-instructions.md
             echo "**Agents:**" >> .github/copilot-instructions.md
-            echo "- \`invoke session.start --issue N\` - Development session from GitHub issue" >> .github/copilot-instructions.md
-            echo "- \`invoke session.start --spec 001-feature\` - Spec Kit session" >> .github/copilot-instructions.md
-            echo "- \`invoke session.start \"description\"\` - Development session (positional description)" >> .github/copilot-instructions.md
-            echo "- \`invoke session.start --spike \"description\"\` - Spike/research (no PR)" >> .github/copilot-instructions.md
-            echo "- \`invoke session.start --resume\` - Resume active session" >> .github/copilot-instructions.md
-            echo "- \`invoke session.finalize\` - Post-merge cleanup (after PR merge)" >> .github/copilot-instructions.md
-            echo "- \`invoke session.wrap\` - End session" >> .github/copilot-instructions.md
+            echo "- \`invoke session.start --issue N\` — Development session from GitHub issue (runs full chain automatically)" >> .github/copilot-instructions.md
+            echo "- \`invoke session.start --spec 001-feature\` — Spec Kit session" >> .github/copilot-instructions.md
+            echo "- \`invoke session.start \"description\"\` — Development session (positional description)" >> .github/copilot-instructions.md
+            echo "- \`invoke session.start --spike \"description\"\` — Spike/research (no PR)" >> .github/copilot-instructions.md
+            echo "- \`invoke session.start --resume\` — Resume active session" >> .github/copilot-instructions.md
             echo "" >> .github/copilot-instructions.md
             echo "**Project context:**" >> .github/copilot-instructions.md
             echo "- \`.session/project-context/technical-context.md\` - Stack, build/test commands" >> .github/copilot-instructions.md
