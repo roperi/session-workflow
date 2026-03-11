@@ -127,12 +127,29 @@ These are concrete violations that agents commonly make:
 1. **Preflight** → validates you're allowed to run, marks `in_progress`
 2. **Do your work** → ONLY the work scoped to this agent
 3. **Postflight** → marks `completed`, outputs valid next steps
-4. **Hand off** → proceed to the next agent (or STOP at gated handoffs)
+4. **Hand off** → proceed to the next agent (or STOP at phase boundaries)
 
-**Gated handoffs** (require human action before proceeding):
-- `scope` → user must review `scope.md` before proceeding
-- `spec` → user must review `spec.md` before proceeding
-- `publish` → PR must be merged before proceeding to `finalize`
+### Phase Boundaries (HARD STOPS)
+
+The workflow has three phases, each requiring a separate user invocation:
+
+| Phase | Steps | Entry Agent | Stop After |
+|-------|-------|-------------|------------|
+| **Planning** | scope → spec → plan → task | `session.start` | task (user invokes `session.execute`) |
+| **Implementation** | execute → validate → publish | `session.execute` | publish (user merges PR, invokes `session.finalize`) |
+| **Completion** | finalize → wrap | `session.finalize` | wrap (session complete) |
+
+**Why phases?** Each entry agent (`session.start`, `session.execute`, `session.finalize`) is loaded by the IDE with its full instruction set. Steps within a phase are orchestrated by that agent. Phase boundaries force fresh agent loading, ensuring proper scope boundaries.
+
+### Reading Agent Files During Chain Execution
+
+When orchestrating multiple steps within a phase, the entry agent MUST read each step's agent file before doing that step's work:
+
+```bash
+cat .github/agents/session.{STEP}.agent.md 2>/dev/null || cat github/agents/session.{STEP}.agent.md
+```
+
+This ensures the ⛔ SCOPE BOUNDARY section is followed even when the step's agent isn't directly loaded by the IDE.
 
 ## Workflow State Machine
 

@@ -628,6 +628,10 @@ SPECMD
 
   # 34) preflight + postflight full chain integration
   log "34) preflight + postflight full chain integration"
+
+  # Clean up previous test session (test 33 left plan in failed state)
+  ./.session/scripts/bash/session-wrap.sh --json >/dev/null 2>&1 || true
+
   local start_chain_json chain_id chain_ym chain_dir
   start_chain_json=$(./.session/scripts/bash/session-start.sh --json "Chain integration test")
   chain_id=$(echo "$start_chain_json" | jq -r '.session.id')

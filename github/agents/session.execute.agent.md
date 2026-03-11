@@ -321,20 +321,53 @@ Can resume with session.execute
 
 ## Chaining & Handoff
 
-**First**, run postflight to mark this step complete:
+**First**, run postflight to mark execute complete:
 ```bash
 .session/scripts/bash/session-postflight.sh --step execute --json
 ```
 
-**If all tasks complete and no [MANUAL] tasks are pending:**
-- **development**: **Proceed now** to `session.validate` — run quality checks before publishing
-- **spike**: **Proceed now** to `session.wrap` — skip validation and document session
-
 **If [MANUAL] tasks remain:**
 - Report pending manual tasks and wait for user to complete them
-- After user confirms manual tasks are done, proceed to session.validate (development) or session.wrap (spike)
+- After user confirms, continue with the chain below
 
-**Why:** session.execute completes implementation tasks but doesn't verify quality or create PRs. For development work, session.validate runs comprehensive quality checks (lint, tests, coverage) before publishing, ensuring nothing broken is pushed. For spike workflows, session.wrap skips full validation and focuses on documenting what was tried, what was learned, and any follow-up tasks.
+### Development Workflow: validate → publish → STOP
+
+After execute completes, continue through verification and publishing:
+
+**validate** (run quality checks):
+```bash
+.session/scripts/bash/session-preflight.sh --step validate --json
+cat .github/agents/session.validate.agent.md 2>/dev/null || cat github/agents/session.validate.agent.md
+# ... run validation following agent instructions ...
+.session/scripts/bash/session-postflight.sh --step validate --json
+```
+
+**publish** (create pull request):
+```bash
+.session/scripts/bash/session-preflight.sh --step publish --json
+cat .github/agents/session.publish.agent.md 2>/dev/null || cat github/agents/session.publish.agent.md
+# ... create PR following agent instructions ...
+.session/scripts/bash/session-postflight.sh --step publish --json
+```
+
+**⛔ HARD STOP after publish.** Do NOT merge the PR, close issues, or do finalize/wrap work. Output:
+
+```
+⏸️ Implementation complete. Steps tracked: execute ✓ validate ✓ publish ✓
+
+PR created: #{number}
+Next: review and merge the PR, then invoke `session.finalize`
+```
+
+### Spike Workflow: wrap → END
+
+After execute completes for spike workflows:
+```bash
+.session/scripts/bash/session-preflight.sh --step wrap --json
+cat .github/agents/session.wrap.agent.md 2>/dev/null || cat github/agents/session.wrap.agent.md
+# ... wrap following agent instructions ...
+# (wrap script handles final completion — no postflight needed)
+```
 
 ## Failure Modes to Avoid
 
@@ -351,5 +384,6 @@ Can resume with session.execute
 - **TDD discipline**: Test → implement → verify → commit
 - **Manual verification**: Required for UI-visible changes
 - **Small commits**: One task per commit
-- **Auto-chain**: After all tasks complete, proceed to session.validate (development) or session.wrap (spike)
-- **⛔ Boundary reminder**: Do NOT run validation suites, create PRs, merge anything, or close issues. Task execution ONLY.
+- **Chain through validate + publish**: After execute, continue to validate and publish (development) or wrap (spike)
+- **Read agent files**: `cat .github/agents/session.{STEP}.agent.md` before each step — follow scope boundaries
+- **⛔ Boundary reminder**: Do NOT merge PRs, close issues, or do finalize/wrap work. Execution + verification + publishing ONLY.

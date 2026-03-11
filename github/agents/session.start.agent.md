@@ -95,8 +95,8 @@ echo "Workflow: $WORKFLOW, Stage: $STAGE, Read-only: $READ_ONLY"
 ```
 
 **Workflows and their chains:**
-- **development**: Full chain (plan → task → execute → validate → publish → finalize → wrap)
-- **spike**: Light chain (plan → task → execute → wrap) — skips PR steps, not planning
+- **development**: Full chain (scope → spec → plan → task → execute → validate → publish → finalize → wrap)
+- **spike**: Light chain (scope → plan → task → execute → wrap) — skips PR steps, not planning
 - **maintenance**: Minimal chain (execute → wrap) — skips branch, planning, validation, and PR
 
 **Read-only mode** (`read_only: true`):
@@ -230,33 +230,106 @@ Next step: see Chaining & Handoff below.
 - **mvp**: "📦 MVP mode: Core validation enabled"
 - **production**: "🚀 Production mode: Full validation enabled"
 
-## Chaining & Handoff
+## Chain Execution Protocol
 
-**Detect chaining intent**: Check `$ARGUMENTS` and the user's original message for:
-- Explicit step names (e.g., "then invoke session.plan", "run the full workflow")
-- Multi-step instructions (e.g., "initialize, plan, execute, and publish")
-- Chain keywords: "then", "followed by", "full workflow", "all the way through"
+After session-start.sh completes, you orchestrate the **planning phase** of the workflow chain. This protocol ensures every step is tracked in `state.json`.
 
-**If chaining intent detected OR the user's message references subsequent steps:**
-- **Proceed immediately** to the next agent without waiting for user input
-- Do not ask "What would you like to do next?" — the user already told you
+### ⛔ CRITICAL: State Tracking at Every Step
 
-**If invoked standalone** (no chaining signals in `$ARGUMENTS` or user message):
-- Report completion summary and suggest the next step
-- Wait for user direction
+For EVERY workflow step you perform, you MUST bracket it with preflight and postflight scripts:
 
-**Workflow-specific next steps:**
-- **development** or **spike**: **Proceed now** to `session.scope`
-- **maintenance**: **Proceed now** to `session.execute`
-- **maintenance + read-only**: **Proceed now** to `session.execute` with reminder: "No commits — produce a report only"
+```bash
+# BEFORE each step (validates transition, marks in_progress):
+.session/scripts/bash/session-preflight.sh --step {STEP} --json
+
+# AFTER each step (marks completed, outputs valid next steps):
+.session/scripts/bash/session-postflight.sh --step {STEP} --json
+```
+
+**Skipping preflight/postflight for ANY step breaks the session audit trail.** This is not optional.
+
+### ⛔ CRITICAL: Read Agent Instructions for Each Step
+
+Before doing each step's work, read that step's agent file for scope and instructions:
+
+```bash
+# Try .github/agents/ first (installed repos), fall back to github/agents/ (source repo)
+cat .github/agents/session.{STEP}.agent.md 2>/dev/null || cat github/agents/session.{STEP}.agent.md
+```
+
+Each agent file has a **⛔ SCOPE BOUNDARY** section that defines exactly what it does and does NOT do. Follow those boundaries strictly.
+
+### Development Workflow: scope → spec → plan → task → STOP
+
+For each planning step, follow this exact sequence:
+
+**Step 1 — scope** (define problem boundaries):
+```bash
+.session/scripts/bash/session-preflight.sh --step scope --json
+cat .github/agents/session.scope.agent.md 2>/dev/null || cat github/agents/session.scope.agent.md
+# ... create scope.md following agent instructions ...
+.session/scripts/bash/session-postflight.sh --step scope --json
+```
+
+**Step 2 — spec** (write technical specification):
+```bash
+.session/scripts/bash/session-preflight.sh --step spec --json
+cat .github/agents/session.spec.agent.md 2>/dev/null || cat github/agents/session.spec.agent.md
+# ... create spec.md following agent instructions ...
+.session/scripts/bash/session-postflight.sh --step spec --json
+```
+
+**Step 3 — plan** (create implementation plan):
+```bash
+.session/scripts/bash/session-preflight.sh --step plan --json
+cat .github/agents/session.plan.agent.md 2>/dev/null || cat github/agents/session.plan.agent.md
+# ... create plan.md following agent instructions ...
+.session/scripts/bash/session-postflight.sh --step plan --json
+```
+
+**Step 4 — task** (generate task breakdown):
+```bash
+.session/scripts/bash/session-preflight.sh --step task --json
+cat .github/agents/session.task.agent.md 2>/dev/null || cat github/agents/session.task.agent.md
+# ... create tasks.md following agent instructions ...
+.session/scripts/bash/session-postflight.sh --step task --json
+```
+
+**⛔ HARD STOP after task.** Do NOT proceed to execute, validate, publish, or any later step. Output:
+
+```
+⏸️ Planning phase complete. Steps tracked: scope ✓ spec ✓ plan ✓ task ✓
+
+Next: invoke `session.execute` to begin implementation.
+```
+
+### Spike Workflow: scope → plan → task → STOP
+
+Same as development but skip spec. After task postflight, output:
+
+```
+⏸️ Planning complete. Next: invoke `session.execute` to begin implementation.
+```
+
+### Maintenance Workflow: STOP (hand off to execute)
+
+Maintenance has no planning phase. After initialization, output:
+
+```
+⏸️ Session initialized. Next: invoke `session.execute` to begin work.
+```
+
+### Resume Mode
+
+When resuming (`--resume`), check `state.json` to determine what step the session was on:
+- If planning steps are incomplete, resume from the last completed planning step
+- If planning is done (task completed), tell user to invoke the appropriate next agent
+- If the user's message references a later step (e.g., "merged PR, continue"), tell user to invoke that agent directly
 
 ## Notes
 
-- **Initialization only**: This agent sets up session infrastructure — planning, tasks, and execution are handled by downstream agents
-- **No task generation**: That's session.plan's job (skipped for maintenance)
-- **No task execution**: That's session.execute's job
+- **Planning only**: This agent orchestrates start + planning steps. Implementation is `session.execute`'s job.
+- **No code changes**: Never write application code, create PRs, or merge anything
+- **Read each agent file**: The `cat .github/agents/session.{STEP}.agent.md` instruction is critical — it provides scope boundaries you must follow
 - **Three workflows**: development (full), spike (no PR), maintenance (no branch, no PR, no planning)
-- **Both development and spike need planning**: Spike skips PR steps, not planning
-- **Maintenance goes straight to execute**: Skip plan, task, validate, publish, finalize
-- **Read-only is maintenance-only**: A contract that no commits or destructive changes happen
-- **Chaining default**: When chaining intent is detected, proceed without waiting. When invoked standalone, suggest the next step and wait for user direction
+- **Hard stop is mandatory**: After the last planning step, STOP. Tell the user to invoke `session.execute`

@@ -317,21 +317,23 @@ Phase X (#issue-number) complete. All Y tasks finished.
 
 ## Handoff
 
-**First**, run postflight to mark this step complete:
+**First**, run postflight to mark finalize complete:
 ```bash
 .session/scripts/bash/session-postflight.sh --step finalize --json
 ```
 
-After finalization, **proceed now** to `session.wrap`:
+### Chain to wrap
 
+After finalize postflight, continue to session.wrap:
+
+```bash
+.session/scripts/bash/session-preflight.sh --step wrap --json
+cat .github/agents/session.wrap.agent.md 2>/dev/null || cat github/agents/session.wrap.agent.md
+# ... wrap following agent instructions (write notes, CHANGELOG, run wrap script) ...
+# (wrap script handles final completion — no postflight needed)
 ```
-✅ Session finalized successfully
 
-**Proceeding** to session.wrap to document and close session.
-→ invoke session.wrap
-```
-
-**Why:** session.finalize completes all post-merge issue management (closing phase issues, updating parent issue, syncing tasks to GitHub). The final step is session.wrap, which documents the session in CHANGELOG.md and daily summary, then archives the session. This separation ensures issue management is complete before documentation.
+**Why:** session.finalize completes all post-merge issue management (closing phase issues, updating parent issue, syncing tasks to GitHub). The final step is session.wrap, which documents the session in CHANGELOG.md and daily summary, then archives the session.
 
 ## Usage
 
@@ -347,13 +349,10 @@ Invoke after:
 ## Example Output
 
 ```
-✅ Session finalized successfully
+✅ Session finalized and wrapped
 
-**Phase Issue**: Closed #659 (Phase 6 complete)
-**Parent Issue**: Updated #654 (90% complete - 245/271 tasks)
-**Tasks Synced**: 47 tasks updated in GitHub milestone "003-project-model-config"
-**PR Updated**: #661 - Phase 6 marked complete in description
-
-**Proceeding** to session.wrap to document and close session.
-→ invoke session.wrap
+Issues: Closed #659, updated parent #654
+Tasks: 47 synced
+Branches: Cleaned
+Session: Documented and archived
 ```
