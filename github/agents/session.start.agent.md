@@ -232,7 +232,7 @@ Next step: see Chaining & Handoff below.
 
 ## Chain Execution Protocol
 
-After session-start.sh completes, you orchestrate the **planning phase** of the workflow chain. This protocol ensures every step is tracked in `state.json`.
+After session-start.sh completes, the `start` step is already recorded as completed in `state.json`. You now orchestrate the **planning phase** of the workflow chain. This protocol ensures every subsequent step is tracked in `state.json`.
 
 ### ⛔ CRITICAL: State Tracking at Every Step
 

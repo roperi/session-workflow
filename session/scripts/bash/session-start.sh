@@ -306,7 +306,19 @@ create_session_state() {
     "last_commit": "${last_commit}"
   },
   "notes_summary": "",
-  "step_history": []
+  "step_history": [
+    {
+      "step": "start",
+      "status": "completed",
+      "started_at": "${started_at}",
+      "ended_at": "${started_at}",
+      "forced": false
+    }
+  ],
+  "current_step": "start",
+  "step_status": "completed",
+  "step_started_at": "${started_at}",
+  "step_updated_at": "${started_at}"
 }
 EOF
     mv "$tmp_state" "$state_file"
