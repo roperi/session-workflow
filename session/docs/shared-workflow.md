@@ -139,17 +139,13 @@ The workflow has three phases, each requiring a separate user invocation:
 | **Implementation** | execute → validate → publish | `session.execute` | publish (user merges PR, invokes `session.finalize`) |
 | **Completion** | finalize → wrap | `session.finalize` | wrap (session complete) |
 
-**Why phases?** Each entry agent (`session.start`, `session.execute`, `session.finalize`) is loaded by the IDE with its full instruction set. Steps within a phase are orchestrated by that agent. Phase boundaries force fresh agent loading, ensuring proper scope boundaries.
+**Why phases?** Each entry agent (`session.start`, `session.execute`, `session.finalize`) is loaded by the IDE with its full instruction set. Steps within a phase are **invoked as separate sub-agents** via the task tool, ensuring each agent loads its own instructions and scope boundaries.
 
-### Reading Agent Files During Chain Execution
+### Invoking Agents During Chain Execution
 
-When orchestrating multiple steps within a phase, the entry agent MUST read each step's agent file before doing that step's work:
+When orchestrating multiple steps within a phase, the entry agent MUST invoke each step's agent as a **separate sub-agent** using the task tool with `agent_type` set to the agent name (e.g., `session.scope`, `session.spec`).
 
-```bash
-cat .github/agents/session.{STEP}.agent.md 2>/dev/null || cat github/agents/session.{STEP}.agent.md
-```
-
-This ensures the ⛔ SCOPE BOUNDARY section is followed even when the step's agent isn't directly loaded by the IDE.
+⛔ Do NOT `cat` agent files and do the work yourself — this bypasses proper agent loading and breaks state tracking.
 
 ## Workflow State Machine
 

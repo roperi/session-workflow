@@ -332,22 +332,18 @@ Can resume with session.execute
 
 ### Development Workflow: validate → publish → STOP
 
-After execute completes, continue through verification and publishing:
+After execute completes, invoke each agent as a **separate sub-agent** (using the task tool). Do NOT read their files and do their work yourself.
 
-**validate** (run quality checks):
-```bash
-.session/scripts/bash/session-preflight.sh --step validate --json
-cat .github/agents/session.validate.agent.md 2>/dev/null || cat github/agents/session.validate.agent.md
-# ... run validation following agent instructions ...
-.session/scripts/bash/session-postflight.sh --step validate --json
+**validate** — Invoke `session.validate` agent:
+```
+agent_type: "session.validate"
+prompt: "Validate work for issue #{N}. Session: {session_id}, dir: {session_dir}, stage: {stage}."
 ```
 
-**publish** (create pull request):
-```bash
-.session/scripts/bash/session-preflight.sh --step publish --json
-cat .github/agents/session.publish.agent.md 2>/dev/null || cat github/agents/session.publish.agent.md
-# ... create PR following agent instructions ...
-.session/scripts/bash/session-postflight.sh --step publish --json
+**publish** — Invoke `session.publish` agent:
+```
+agent_type: "session.publish"
+prompt: "Publish PR for issue #{N}. Session: {session_id}, dir: {session_dir}, repo: {owner/repo}, branch: {branch}."
 ```
 
 **⛔ HARD STOP after publish.** Do NOT merge the PR, close issues, or do finalize/wrap work. Output:
@@ -361,12 +357,10 @@ Next: review and merge the PR, then invoke `session.finalize`
 
 ### Spike Workflow: wrap → END
 
-After execute completes for spike workflows:
-```bash
-.session/scripts/bash/session-preflight.sh --step wrap --json
-cat .github/agents/session.wrap.agent.md 2>/dev/null || cat github/agents/session.wrap.agent.md
-# ... wrap following agent instructions ...
-# (wrap script handles final completion — no postflight needed)
+After execute completes for spike workflows, invoke `session.wrap` agent:
+```
+agent_type: "session.wrap"
+prompt: "Wrap session {session_id}. Dir: {session_dir}."
 ```
 
 ## Failure Modes to Avoid
@@ -384,6 +378,6 @@ cat .github/agents/session.wrap.agent.md 2>/dev/null || cat github/agents/sessio
 - **TDD discipline**: Test → implement → verify → commit
 - **Manual verification**: Required for UI-visible changes
 - **Small commits**: One task per commit
-- **Chain through validate + publish**: After execute, continue to validate and publish (development) or wrap (spike)
-- **Read agent files**: `cat .github/agents/session.{STEP}.agent.md` before each step — follow scope boundaries
+- **Chain through validate + publish**: After execute, invoke session.validate and session.publish agents as sub-agents (development) or session.wrap (spike)
+- **Invoke, don't impersonate**: Use the task tool to invoke each agent — never `cat` their files and do their work
 - **⛔ Boundary reminder**: Do NOT merge PRs, close issues, or do finalize/wrap work. Execution + verification + publishing ONLY.

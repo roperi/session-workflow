@@ -232,67 +232,43 @@ Next step: see Chaining & Handoff below.
 
 ## Chain Execution Protocol
 
-After session-start.sh completes, the `start` step is already recorded as completed in `state.json`. You now orchestrate the **planning phase** of the workflow chain. This protocol ensures every subsequent step is tracked in `state.json`.
+After session-start.sh completes, the `start` step is already recorded as completed in `state.json`. You now orchestrate the **planning phase** by invoking each agent as a separate sub-agent.
 
-### ⛔ CRITICAL: State Tracking at Every Step
+### ⛔ CRITICAL: Invoke Agents — Do NOT Do Their Work
 
-For EVERY workflow step you perform, you MUST bracket it with preflight and postflight scripts:
+For each planning step, you MUST invoke the corresponding agent as a **separate sub-agent** (using the task tool with `agent_type` set to the agent name). Do NOT read their agent files and do their work yourself.
 
-```bash
-# BEFORE each step (validates transition, marks in_progress):
-.session/scripts/bash/session-preflight.sh --step {STEP} --json
-
-# AFTER each step (marks completed, outputs valid next steps):
-.session/scripts/bash/session-postflight.sh --step {STEP} --json
-```
-
-**Skipping preflight/postflight for ANY step breaks the session audit trail.** This is not optional.
-
-### ⛔ CRITICAL: Read Agent Instructions for Each Step
-
-Before doing each step's work, read that step's agent file for scope and instructions:
-
-```bash
-# Try .github/agents/ first (installed repos), fall back to github/agents/ (source repo)
-cat .github/agents/session.{STEP}.agent.md 2>/dev/null || cat github/agents/session.{STEP}.agent.md
-```
-
-Each agent file has a **⛔ SCOPE BOUNDARY** section that defines exactly what it does and does NOT do. Follow those boundaries strictly.
+Why this matters:
+- Each agent loads its own instructions (scope boundaries, preflight/postflight)
+- Each agent appears as a distinct step in the conversation
+- State tracking happens properly within each agent's context
 
 ### Development Workflow: scope → spec → plan → task → STOP
 
-For each planning step, follow this exact sequence:
+Invoke each agent **in sequence**. Wait for each to complete before invoking the next. Pass session context in the prompt.
 
-**Step 1 — scope** (define problem boundaries):
-```bash
-.session/scripts/bash/session-preflight.sh --step scope --json
-cat .github/agents/session.scope.agent.md 2>/dev/null || cat github/agents/session.scope.agent.md
-# ... create scope.md following agent instructions ...
-.session/scripts/bash/session-postflight.sh --step scope --json
+**Step 1** — Invoke `session.scope` agent:
+```
+agent_type: "session.scope"
+prompt: "Scope issue #{N}: {title}. Session: {session_id}, dir: {session_dir}, branch: {branch}, workflow: development, stage: {stage}."
 ```
 
-**Step 2 — spec** (write technical specification):
-```bash
-.session/scripts/bash/session-preflight.sh --step spec --json
-cat .github/agents/session.spec.agent.md 2>/dev/null || cat github/agents/session.spec.agent.md
-# ... create spec.md following agent instructions ...
-.session/scripts/bash/session-postflight.sh --step spec --json
+**Step 2** — Invoke `session.spec` agent:
+```
+agent_type: "session.spec"
+prompt: "Write spec for issue #{N}: {title}. Session: {session_id}, dir: {session_dir}. Scope defined in {session_dir}/scope.md."
 ```
 
-**Step 3 — plan** (create implementation plan):
-```bash
-.session/scripts/bash/session-preflight.sh --step plan --json
-cat .github/agents/session.plan.agent.md 2>/dev/null || cat github/agents/session.plan.agent.md
-# ... create plan.md following agent instructions ...
-.session/scripts/bash/session-postflight.sh --step plan --json
+**Step 3** — Invoke `session.plan` agent:
+```
+agent_type: "session.plan"
+prompt: "Plan issue #{N}: {title}. Session: {session_id}, dir: {session_dir}. Spec in {session_dir}/spec.md."
 ```
 
-**Step 4 — task** (generate task breakdown):
-```bash
-.session/scripts/bash/session-preflight.sh --step task --json
-cat .github/agents/session.task.agent.md 2>/dev/null || cat github/agents/session.task.agent.md
-# ... create tasks.md following agent instructions ...
-.session/scripts/bash/session-postflight.sh --step task --json
+**Step 4** — Invoke `session.task` agent:
+```
+agent_type: "session.task"
+prompt: "Generate tasks for issue #{N}: {title}. Session: {session_id}, dir: {session_dir}. Plan in {session_dir}/plan.md."
 ```
 
 **⛔ HARD STOP after task.** Do NOT proceed to execute, validate, publish, or any later step. Output:
@@ -305,7 +281,7 @@ Next: invoke `session.execute` to begin implementation.
 
 ### Spike Workflow: scope → plan → task → STOP
 
-Same as development but skip spec. After task postflight, output:
+Same as development but skip spec. After task completes, output:
 
 ```
 ⏸️ Planning complete. Next: invoke `session.execute` to begin implementation.
@@ -322,7 +298,7 @@ Maintenance has no planning phase. After initialization, output:
 ### Resume Mode
 
 When resuming (`--resume`), check `state.json` to determine what step the session was on:
-- If planning steps are incomplete, resume from the last completed planning step
+- If planning steps are incomplete, resume from the last completed planning step (invoke remaining agents)
 - If planning is done (task completed), tell user to invoke the appropriate next agent
 - If the user's message references a later step (e.g., "merged PR, continue"), tell user to invoke that agent directly
 
@@ -330,6 +306,6 @@ When resuming (`--resume`), check `state.json` to determine what step the sessio
 
 - **Planning only**: This agent orchestrates start + planning steps. Implementation is `session.execute`'s job.
 - **No code changes**: Never write application code, create PRs, or merge anything
-- **Read each agent file**: The `cat .github/agents/session.{STEP}.agent.md` instruction is critical — it provides scope boundaries you must follow
+- **Invoke, don't impersonate**: Use the task tool to invoke each agent — never `cat` their files and do their work
 - **Three workflows**: development (full), spike (no PR), maintenance (no branch, no PR, no planning)
 - **Hard stop is mandatory**: After the last planning step, STOP. Tell the user to invoke `session.execute`
