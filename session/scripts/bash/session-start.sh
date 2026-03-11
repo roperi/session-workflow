@@ -737,12 +737,29 @@ main() {
             local step_status
             step_status=$(jq -r '.step_status // "unknown"' "$session_dir/state.json" 2>/dev/null || echo "unknown")
             if [[ "$step_status" == "in_progress" || "$step_status" == "starting" ]]; then
-                if $JSON_OUTPUT; then
-                    output_json "$active_session" "true"
+                if [[ "${RESUME_MODE:-false}" == "true" ]]; then
+                    if $JSON_OUTPUT; then
+                        output_json "$active_session" "true"
+                    else
+                        output_human "$active_session" "true"
+                    fi
+                    exit 0
                 else
-                    output_human "$active_session" "true"
+                    if $JSON_OUTPUT; then
+                        echo "{\"status\": \"error\", \"message\": \"Active session ${active_session} has step '$(jq -r '.current_step // "unknown"' "$session_dir/state.json" 2>/dev/null)' in progress\", \"hint\": \"Wrap or resume the active session first\", \"active_session\": \"${active_session}\"}"
+                    else
+                        print_error "Active session exists: ${active_session}"
+                        echo ""
+                        echo "  Step '$(jq -r '.current_step // "unknown"' "$session_dir/state.json" 2>/dev/null)' is still in progress."
+                        echo ""
+                        echo "To fix:"
+                        echo "  1. Resume:  .session/scripts/bash/session-start.sh --resume"
+                        echo "  2. Wrap:    .session/scripts/bash/session-wrap.sh --json"
+                        echo "  3. Clear:   rm .session/ACTIVE_SESSION"
+                        echo ""
+                    fi
+                    exit 1
                 fi
-                exit 0
             fi
         fi
 
