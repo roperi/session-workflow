@@ -10,13 +10,11 @@ It's read automatically when Copilot CLI starts in this repository.
 This project uses session workflow for AI context continuity.
 
 **Agents:**
-- `invoke session.start --issue N` - Development session from GitHub issue
-- `invoke session.start --spec 001-feature` - Spec Kit session
-- `invoke session.start "description"` - Development session (positional description)
-- `invoke session.start --spike "description"` - Spike/research (no PR)
-- `invoke session.start --resume` - Resume active session
-- `invoke session.finalize` - Post-merge cleanup (after PR merge)
-- `invoke session.wrap` - End session
+- `invoke session.start --issue N` — Development session from GitHub issue (runs full chain automatically)
+- `invoke session.start --spec 001-feature` — Spec Kit session
+- `invoke session.start "description"` — Development session (positional description)
+- `invoke session.start --spike "description"` — Spike/research (no PR)
+- `invoke session.start --resume` — Resume active session
 
 **Project context:**
 - `.session/project-context/technical-context.md` - Stack, build/test commands

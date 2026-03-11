@@ -95,15 +95,15 @@ When AI context windows reset, work continuity is lost. Session workflow solves 
 
 1. **Session tracking** - What's in progress, what's done
 2. **Handoff notes** - Context for the next AI session
-3. **Agent chain** - Structured workflow with clear next-step suggestions
+3. **Agent chain** - Automated workflow orchestrated by session.start
 4. **Git hygiene** - Ensures clean state before session ends
 
-**Agent Chain**: `start → [brainstorm →] [scope →] [spec →] plan → task → execute → validate → publish → finalize → wrap`
+**Agent Chain**: `start → scope → spec → plan → task → execute → validate → publish → finalize → wrap`
+
+**Orchestration**: `session.start` orchestrates the entire chain automatically — invoke it once and it runs all steps through to completion.
 
 **Optional knowledge agents** (version-controlled docs):
 - `session.brainstorm` → writes to `{session_dir}/brainstorm.md` (clarify WHAT/WHY before planning)
-- `session.scope` → writes to `{session_dir}/scope.md` or `specs/{feature}/scope.md` (define problem boundaries and success criteria)
-- `session.spec` → writes to `{session_dir}/spec.md` or `specs/{feature}/spec.md` (acceptance criteria and verification contracts)
 - `session.compound` → writes to `docs/solutions/` (capture reusable learnings after solving)
 
 ---
@@ -218,7 +218,7 @@ invoke session.wrap
 
 ### 1. Development (default)
 
-**Chain**: `start → [scope →] [spec →] plan → task → execute → validate → publish → finalize → wrap`
+**Chain**: `start → scope → spec → plan → task → execute → validate → publish → [review + merge] → finalize → wrap`
 
 Use for:
 - Feature development
@@ -232,7 +232,7 @@ invoke session.start "Add caching layer"
 
 ### 2. Spike
 
-**Chain**: `start → [scope →] plan → task → execute → wrap`
+**Chain**: `start → scope → plan → task → execute → wrap`
 
 Use for:
 - Research and exploration
@@ -333,48 +333,58 @@ invoke session.start --stage production --issue 456
 
 ## Agent Chain
 
+`session.start` orchestrates the entire chain — invoke it once and it runs all steps as sub-agents:
+
 ```
 ┌──────────┐    ┌──────────┐    ┌──────────┐    ┌──────────┐    ┌──────────┐
-│  START   │───▶│   PLAN   │───▶│   TASK   │───▶│ EXECUTE  │───▶│ VALIDATE │
+│  START   │───▶│  SCOPE   │───▶│   SPEC   │───▶│   PLAN   │───▶│   TASK   │
 │          │    │          │    │          │    │          │    │          │
-│ Init     │    │ Approach │    │ Generate │    │ TDD      │    │ Quality  │
-│ Context  │    │ Strategy │    │ Tasks    │    │ Implement│    │ Tests    │
+│ Init     │    │ Boundary │    │ Criteria │    │ Approach │    │ Generate │
+│ Context  │    │ Define   │    │ Stories  │    │ Strategy │    │ Tasks    │
 └──────────┘    └──────────┘    └──────────┘    └──────────┘    └──────────┘
-   (auto)          (auto)          (auto)          (auto)          (auto)
                                                                       │
                                                                       ▼
-┌──────────┐    ┌──────────┐    ┌──────────┐                    ┌──────────┐
-│   WRAP   │◀───│ FINALIZE │◀───│ PUBLISH  │◀───────────────────┤          │
-│          │    │          │    │          │                    │          │
-│ Document │    │ Close    │    │ Create   │                    │          │
-│ Cleanup  │    │ Issues   │    │ PR       │                    │          │
-└──────────┘    └──────────┘    └──────────┘                    └──────────┘
+┌──────────┐    ┌──────────┐    ┌──────────┐    ┌──────────┐    ┌──────────┐
+│   WRAP   │◀───│ FINALIZE │◀───│  REVIEW  │◀───│ PUBLISH  │◀───│ VALIDATE │
+│          │    │          │    │          │    │          │    │          │
+│ Document │    │ Close    │    │ Copilot  │    │ Create   │    │ Quality  │
+│ Cleanup  │    │ Issues   │    │ Review   │    │ PR       │    │ Tests    │
+└──────────┘    └──────────┘    └──────────┘    └──────────┘    └──────────┘
+                                                      ▲
+                                                      │
+                                                 ┌──────────┐
+                                                 │ EXECUTE  │
+                                                 │          │
+                                                 │ TDD      │
+                                                 │ Implement│
+                                                 └──────────┘
 ```
 
-**Development workflow** uses the full agent chain (8 core agents + optional scope/spec).
+**Development workflow** uses the full chain (10 steps + review cycle).
 
-**Spike workflow** uses: `start → [scope →] plan → task → execute → wrap` (skips spec, validate, publish, finalize)
+**Spike workflow** uses: `start → scope → plan → task → execute → wrap` (skips spec, validate, publish, finalize)
 
-**Maintenance workflow** uses: `start → execute → wrap` (skips scope, spec, plan, task, validate, publish, finalize)
+**Maintenance workflow** uses: `start → execute → wrap` (skips planning and PR steps)
 
-At the end of each step, the agent will suggest the next step — invoke it by name or select it from the `/agent` picker.
+Each step is invoked as a sub-agent by session.start with its own context and instructions. Steps track state via preflight/postflight scripts.
 
 ---
 
 ## Agent Responsibilities
 
-### session.start
+All chain agents are invoked as sub-agents by `session.start`. Each agent runs preflight, does its scoped work, runs postflight, and returns results.
+
+### session.start (orchestrator)
 - Run `session-start.sh`
 - Load project context
 - Create feature branch
-- Review previous session notes
-- **Next step:** invoke session.scope (development/spike) or session.plan
+- Orchestrate the full chain: invoke each step agent in sequence
+- Handle Copilot review cycle (request review, address comments, merge PR)
 
 ### session.scope
 - Define problem boundaries and success criteria
 - Interactive dialogue to clarify what's in/out of scope
 - Writes `{session_dir}/scope.md` (or `specs/{feature}/scope.md` for speckit sessions)
-- **Next step:** invoke session.spec (development) or session.plan (spike)
 
 ### session.spec
 - Define detailed specification with acceptance criteria
@@ -383,46 +393,40 @@ At the end of each step, the agent will suggest the next step — invoke it by n
 - Marks ambiguities with `[NEEDS CLARIFICATION]`
 - Writes `{session_dir}/spec.md` (or `specs/{feature}/spec.md` for speckit sessions)
 - **Only for**: development workflow (skipped in spike)
-- **Next step:** invoke session.plan
 
 ### session.plan
 - Create implementation plan and approach
 - Analyze requirements and identify components
 - Or reference existing Speckit plan
-- **Next step:** invoke session.task
 
 ### session.task
 - Generate detailed task breakdown
 - Organize by user story with priorities
 - Add parallelization markers [P] and dependencies
 - Use tasks-template.md structure
-- **Next step:** invoke session.execute
 
 ### session.execute
 - Single-task focus
 - TDD: test → implement → verify
 - Commit after each task
-- **Next step:** invoke session.validate (development) or session.wrap (spike)
 
 ### session.validate
 - Run lint, tests
 - Check git state
+- Verify spec acceptance criteria
 - Offer fixes if failures
 - **Stage-aware**: poc=warnings only, mvp=standard, production=strict
-- **Suggested next command (if validation passes):** session.publish
 - **Only for**: development workflow
 
 ### session.publish
 - Create or update PR
 - Link issues
-- **Next step:** After the PR is merged, run session.finalize
 - **Only for**: development workflow
 
 ### session.finalize
 - Validate PR is merged
 - Close issues
 - Update parent issues
-- **Next step:** invoke session.wrap
 - **Only for**: development workflow
 
 ### session.wrap
@@ -430,7 +434,6 @@ At the end of each step, the agent will suggest the next step — invoke it by n
 - Update CHANGELOG.md
 - Clean up merged branches
 - Mark session complete
-- **No handoff** (end of chain)
 
 ---
 
@@ -542,55 +545,38 @@ invoke session.start --resume --comment "Continue from task 5"
 ### Example 1: Bug Fix (Development)
 
 ```bash
-# Start
+# Single invocation — session.start orchestrates the entire chain
 invoke session.start --issue 456
-
-# Suggested flow: plan → task → execute → validate → publish
-# You interact at each step
-
-# After PR merged
-invoke session.finalize
-
-# Document and close
-invoke session.wrap
+# → scope → spec → plan → task → execute → validate → publish
+# → Copilot review → merge → finalize → wrap
 ```
 
 ### Example 2: Research (Spike)
 
 ```bash
 invoke session.start --spike "Research WebSocket vs SSE"
-
-# Work through exploration
-# No planning, no PR
-
-invoke session.wrap  # Document findings
+# → scope → plan → task → execute → wrap
 ```
 
 ### Example 3: Docs Housekeeping (Maintenance)
 
 ```bash
 invoke session.start --maintenance "Reorder docs/ sections and update TOC"
-
-# Go straight to execute — no plan, no branch, no PR
-invoke session.execute
-invoke session.wrap
+# → execute → wrap (no planning, no branch, no PR)
 ```
 
 ### Example 4: Read-only Audit (Maintenance + read-only)
 
 ```bash
 invoke session.start --maintenance --read-only "Find files not referenced by any import"
-
-# Execute produces a report; no commits happen
-invoke session.execute
-invoke session.wrap  # Saves report, no git changes
+# → execute (report only, no commits) → wrap
 ```
 
 ### Example 5: Resuming After Interruption
 
 ```bash
-# Started working, pressed ESC mid-task
-invoke session.execute --resume --comment "Continue from task 7"
+invoke session.start --resume
+# Resumes from the last completed step in the chain
 ```
 
 ---
@@ -600,14 +586,22 @@ invoke session.execute --resume --comment "Continue from task 7"
 ### Start
 Creates:
 - `session-info.json` - Metadata
-- `state.json` - Progress tracking
+- `state.json` - Progress tracking (with `step_history[]`)
 - `notes.md` - Handoff notes
+
+### Planning Phase (automated)
+Creates:
+- `scope.md` - Problem boundaries and success criteria
+- `spec.md` - Acceptance criteria and user stories (development only)
+- `plan.md` - Implementation approach
 - `tasks.md` - Task checklist
 
-### During
-Update regularly:
+### Implementation Phase (automated)
+Updates:
 - `tasks.md` - Mark completed: `[ ]` → `[x]`
 - `notes.md` - Key decisions, blockers
+- `validation-results.json` - Quality gate results
+- `pr-summary.md` - PR description
 
 ### Wrap
 - Updates CHANGELOG.md
