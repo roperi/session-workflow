@@ -9,6 +9,16 @@ tools: ["*"]
 
 **IMPORTANT**: Read `.session/docs/shared-workflow.md` for shared workflow rules.
 
+## ⛔ SCOPE BOUNDARY
+
+**This agent ONLY handles post-merge issue management. It does NOT:**
+- ❌ Write CHANGELOG entries (that's `session.wrap`)
+- ❌ Create session documentation or summaries (that's `session.wrap`)
+- ❌ Merge PRs (that should already be done)
+- ❌ Run validation or create PRs (earlier steps)
+
+**Actions**: Close issues, clean up branches, sync task status — nothing else.
+
 ## User Input
 
 ```text
@@ -26,7 +36,21 @@ $ARGUMENTS
   - Use for edge cases or special handling
 - **Default**: Full finalize workflow with safety checks
 
-## ⚠️ CRITICAL: Workflow State Check (RUN FIRST)
+## ⚠️ CRITICAL: Workflow State Tracking
+
+**ON ENTRY** — run preflight (validates transition, marks step `in_progress`):
+```bash
+.session/scripts/bash/session-preflight.sh --step finalize --json
+```
+
+⛔ **STOP HERE** until you receive script output. Do NOT proceed without it.
+
+**ON EXIT** — run postflight (marks step `completed`, outputs valid next steps):
+```bash
+.session/scripts/bash/session-postflight.sh --step finalize --json
+```
+
+### Additional Pre-Checks (RUN FIRST)
 
 **BEFORE doing anything else**, check if the workflow state allows finalization:
 
@@ -292,6 +316,11 @@ Phase X (#issue-number) complete. All Y tasks finished.
 - ❌ Don't forget to update parent issue body (not just comment)
 
 ## Handoff
+
+**First**, run postflight to mark this step complete:
+```bash
+.session/scripts/bash/session-postflight.sh --step finalize --json
+```
 
 After finalization, **proceed now** to `session.wrap`:
 

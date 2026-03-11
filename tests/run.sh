@@ -563,6 +563,95 @@ SPECMD
   assert_eq "completed" "$(jq -r '.status' "$sh_dir/state.json")" "session should be completed"
 
   log "All step history tests passed."
+
+  # === Postflight Tests ===
+
+  # 29) postflight marks step as completed
+  log "29) postflight marks step completed"
+  local start_pf_json pf_id pf_ym pf_dir
+  start_pf_json=$(./.session/scripts/bash/session-start.sh --json "Postflight test")
+  pf_id=$(echo "$start_pf_json" | jq -r '.session.id')
+  pf_ym=$(echo "$pf_id" | cut -d'-' -f1,2)
+  pf_dir=".session/sessions/${pf_ym}/${pf_id}"
+
+  # Run preflight to mark scope as in_progress
+  ./.session/scripts/bash/session-preflight.sh --step scope --json >/dev/null
+  assert_eq "scope" "$(jq -r '.current_step' "$pf_dir/state.json")" "current step should be scope"
+  assert_eq "in_progress" "$(jq -r '.step_status' "$pf_dir/state.json")" "step should be in_progress"
+
+  # Run postflight to mark scope as completed
+  local postflight_json
+  postflight_json=$(./.session/scripts/bash/session-postflight.sh --step scope --json)
+  vlog "postflight_json: $postflight_json"
+  assert_eq "ok" "$(echo "$postflight_json" | jq -r '.status')" "postflight status"
+  assert_eq "scope" "$(echo "$postflight_json" | jq -r '.step')" "postflight step"
+  assert_eq "completed" "$(echo "$postflight_json" | jq -r '.result')" "postflight result"
+  assert_eq "completed" "$(jq -r '.step_status' "$pf_dir/state.json")" "step should be completed in state.json"
+  [[ "$(jq -r '.step_history[0].ended_at' "$pf_dir/state.json")" != "null" ]] || fail "ended_at should be set"
+
+  # 30) postflight outputs valid next steps
+  log "30) postflight outputs valid next steps"
+  local next_steps
+  next_steps=$(echo "$postflight_json" | jq -r '.valid_next_steps[]' | sort | tr '\n' ' ' | sed 's/ $//')
+  assert_eq "plan spec" "$next_steps" "scope's valid next steps should be spec and plan"
+
+  # 31) postflight rejects mismatched step
+  log "31) postflight rejects mismatched step"
+  ./.session/scripts/bash/session-preflight.sh --step spec --json >/dev/null
+  set +e
+  local postflight_mismatch
+  postflight_mismatch=$(./.session/scripts/bash/session-postflight.sh --step scope --json)
+  local pf_exit=$?
+  set -e
+  assert_eq "1" "$pf_exit" "postflight should fail on step mismatch"
+  assert_eq "error" "$(echo "$postflight_mismatch" | jq -r '.status')" "should be error on mismatch"
+
+  # 32) postflight rejects already-completed step
+  log "32) postflight rejects already-completed step"
+  ./.session/scripts/bash/session-postflight.sh --step spec --json >/dev/null
+  set +e
+  local postflight_double
+  postflight_double=$(./.session/scripts/bash/session-postflight.sh --step spec --json)
+  local pf_double_exit=$?
+  set -e
+  assert_eq "1" "$pf_double_exit" "postflight should fail on already-completed step"
+  assert_eq "error" "$(echo "$postflight_double" | jq -r '.status')" "should be error on double-complete"
+
+  # 33) postflight with --status failed
+  log "33) postflight marks step as failed"
+  ./.session/scripts/bash/session-preflight.sh --step plan --json >/dev/null
+  local postflight_fail_json
+  postflight_fail_json=$(./.session/scripts/bash/session-postflight.sh --step plan --status failed --json)
+  assert_eq "ok" "$(echo "$postflight_fail_json" | jq -r '.status')" "postflight status should be ok"
+  assert_eq "failed" "$(echo "$postflight_fail_json" | jq -r '.result')" "postflight result should be failed"
+  assert_eq "failed" "$(jq -r '.step_status' "$pf_dir/state.json")" "step should be failed in state.json"
+
+  # 34) preflight + postflight full chain integration
+  log "34) preflight + postflight full chain integration"
+  local start_chain_json chain_id chain_ym chain_dir
+  start_chain_json=$(./.session/scripts/bash/session-start.sh --json "Chain integration test")
+  chain_id=$(echo "$start_chain_json" | jq -r '.session.id')
+  chain_ym=$(echo "$chain_id" | cut -d'-' -f1,2)
+  chain_dir=".session/sessions/${chain_ym}/${chain_id}"
+
+  # Run full chain: scope → spec → plan → execute using preflight+postflight
+  for step in scope spec plan execute; do
+    ./.session/scripts/bash/session-preflight.sh --step "$step" --json >/dev/null
+    ./.session/scripts/bash/session-postflight.sh --step "$step" --json >/dev/null
+  done
+
+  # Verify all 4 steps are in step_history with completed status
+  assert_eq "4" "$(jq '.step_history | length' "$chain_dir/state.json")" "chain should have 4 entries"
+  local chain_all_completed
+  chain_all_completed=$(jq '[.step_history[] | select(.status == "completed" and .ended_at != null)] | length' "$chain_dir/state.json")
+  assert_eq "4" "$chain_all_completed" "all 4 chain entries should be completed"
+  assert_eq "execute" "$(jq -r '.current_step' "$chain_dir/state.json")" "current step should be execute"
+  assert_eq "completed" "$(jq -r '.step_status' "$chain_dir/state.json")" "step status should be completed"
+
+  # Wrap chain test session
+  ./.session/scripts/bash/session-wrap.sh --json >/dev/null
+
+  log "All postflight tests passed."
 }
 
 main "$@"

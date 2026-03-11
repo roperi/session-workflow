@@ -7,6 +7,30 @@ tools: ["*"]
 
 Define **WHAT** to build with acceptance criteria and verification contracts. This is the "With the right constraints?" gate — the second human review point after scope.
 
+## ⛔ SCOPE BOUNDARY
+
+**This agent ONLY writes the specification. It does NOT:**
+- ❌ Create implementation plans (that's `session.plan`)
+- ❌ Generate task lists (that's `session.task`)
+- ❌ Write any code or implementation (that's `session.execute`)
+- ❌ Modify scope.md (that's `session.scope`)
+
+**Output**: `{session_dir}/spec.md` (or `specs/{feature}/spec.md` for speckit) — nothing else.
+
+## ⚠️ CRITICAL: Workflow State Tracking
+
+**ON ENTRY** — run preflight (validates transition, marks step `in_progress`):
+```bash
+.session/scripts/bash/session-preflight.sh --step spec --json
+```
+
+⛔ **STOP HERE** until you receive script output. Do NOT proceed without it.
+
+**ON EXIT** — run postflight (marks step `completed`, outputs valid next steps):
+```bash
+.session/scripts/bash/session-postflight.sh --step spec --json
+```
+
 ## ⚠️ IMPORTANT
 
 - This is a **formal workflow step** (part of the development chain only).
@@ -308,6 +332,11 @@ Items needing clarification: {count}
 
 ## Chaining & Handoff
 
+**First**, run postflight to mark this step complete:
+```bash
+.session/scripts/bash/session-postflight.sh --step spec --json
+```
+
 **⚠️ Human review gate**: The user MUST review `spec.md` before proceeding. Do not auto-chain past this point.
 
 After user confirms spec is acceptable:
@@ -348,10 +377,10 @@ After user confirms spec is acceptable:
 
 ## Notes
 
-- **Specification only**: No planning or task generation
 - **Human review gate**: User MUST review spec before proceeding to plan
 - **Interactive first**: Ask questions for each story, don't assume acceptance criteria
 - **Scope is law**: Every spec item must trace back to an "In Scope" item — flag anything that doesn't
 - **Clarification path**: `[NEEDS CLARIFICATION]` items can be resolved via `invoke session.clarify`
 - **Input from scope**: If `scope.md` exists (expected), use it as primary input
 - **Auto-chain after approval**: Once user confirms, proceed directly to session.plan
+- **⛔ Boundary reminder**: Do NOT generate plans, tasks, or code. Specification ONLY.

@@ -7,6 +7,32 @@ tools: ["*"]
 
 Define **WHAT** we're solving and **HOW we'll know it's done** before any planning or architecture work begins. This is the "Are we solving the right problem?" gate.
 
+**IMPORTANT**: Read `.session/docs/shared-workflow.md` for shared workflow rules.
+
+## ⛔ SCOPE BOUNDARY
+
+**This agent ONLY defines problem scope. It does NOT:**
+- ❌ Write implementation plans (that's `session.plan`)
+- ❌ Generate task lists (that's `session.task`)
+- ❌ Write specifications or acceptance criteria (that's `session.spec`)
+- ❌ Write any code or make file changes outside `scope.md`
+
+**Output**: `{session_dir}/scope.md` — nothing else.
+
+## ⚠️ CRITICAL: Workflow State Tracking
+
+**ON ENTRY** — run preflight (validates transition, marks step `in_progress`):
+```bash
+.session/scripts/bash/session-preflight.sh --step scope --json
+```
+
+⛔ **STOP HERE** until you receive script output. Do NOT proceed without it.
+
+**ON EXIT** — run postflight (marks step `completed`, outputs valid next steps):
+```bash
+.session/scripts/bash/session-postflight.sh --step scope --json
+```
+
 ## ⚠️ IMPORTANT
 
 - This is a **formal workflow step** (part of the development/spike chain).
@@ -253,6 +279,11 @@ Please review scope.md. When you're satisfied:
 
 ## Chaining & Handoff
 
+**First**, run postflight to mark this step complete:
+```bash
+.session/scripts/bash/session-postflight.sh --step scope --json
+```
+
 **⚠️ Human review gate**: The user MUST review `scope.md` before proceeding. Do not auto-chain past this point.
 
 After user confirms scope is acceptable:
@@ -280,8 +311,8 @@ After user confirms scope is acceptable:
 
 ## Notes
 
-- **Scope definition only**: No planning or task generation
 - **Human review gate**: User MUST review scope before proceeding
 - **Interactive first**: Ask questions, don't assume
 - **Input from brainstorm**: If `brainstorm.md` exists, use it as starting context
 - **Auto-chain after approval**: Once user confirms, proceed directly to session.spec (development) or session.plan (spike)
+- **⛔ Boundary reminder**: Do NOT generate plans, tasks, specs, or code. Scope definition ONLY.

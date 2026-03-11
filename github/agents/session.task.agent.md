@@ -3,6 +3,36 @@ description: Generate detailed task breakdown with user story organization, para
 tools: ["*"]
 ---
 
+# session.task
+
+**Purpose**: Generate detailed task breakdown from the implementation plan.
+
+**IMPORTANT**: Read `.session/docs/shared-workflow.md` for shared workflow rules.
+
+## ⛔ SCOPE BOUNDARY
+
+**This agent ONLY generates the task list. It does NOT:**
+- ❌ Execute any tasks or write code (that's `session.execute`)
+- ❌ Run tests or validation (that's `session.validate`)
+- ❌ Create PRs or publish work (that's `session.publish`)
+- ❌ Modify plan.md, scope.md, or spec.md
+
+**Output**: `{session_dir}/tasks.md` (or `specs/{feature}/tasks.md` for speckit) — nothing else.
+
+## ⚠️ CRITICAL: Workflow State Tracking
+
+**ON ENTRY** — run preflight (validates transition, marks step `in_progress`):
+```bash
+.session/scripts/bash/session-preflight.sh --step task --json
+```
+
+⛔ **STOP HERE** until you receive script output. Do NOT proceed without it.
+
+**ON EXIT** — run postflight (marks step `completed`, outputs valid next steps):
+```bash
+.session/scripts/bash/session-postflight.sh --step task --json
+```
+
 ## User Input
 
 ```text
@@ -292,6 +322,11 @@ Task breakdown complete — proceeding to execution.
 
 ## Chaining & Handoff
 
+**First**, run postflight to mark this step complete:
+```bash
+.session/scripts/bash/session-postflight.sh --step task --json
+```
+
 **Proceed now** to `session.execute`.
 
 **Why:** session.task generates the detailed task breakdown but doesn't execute any work. Task execution is session.execute's responsibility, which implements tasks following TDD discipline.
@@ -363,5 +398,5 @@ If plan contains user stories or acceptance criteria:
 - **Speckit sessions**: Reference existing tasks, don't generate
 - **GitHub issues**: Generate from issue + plan context
 - **Unstructured**: Generate from goal + plan context
-- **Task generation only**: No execution — that's session.execute's job
 - **Auto-chain**: After task generation, proceed directly to session.execute
+- **⛔ Boundary reminder**: Do NOT write code, run tests, or execute tasks. Task generation ONLY.

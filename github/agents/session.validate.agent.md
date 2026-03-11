@@ -9,6 +9,16 @@ tools: ["*"]
 
 **IMPORTANT**: Read `.session/docs/shared-workflow.md` for shared workflow rules.
 
+## ⛔ SCOPE BOUNDARY
+
+**This agent ONLY validates work quality. It does NOT:**
+- ❌ Fix code issues (go back to `session.execute` for fixes)
+- ❌ Create or update pull requests (that's `session.publish`)
+- ❌ Merge PRs or close issues (that's `session.finalize`)
+- ❌ Write session documentation (that's `session.wrap`)
+
+**Output**: `{session_dir}/validation-results.json` — nothing else.
+
 ## User Input
 
 ```text
@@ -34,32 +44,22 @@ $ARGUMENTS
 
 ## ⚠️ CRITICAL: Workflow State Tracking
 
-**ON ENTRY** - Use preflight script (recommended):
+**ON ENTRY** — run preflight (validates transition, marks step `in_progress`):
 ```bash
 .session/scripts/bash/session-preflight.sh --step validate --json
 ```
-This validates workflow state, checks for interrupts, and marks step as in_progress.
 
-**Alternative** - Manual state tracking:
+⛔ **STOP HERE** until you receive script output. Do NOT proceed without it.
+
+**ON EXIT** — run postflight (marks step `completed`, outputs valid next steps):
 ```bash
-source .session/scripts/bash/session-common.sh
-SESSION_ID=$(get_active_session)
-
-# Mark validation as in-progress (for interrupt recovery)
-set_workflow_step "$SESSION_ID" "validate" "in_progress"
+.session/scripts/bash/session-postflight.sh --step validate --json
 ```
 
-**ON SUCCESSFUL COMPLETION**:
+**ON FAILURE** — run postflight with failed status:
 ```bash
-set_workflow_step "$SESSION_ID" "validate" "completed"
+.session/scripts/bash/session-postflight.sh --step validate --status failed --json
 ```
-
-**ON FAILURE**:
-```bash
-set_workflow_step "$SESSION_ID" "validate" "failed"
-```
-
-This tracking enables session continuity - if the CLI is killed during validation, the next session can detect it and resume properly.
 
 ## CRITICAL: Validation Must Complete Before Proceeding
 
@@ -337,13 +337,15 @@ STAGE=$(jq -r '.stage // "production"' "$SESSION_DIR/session-info.json")
 ### IF stage is "poc":
 1. Create validation-results.json with all results
 2. Report warnings but proceed regardless
-3. **Proceed now** to `session.publish` (with warnings noted)
+3. Run postflight: `.session/scripts/bash/session-postflight.sh --step validate --json`
+4. **Proceed now** to `session.publish` (with warnings noted)
 4. Add note: "⚠️ PoC mode: Proceeding despite validation warnings"
 
 ### IF all checks PASS:
 1. Create validation-results.json with overall: "pass"
 2. Report success clearly
-3. **Proceed now** to `session.publish`
+3. Run postflight: `.session/scripts/bash/session-postflight.sh --step validate --json`
+4. **Proceed now** to `session.publish`
 
 **Why:** All quality gates passed, so work is ready to publish. session.publish creates/updates the PR with validation results. User still needs to monitor CI and merge PR before calling session.finalize.
 

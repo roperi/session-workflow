@@ -7,6 +7,32 @@ tools: ["*"]
 
 **Purpose**: Creates or updates pull request with AI-generated description.
 
+**IMPORTANT**: Read `.session/docs/shared-workflow.md` for shared workflow rules.
+
+## ⛔ SCOPE BOUNDARY
+
+**This agent ONLY creates/updates the pull request. It does NOT:**
+- ❌ Merge the PR (user monitors CI and merges manually)
+- ❌ Close issues (that's `session.finalize`)
+- ❌ Write session documentation (that's `session.wrap`)
+- ❌ Run validation checks (that's `session.validate`)
+
+**Output**: A GitHub pull request (created or updated) — nothing else.
+
+## ⚠️ CRITICAL: Workflow State Tracking
+
+**ON ENTRY** — run preflight (validates transition, marks step `in_progress`):
+```bash
+.session/scripts/bash/session-preflight.sh --step publish --json
+```
+
+⛔ **STOP HERE** until you receive script output. Do NOT proceed without it.
+
+**ON EXIT** — run postflight (marks step `completed`, outputs valid next steps):
+```bash
+.session/scripts/bash/session-postflight.sh --step publish --json
+```
+
 ## User Input
 
 ```text
@@ -131,7 +157,10 @@ fi
 
 ## Next step
 
-After successful PR creation/update:
+**First**, run postflight to mark this step complete:
+```bash
+.session/scripts/bash/session-postflight.sh --step publish --json
+```
 
 **Next step:** `session.finalize` — but only after the PR is merged to main.
 

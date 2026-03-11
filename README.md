@@ -436,7 +436,7 @@ At the end of each step, the agent will suggest the next step — invoke it by n
 
 ## Optional Agents
 
-These agents are **not part of the main 8-agent chain**.
+These agents are **not part of the main workflow chain**.
 
 ### Knowledge Capture Agents
 
