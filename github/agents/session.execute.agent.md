@@ -41,6 +41,16 @@ Expected context:
 
 **⚠️ NEVER manually construct session directory paths.** Always read from `.session/ACTIVE_SESSION`.
 
+## ⛔ SCOPE BOUNDARY
+
+**This agent ONLY executes tasks from tasks.md. It does NOT:**
+- ❌ Run validation checks (that's `session.validate`)
+- ❌ Create or update pull requests (that's `session.publish`)
+- ❌ Merge PRs or close issues (that's `session.finalize`)
+- ❌ Generate new tasks or modify the plan (that's `session.plan`/`session.task`)
+
+**Reads**: `tasks.md` for task list. **Modifies**: source code per task requirements. **Marks**: tasks as `[x]` complete in `tasks.md`.
+
 ## Outline
 
 ### 1. Load Session and Task Context
@@ -311,15 +321,18 @@ Can resume with session.execute
 
 ## Chaining & Handoff
 
-**If all tasks complete and no [MANUAL] tasks are pending:**
-- **development**: **Proceed now** to `session.validate` — run quality checks before publishing
-- **spike**: **Proceed now** to `session.wrap` — skip validation and document session
+**First**, run postflight to mark execute complete:
+```bash
+.session/scripts/bash/session-postflight.sh --step execute --json
+```
 
 **If [MANUAL] tasks remain:**
 - Report pending manual tasks and wait for user to complete them
-- After user confirms manual tasks are done, proceed to session.validate (development) or session.wrap (spike)
+- After user confirms, continue with the chain below
 
-**Why:** session.execute completes implementation tasks but doesn't verify quality or create PRs. For development work, session.validate runs comprehensive quality checks (lint, tests, coverage) before publishing, ensuring nothing broken is pushed. For spike workflows, session.wrap skips full validation and focuses on documenting what was tried, what was learned, and any follow-up tasks.
+After postflight, **return your results** — completed task count, commit count, and test results summary. The orchestrating agent (session.start) will invoke the next step.
+
+⛔ Do NOT invoke session.validate, session.publish, or any other agent yourself.
 
 ## Failure Modes to Avoid
 
@@ -333,10 +346,8 @@ Can resume with session.execute
 
 ## Notes
 
-- **Task execution only**: Execute tasks, don't plan or validate
-- **No planning**: session.plan already handled that
-- **Validation & finalization**: session.validate/publish/finalize chain handles that
 - **TDD discipline**: Test → implement → verify → commit
 - **Manual verification**: Required for UI-visible changes
 - **Small commits**: One task per commit
-- **Auto-chain**: After all tasks complete, proceed to session.validate (development) or session.wrap (spike)
+- **Return, don't chain**: After postflight, return results to the orchestrating agent — do NOT invoke validate/publish yourself
+- **⛔ Boundary reminder**: Do NOT merge PRs, close issues, or do finalize/wrap work. Execution ONLY.

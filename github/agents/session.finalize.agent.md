@@ -9,6 +9,16 @@ tools: ["*"]
 
 **IMPORTANT**: Read `.session/docs/shared-workflow.md` for shared workflow rules.
 
+## ⛔ SCOPE BOUNDARY
+
+**This agent ONLY handles post-merge issue management. It does NOT:**
+- ❌ Write CHANGELOG entries (that's `session.wrap`)
+- ❌ Create session documentation or summaries (that's `session.wrap`)
+- ❌ Merge PRs (that should already be done)
+- ❌ Run validation or create PRs (earlier steps)
+
+**Actions**: Close issues, clean up branches, sync task status — nothing else.
+
 ## User Input
 
 ```text
@@ -26,7 +36,21 @@ $ARGUMENTS
   - Use for edge cases or special handling
 - **Default**: Full finalize workflow with safety checks
 
-## ⚠️ CRITICAL: Workflow State Check (RUN FIRST)
+## ⚠️ CRITICAL: Workflow State Tracking
+
+**ON ENTRY** — run preflight (validates transition, marks step `in_progress`):
+```bash
+.session/scripts/bash/session-preflight.sh --step finalize --json
+```
+
+⛔ **STOP HERE** until you receive script output. Do NOT proceed without it.
+
+**ON EXIT** — run postflight (marks step `completed`, outputs valid next steps):
+```bash
+.session/scripts/bash/session-postflight.sh --step finalize --json
+```
+
+### Additional Pre-Checks (RUN FIRST)
 
 **BEFORE doing anything else**, check if the workflow state allows finalization:
 
@@ -293,16 +317,14 @@ Phase X (#issue-number) complete. All Y tasks finished.
 
 ## Handoff
 
-After finalization, **proceed now** to `session.wrap`:
-
-```
-✅ Session finalized successfully
-
-**Proceeding** to session.wrap to document and close session.
-→ invoke session.wrap
+**First**, run postflight to mark finalize complete:
+```bash
+.session/scripts/bash/session-postflight.sh --step finalize --json
 ```
 
-**Why:** session.finalize completes all post-merge issue management (closing phase issues, updating parent issue, syncing tasks to GitHub). The final step is session.wrap, which documents the session in CHANGELOG.md and daily summary, then archives the session. This separation ensures issue management is complete before documentation.
+After postflight, **return your results** — issue closure status, task sync status, and branch cleanup status. The orchestrating agent (session.start) will invoke the next step.
+
+⛔ Do NOT invoke session.wrap or any other agent yourself.
 
 ## Usage
 
@@ -318,13 +340,10 @@ Invoke after:
 ## Example Output
 
 ```
-✅ Session finalized successfully
+✅ Session finalized and wrapped
 
-**Phase Issue**: Closed #659 (Phase 6 complete)
-**Parent Issue**: Updated #654 (90% complete - 245/271 tasks)
-**Tasks Synced**: 47 tasks updated in GitHub milestone "003-project-model-config"
-**PR Updated**: #661 - Phase 6 marked complete in description
-
-**Proceeding** to session.wrap to document and close session.
-→ invoke session.wrap
+Issues: Closed #659, updated parent #654
+Tasks: 47 synced
+Branches: Cleaned
+Session: Documented and archived
 ```

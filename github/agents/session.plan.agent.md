@@ -3,6 +3,36 @@ description: Create implementation plan and approach for session work
 tools: ["*"]
 ---
 
+# session.plan
+
+**Purpose**: Create implementation plan from scope and spec documents.
+
+**IMPORTANT**: Read `.session/docs/shared-workflow.md` for shared workflow rules.
+
+## ⛔ SCOPE BOUNDARY
+
+**This agent ONLY creates the implementation plan. It does NOT:**
+- ❌ Generate detailed task lists (that's `session.task`)
+- ❌ Write any code or implementation (that's `session.execute`)
+- ❌ Run validation or tests (that's `session.validate`)
+- ❌ Modify scope.md or spec.md
+
+**Output**: `{session_dir}/plan.md` — nothing else.
+
+## ⚠️ CRITICAL: Workflow State Tracking
+
+**ON ENTRY** — run preflight (validates transition, marks step `in_progress`):
+```bash
+.session/scripts/bash/session-preflight.sh --step plan --json
+```
+
+⛔ **STOP HERE** until you receive script output. Do NOT proceed without it.
+
+**ON EXIT** — run postflight (marks step `completed`, outputs valid next steps):
+```bash
+.session/scripts/bash/session-postflight.sh --step plan --json
+```
+
 ## User Input
 
 ```text
@@ -187,7 +217,7 @@ EOF
    Feature: {feature-name}
    Plan: {FEATURE_DIR}/plan.md
    
-   Ready for task generation → invoke session.task
+   Plan complete. Returning results to orchestrating agent.
 
    Incomplete tasks:
    - [ ] T146 Create useProjectModels.ts
@@ -261,7 +291,7 @@ EOF
    Issue: #{issue-number} - {title}
    Plan saved to: $SESSION_DIR/plan.md
 
-   Ready for task generation → invoke session.task
+   Plan complete. Returning results to orchestrating agent.
    ```
 
 #### C. Unstructured Session Path
@@ -340,11 +370,14 @@ Plan complete — proceeding to task generation.
 
 ## Chaining & Handoff
 
-**Proceed now** to `session.task`.
+**First**, run postflight to mark this step complete:
+```bash
+.session/scripts/bash/session-postflight.sh --step plan --json
+```
 
-**Why:** session.plan creates the high-level implementation plan but doesn't break it into detailed tasks. session.task generates the structured task list with user story organization, parallelization markers, and dependencies.
+After postflight, **return your results** — plan.md location, component count, and key risks. The orchestrating agent (session.start) will invoke the next step.
 
-If the user's original request includes subsequent steps beyond task generation, continue the chain without waiting.
+⛔ Do NOT invoke session.task or any other agent yourself.
 
 ## Planning Guidelines
 
@@ -383,5 +416,5 @@ Include:
 - **Speckit sessions**: Reference existing plan, don't duplicate
 - **GitHub issues**: Create plan from issue content
 - **Unstructured**: Create plan from goal
-- **Planning only**: No task generation — that's session.task's job
 - **Auto-chain**: After plan completion, proceed directly to session.task
+- **⛔ Boundary reminder**: Do NOT generate task files, write code, or execute anything. Planning ONLY.

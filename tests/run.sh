@@ -497,14 +497,18 @@ SPECMD
 
   # === Step History Tests (Issue #49) ===
 
-  # 23) step_history initialized as empty array on session start
-  log "23) step_history initialized as empty array"
+  # 23) step_history initialized with start entry on session creation
+  log "23) step_history initialized with start entry"
   local start_sh_json sh_id sh_ym sh_dir
   start_sh_json=$(./.session/scripts/bash/session-start.sh --json "Step history test")
   sh_id=$(echo "$start_sh_json" | jq -r '.session.id')
   sh_ym=$(echo "$sh_id" | cut -d'-' -f1,2)
   sh_dir=".session/sessions/${sh_ym}/${sh_id}"
-  assert_eq "[]" "$(jq -c '.step_history' "$sh_dir/state.json")" "step_history should be empty array at creation"
+  assert_eq "1" "$(jq '.step_history | length' "$sh_dir/state.json")" "step_history should have 1 entry (start)"
+  assert_eq "start" "$(jq -r '.step_history[0].step' "$sh_dir/state.json")" "first entry should be start"
+  assert_eq "completed" "$(jq -r '.step_history[0].status' "$sh_dir/state.json")" "start should be completed"
+  assert_eq "start" "$(jq -r '.current_step' "$sh_dir/state.json")" "current_step should be start"
+  assert_eq "completed" "$(jq -r '.step_status' "$sh_dir/state.json")" "step_status should be completed"
   assert_eq "1.1" "$(jq -r '.schema_version' "$sh_dir/state.json")" "state schema should be 1.1"
 
   # 24) preflight appends in_progress entry to step_history
@@ -512,19 +516,19 @@ SPECMD
   local preflight_sh_json
   preflight_sh_json=$(./.session/scripts/bash/session-preflight.sh --step scope --json)
   assert_eq "ok" "$(echo "$preflight_sh_json" | jq -r '.status')" "preflight scope status"
-  assert_eq "1" "$(jq '.step_history | length' "$sh_dir/state.json")" "step_history should have 1 entry"
-  assert_eq "scope" "$(jq -r '.step_history[0].step' "$sh_dir/state.json")" "first entry step should be scope"
-  assert_eq "in_progress" "$(jq -r '.step_history[0].status' "$sh_dir/state.json")" "first entry status should be in_progress"
-  assert_eq "null" "$(jq -r '.step_history[0].ended_at' "$sh_dir/state.json")" "first entry ended_at should be null"
-  assert_eq "false" "$(jq -r '.step_history[0].forced' "$sh_dir/state.json")" "first entry forced should be false"
+  assert_eq "2" "$(jq '.step_history | length' "$sh_dir/state.json")" "step_history should have 2 entries (start + scope)"
+  assert_eq "scope" "$(jq -r '.step_history[1].step' "$sh_dir/state.json")" "second entry step should be scope"
+  assert_eq "in_progress" "$(jq -r '.step_history[1].status' "$sh_dir/state.json")" "second entry status should be in_progress"
+  assert_eq "null" "$(jq -r '.step_history[1].ended_at' "$sh_dir/state.json")" "second entry ended_at should be null"
+  assert_eq "false" "$(jq -r '.step_history[1].forced' "$sh_dir/state.json")" "second entry forced should be false"
 
   # 25) completing a step updates the last history entry
   log "25) completing step updates history entry"
   set_workflow_step "$sh_id" "scope" "completed" >/dev/null
-  assert_eq "1" "$(jq '.step_history | length' "$sh_dir/state.json")" "step_history should still have 1 entry"
-  assert_eq "completed" "$(jq -r '.step_history[0].status' "$sh_dir/state.json")" "entry status should be completed"
-  [[ "$(jq -r '.step_history[0].ended_at' "$sh_dir/state.json")" != "null" ]] || fail "ended_at should be set after completion"
-  [[ "$(jq -r '.step_history[0].started_at' "$sh_dir/state.json")" != "null" ]] || fail "started_at should be preserved"
+  assert_eq "2" "$(jq '.step_history | length' "$sh_dir/state.json")" "step_history should still have 2 entries"
+  assert_eq "completed" "$(jq -r '.step_history[1].status' "$sh_dir/state.json")" "entry status should be completed"
+  [[ "$(jq -r '.step_history[1].ended_at' "$sh_dir/state.json")" != "null" ]] || fail "ended_at should be set after completion"
+  [[ "$(jq -r '.step_history[1].started_at' "$sh_dir/state.json")" != "null" ]] || fail "started_at should be preserved"
 
   # 26) full workflow builds complete step_history
   log "26) full workflow builds multi-entry step_history"
@@ -534,21 +538,22 @@ SPECMD
   set_workflow_step "$sh_id" "plan" "completed" >/dev/null
   set_workflow_step "$sh_id" "execute" "in_progress" >/dev/null
   set_workflow_step "$sh_id" "execute" "completed" >/dev/null
-  assert_eq "4" "$(jq '.step_history | length' "$sh_dir/state.json")" "step_history should have 4 entries"
-  assert_eq "scope" "$(jq -r '.step_history[0].step' "$sh_dir/state.json")" "entry 0 should be scope"
-  assert_eq "spec" "$(jq -r '.step_history[1].step' "$sh_dir/state.json")" "entry 1 should be spec"
-  assert_eq "plan" "$(jq -r '.step_history[2].step' "$sh_dir/state.json")" "entry 2 should be plan"
-  assert_eq "execute" "$(jq -r '.step_history[3].step' "$sh_dir/state.json")" "entry 3 should be execute"
+  assert_eq "5" "$(jq '.step_history | length' "$sh_dir/state.json")" "step_history should have 5 entries (start + 4 steps)"
+  assert_eq "start" "$(jq -r '.step_history[0].step' "$sh_dir/state.json")" "entry 0 should be start"
+  assert_eq "scope" "$(jq -r '.step_history[1].step' "$sh_dir/state.json")" "entry 1 should be scope"
+  assert_eq "spec" "$(jq -r '.step_history[2].step' "$sh_dir/state.json")" "entry 2 should be spec"
+  assert_eq "plan" "$(jq -r '.step_history[3].step' "$sh_dir/state.json")" "entry 3 should be plan"
+  assert_eq "execute" "$(jq -r '.step_history[4].step' "$sh_dir/state.json")" "entry 4 should be execute"
   # All entries should be completed with ended_at set
   local all_completed
   all_completed=$(jq '[.step_history[] | select(.status == "completed" and .ended_at != null)] | length' "$sh_dir/state.json")
-  assert_eq "4" "$all_completed" "all 4 entries should be completed with ended_at"
+  assert_eq "5" "$all_completed" "all 5 entries should be completed with ended_at"
 
   # 27) forced flag is recorded in step_history
   log "27) forced flag recorded in step_history"
   set_workflow_step "$sh_id" "validate" "in_progress" "true" >/dev/null
-  assert_eq "5" "$(jq '.step_history | length' "$sh_dir/state.json")" "step_history should have 5 entries"
-  assert_eq "true" "$(jq -r '.step_history[4].forced' "$sh_dir/state.json")" "forced entry should have forced=true"
+  assert_eq "6" "$(jq '.step_history | length' "$sh_dir/state.json")" "step_history should have 6 entries"
+  assert_eq "true" "$(jq -r '.step_history[5].forced' "$sh_dir/state.json")" "forced entry should have forced=true"
   set_workflow_step "$sh_id" "validate" "completed" >/dev/null
 
   # Wrap
@@ -563,6 +568,99 @@ SPECMD
   assert_eq "completed" "$(jq -r '.status' "$sh_dir/state.json")" "session should be completed"
 
   log "All step history tests passed."
+
+  # === Postflight Tests ===
+
+  # 29) postflight marks step as completed
+  log "29) postflight marks step completed"
+  local start_pf_json pf_id pf_ym pf_dir
+  start_pf_json=$(./.session/scripts/bash/session-start.sh --json "Postflight test")
+  pf_id=$(echo "$start_pf_json" | jq -r '.session.id')
+  pf_ym=$(echo "$pf_id" | cut -d'-' -f1,2)
+  pf_dir=".session/sessions/${pf_ym}/${pf_id}"
+
+  # Run preflight to mark scope as in_progress
+  ./.session/scripts/bash/session-preflight.sh --step scope --json >/dev/null
+  assert_eq "scope" "$(jq -r '.current_step' "$pf_dir/state.json")" "current step should be scope"
+  assert_eq "in_progress" "$(jq -r '.step_status' "$pf_dir/state.json")" "step should be in_progress"
+
+  # Run postflight to mark scope as completed
+  local postflight_json
+  postflight_json=$(./.session/scripts/bash/session-postflight.sh --step scope --json)
+  vlog "postflight_json: $postflight_json"
+  assert_eq "ok" "$(echo "$postflight_json" | jq -r '.status')" "postflight status"
+  assert_eq "scope" "$(echo "$postflight_json" | jq -r '.step')" "postflight step"
+  assert_eq "completed" "$(echo "$postflight_json" | jq -r '.result')" "postflight result"
+  assert_eq "completed" "$(jq -r '.step_status' "$pf_dir/state.json")" "step should be completed in state.json"
+  [[ "$(jq -r '.step_history[0].ended_at' "$pf_dir/state.json")" != "null" ]] || fail "ended_at should be set"
+
+  # 30) postflight outputs valid next steps
+  log "30) postflight outputs valid next steps"
+  local next_steps
+  next_steps=$(echo "$postflight_json" | jq -r '.valid_next_steps[]' | sort | tr '\n' ' ' | sed 's/ $//')
+  assert_eq "plan spec" "$next_steps" "scope's valid next steps should be spec and plan"
+
+  # 31) postflight rejects mismatched step
+  log "31) postflight rejects mismatched step"
+  ./.session/scripts/bash/session-preflight.sh --step spec --json >/dev/null
+  set +e
+  local postflight_mismatch
+  postflight_mismatch=$(./.session/scripts/bash/session-postflight.sh --step scope --json)
+  local pf_exit=$?
+  set -e
+  assert_eq "1" "$pf_exit" "postflight should fail on step mismatch"
+  assert_eq "error" "$(echo "$postflight_mismatch" | jq -r '.status')" "should be error on mismatch"
+
+  # 32) postflight rejects already-completed step
+  log "32) postflight rejects already-completed step"
+  ./.session/scripts/bash/session-postflight.sh --step spec --json >/dev/null
+  set +e
+  local postflight_double
+  postflight_double=$(./.session/scripts/bash/session-postflight.sh --step spec --json)
+  local pf_double_exit=$?
+  set -e
+  assert_eq "1" "$pf_double_exit" "postflight should fail on already-completed step"
+  assert_eq "error" "$(echo "$postflight_double" | jq -r '.status')" "should be error on double-complete"
+
+  # 33) postflight with --status failed
+  log "33) postflight marks step as failed"
+  ./.session/scripts/bash/session-preflight.sh --step plan --json >/dev/null
+  local postflight_fail_json
+  postflight_fail_json=$(./.session/scripts/bash/session-postflight.sh --step plan --status failed --json)
+  assert_eq "ok" "$(echo "$postflight_fail_json" | jq -r '.status')" "postflight status should be ok"
+  assert_eq "failed" "$(echo "$postflight_fail_json" | jq -r '.result')" "postflight result should be failed"
+  assert_eq "failed" "$(jq -r '.step_status' "$pf_dir/state.json")" "step should be failed in state.json"
+
+  # 34) preflight + postflight full chain integration
+  log "34) preflight + postflight full chain integration"
+
+  # Clean up previous test session (test 33 left plan in failed state)
+  ./.session/scripts/bash/session-wrap.sh --json >/dev/null 2>&1 || true
+
+  local start_chain_json chain_id chain_ym chain_dir
+  start_chain_json=$(./.session/scripts/bash/session-start.sh --json "Chain integration test")
+  chain_id=$(echo "$start_chain_json" | jq -r '.session.id')
+  chain_ym=$(echo "$chain_id" | cut -d'-' -f1,2)
+  chain_dir=".session/sessions/${chain_ym}/${chain_id}"
+
+  # Run full chain: scope → spec → plan → execute using preflight+postflight
+  for step in scope spec plan execute; do
+    ./.session/scripts/bash/session-preflight.sh --step "$step" --json >/dev/null
+    ./.session/scripts/bash/session-postflight.sh --step "$step" --json >/dev/null
+  done
+
+  # Verify all 5 steps are in step_history (start + 4 chain steps) with completed status
+  assert_eq "5" "$(jq '.step_history | length' "$chain_dir/state.json")" "chain should have 5 entries (start + 4 steps)"
+  local chain_all_completed
+  chain_all_completed=$(jq '[.step_history[] | select(.status == "completed" and .ended_at != null)] | length' "$chain_dir/state.json")
+  assert_eq "5" "$chain_all_completed" "all 5 chain entries should be completed"
+  assert_eq "execute" "$(jq -r '.current_step' "$chain_dir/state.json")" "current step should be execute"
+  assert_eq "completed" "$(jq -r '.step_status' "$chain_dir/state.json")" "step status should be completed"
+
+  # Wrap chain test session
+  ./.session/scripts/bash/session-wrap.sh --json >/dev/null
+
+  log "All postflight tests passed."
 }
 
 main "$@"

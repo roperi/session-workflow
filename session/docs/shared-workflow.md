@@ -81,20 +81,92 @@ Projects can upgrade stage as they mature:
 invoke session.start --stage mvp --issue 123
 ```
 
+## ⛔ Agent Scope Boundary (CRITICAL)
+
+**Every agent in the workflow chain has a single, bounded responsibility.** Agents MUST NOT do work belonging to other agents. This is the most important rule in the system.
+
+### The Rule
+
+> **Do ONLY your step's work. Then STOP and hand off.**
+
+### What "Overreach" Looks Like
+
+These are concrete violations that agents commonly make:
+
+| Agent | ❌ Violation | ✅ Correct |
+|-------|-------------|-----------|
+| `scope` | Writing implementation plans or task lists | Write `scope.md` only, then hand off to `spec` |
+| `spec` | Breaking spec into tasks or starting implementation | Write `spec.md` only, then hand off to `plan` |
+| `plan` | Generating detailed task files or writing code | Write `plan.md` only, then hand off to `task` |
+| `task` | Implementing any code changes | Write `tasks.md` only, then hand off to `execute` |
+| `execute` | Running validation, creating PRs, or merging | Implement code changes only, then hand off to `validate` |
+| `validate` | Creating PRs or merging | Run quality checks only, then hand off to `publish` |
+| `publish` | Merging the PR or closing issues | Create/update PR only, then STOP (gated handoff) |
+| `finalize` | Writing CHANGELOG or archiving the session | Close issues and clean branches, then hand off to `wrap` |
+
+### Mandatory Preflight + Postflight
+
+**Every chain agent MUST run both scripts:**
+
+```bash
+# ON ENTRY — validates transition, marks step in_progress
+.session/scripts/bash/session-preflight.sh --step <step> --json
+
+# ... do agent work ...
+
+# ON EXIT — marks step completed/failed, outputs valid next steps
+.session/scripts/bash/session-postflight.sh --step <step> --json
+# Or on failure:
+.session/scripts/bash/session-postflight.sh --step <step> --status failed --json
+```
+
+**Why**: Without postflight, the step stays `in_progress` forever. The next agent's preflight will detect an "interrupted session" and block. Running postflight is not optional.
+
+### The Chain Contract
+
+1. **Preflight** → validates you're allowed to run, marks `in_progress`
+2. **Do your work** → ONLY the work scoped to this agent
+3. **Postflight** → marks `completed`, outputs valid next steps
+4. **Hand off** → proceed to the next agent (or STOP at phase boundaries)
+
+### Centralized Orchestration
+
+`session.start` is the **sole orchestrator** for the entire workflow chain. It invokes each step's agent as a separate sub-agent and handles the review/merge cycle directly.
+
+| Phase | Steps | Orchestrated by |
+|-------|-------|-----------------|
+| **Planning** | scope → spec → plan → task | `session.start` (via sub-agents) |
+| **Implementation** | execute → validate → publish | `session.start` (via sub-agents) |
+| **Review Cycle** | Copilot review → address comments → merge | `session.start` (directly) |
+| **Completion** | finalize → wrap | `session.start` (via sub-agents) |
+
+**Why centralized?** Each sub-agent loads its own instructions and scope boundaries, but session.start controls the sequence. Individual agents MUST NOT invoke the next agent — they return results to session.start after running postflight.
+
+### Invoking Agents During Chain Execution
+
+session.start invokes each step's agent as a **separate sub-agent** using the task tool with `agent_type` set to the agent name (e.g., `session.scope`, `session.spec`).
+
+⛔ Sub-agents MUST NOT invoke other agents. After completing their work and running postflight, they return results to session.start.
+
+⛔ Do NOT `cat` agent files and do the work yourself — this bypasses proper agent loading and breaks state tracking.
+
 ## Workflow State Machine
 
 The session workflow follows a defined state machine. Each step must complete before the next can begin.
 
-**Development (8-agent chain)**: `start → plan → task → execute → validate → publish → finalize → wrap`
+**Development (10-agent chain)**: `start → scope → spec → plan → task → execute → validate → publish → finalize → wrap`
 
-**Spike (5-agent chain)**: `start → plan → task → execute → wrap`
+**Spike (7-agent chain)**: `start → scope → plan → task → execute → wrap`
 
 **Maintenance (3-agent chain)**: `start → execute → wrap`
 
 ```
-START → PLAN → TASK → EXECUTE → VALIDATE → PUBLISH → [MERGE PR] → FINALIZE → WRAP
-                                                          │                  │
-                                                          └── Manual Step ───┘
+START → SCOPE → SPEC → PLAN → TASK → EXECUTE → VALIDATE → PUBLISH → [MERGE PR] → FINALIZE → WRAP
+                                                                          │                  │
+                                                                          └── Manual Step ───┘
+
+Spike (skip spec + publish chain):
+START → SCOPE → PLAN → TASK → EXECUTE → WRAP
 
 Maintenance shortcut:
 START → EXECUTE → WRAP
@@ -106,11 +178,14 @@ START → EXECUTE → WRAP
 
 | From State | Valid Next States |
 |------------|-------------------|
-| `none` | `plan`, `execute` |
-| `start` | `plan`, `execute` |
+| `none` | `brainstorm`, `scope`, `plan`, `execute` |
+| `start` | `brainstorm`, `scope`, `plan`, `execute` |
+| `brainstorm` | `scope`, `plan` |
+| `scope` | `spec`, `plan` |
+| `spec` | `plan` |
 | `plan` | `task`, `execute` |
 | `task` | `execute` |
-| `execute` | `validate`, `execute` (loop), `wrap` (maintenance) |
+| `execute` | `validate`, `execute` (loop), `wrap` (maintenance/spike) |
 | `validate` | `publish`, `execute` (if fix needed) |
 | `publish` | `finalize` |
 | `finalize` | `wrap` |
@@ -145,23 +220,21 @@ Each workflow step has a status:
 
 ## State Tracking Requirements
 
-**Every session agent MUST:**
+**Every session agent MUST use the preflight/postflight scripts:**
 
-1. **ON ENTRY**: Mark step as `in_progress`
+1. **ON ENTRY**: Run preflight (validates transition + marks `in_progress`)
    ```bash
-   source .session/scripts/bash/session-common.sh
-   SESSION_ID=$(get_active_session)
-   set_workflow_step "$SESSION_ID" "step_name" "in_progress"
+   .session/scripts/bash/session-preflight.sh --step <step> --json
    ```
 
-2. **ON SUCCESS**: Mark step as `completed`
+2. **ON SUCCESS**: Run postflight (marks `completed` + outputs next steps)
    ```bash
-   set_workflow_step "$SESSION_ID" "step_name" "completed"
+   .session/scripts/bash/session-postflight.sh --step <step> --json
    ```
 
-3. **ON FAILURE**: Mark step as `failed`
+3. **ON FAILURE**: Run postflight with failed status
    ```bash
-   set_workflow_step "$SESSION_ID" "step_name" "failed"
+   .session/scripts/bash/session-postflight.sh --step <step> --status failed --json
    ```
 
 ## Interrupted Session Detection

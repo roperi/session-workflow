@@ -3,6 +3,33 @@ description: End the session — write final summary, update CHANGELOG, and clea
 tools: ["*"]
 ---
 
+# session.wrap
+
+**Purpose**: End the session — write final summary, update CHANGELOG, and clear session state. Terminal step.
+
+**IMPORTANT**: Read `.session/docs/shared-workflow.md` for shared workflow rules.
+
+## ⛔ SCOPE BOUNDARY
+
+**This agent ONLY documents and archives the session. It does NOT:**
+- ❌ Close issues or clean branches (that's `session.finalize`)
+- ❌ Create or merge PRs (that's `session.publish`)
+- ❌ Run validation or fix code (earlier steps)
+- ❌ Start new sessions
+
+**Output**: Updated `notes.md`, `CHANGELOG.md`, `final-summary.md` — then runs wrap script.
+
+## ⚠️ CRITICAL: Workflow State Tracking
+
+**ON ENTRY** — run preflight (validates transition, marks step `in_progress`):
+```bash
+.session/scripts/bash/session-preflight.sh --step wrap --json
+```
+
+⛔ **STOP HERE** until you receive script output. Do NOT proceed without it.
+
+**Note**: session.wrap is terminal — no postflight needed. The wrap script itself marks the session as completed.
+
 ## User Input
 
 ```text
@@ -56,27 +83,10 @@ Edit `{session_dir}/notes.md` with:
 
 ### 1.5. Workflow-Agnostic Operation
 
-**NEW (Schema v2.0)**: session.wrap is the terminal agent for all workflows:
-
-```bash
-# Source common functions
-source .session/scripts/bash/session-common.sh
-
-# Detect workflow
-WORKFLOW=$(detect_workflow "$SESSION_ID")
-echo "Workflow: $WORKFLOW"
-
-# Wrap handles all workflows the same way - document the session
-echo "✓ Documenting $WORKFLOW session"
-```
-
-**All workflows welcome**: This agent documents any session type.
-
-**Workflow-specific documentation**:
+session.wrap is the terminal agent for all workflows. It documents any session type:
 - **development**: Document features, tests, PR link
 - **spike**: Document findings, exploration results
-
-No workflow guards needed - this is a terminal agent.
+- **maintenance**: Document changes made
 
 ### 2. Mark Tasks Complete
 
@@ -216,6 +226,7 @@ This marks the session complete by:
 - Complete ALL documentation steps before running the wrap script
 - The wrap script is purely mechanical - it doesn't validate your work
 - Good handoff notes make the next session efficient
+- **⛔ Boundary reminder**: Do NOT close issues, merge PRs, or do any work outside documentation. Documentation ONLY.
 - Session data is preserved in `.session/sessions/{id}/`
 
 **No Handoff After Wrap**: session.wrap is the terminal agent in the workflow. It documents and archives the session, then clears the ACTIVE_SESSION sentinel. The next session starts fresh with `session.start`.
