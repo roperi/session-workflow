@@ -237,6 +237,8 @@ Each workflow step has a status:
    .session/scripts/bash/session-postflight.sh --step <step> --status failed --json
    ```
 
+**Exception**: `session.wrap` is terminal — `session-wrap.sh` marks both the workflow step and session as completed, so no separate postflight call is needed.
+
 ## Interrupted Session Detection
 
 If a step has status `in_progress` when a new CLI session starts, the previous session was interrupted.
