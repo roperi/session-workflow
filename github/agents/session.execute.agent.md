@@ -43,13 +43,15 @@ Expected context:
 
 ## ⛔ SCOPE BOUNDARY
 
-**This agent ONLY executes tasks from tasks.md. It does NOT:**
-- ❌ Run validation checks (that's `session.validate`)
-- ❌ Create or update pull requests (that's `session.publish`)
+**During task execution, this agent ONLY executes tasks from tasks.md. It does NOT:**
+- ❌ Run validation checks directly (that's `session.validate`)
+- ❌ Create or update pull requests directly (that's `session.publish`)
 - ❌ Merge PRs or close issues (that's `session.finalize`)
 - ❌ Generate new tasks or modify the plan (that's `session.plan`/`session.task`)
 
 **Reads**: `tasks.md` for task list. **Modifies**: source code per task requirements. **Marks**: tasks as `[x]` complete in `tasks.md`.
+
+**Note**: When invoked directly by the user (not as a sub-agent), this agent also orchestrates the rest of Phase 2 by invoking validate and publish agents after execution — see Chaining & Handoff.
 
 ## Outline
 
@@ -330,9 +332,64 @@ Can resume with session.execute
 - Report pending manual tasks and wait for user to complete them
 - After user confirms, continue with the chain below
 
-After postflight, **return your results** — completed task count, commit count, and test results summary. The orchestrating agent (session.start) will invoke the next step.
+### Sub-agent Mode (invoked by session.start `--auto`)
 
-⛔ Do NOT invoke session.validate, session.publish, or any other agent yourself.
+If your input (`$ARGUMENTS`) contains "Do NOT ask clarifying questions", you are running as a sub-agent:
+- **Return your results** — completed task count, commit count, and test results summary
+- The orchestrating agent (session.start) will invoke the next step
+- ⛔ Do NOT invoke session.validate, session.publish, or any other agent yourself
+
+### Direct Invocation Mode (user ran `invoke session.execute`)
+
+If your input does NOT contain "Do NOT ask clarifying questions", you are the primary agent. Continue with **Phase 2 orchestration**.
+
+Detect the workflow from session-info.json:
+```bash
+source .session/scripts/bash/session-common.sh
+SESSION_ID=$(get_active_session)
+SESSION_DIR=$(get_session_dir "$SESSION_ID")
+WORKFLOW=$(jq -r '.workflow // "development"' "$SESSION_DIR/session-info.json")
+```
+
+#### Development Workflow: → validate → publish → STOP
+
+Invoke the remaining Phase 2 agents as sub-agents (using the task tool with `agent_type`):
+
+**validate** — Invoke `session.validate` agent:
+```
+agent_type: "session.validate"
+prompt: "Validate work for session {session_id}. Dir: {session_dir}, stage: {stage}. Do NOT ask clarifying questions."
+```
+
+**publish** — Invoke `session.publish` agent:
+```
+agent_type: "session.publish"
+prompt: "Publish PR for session {session_id}. Dir: {session_dir}, repo: {owner/repo}, branch: {branch}. Do NOT ask clarifying questions."
+```
+
+After publish completes, output:
+```
+✅ Phase 2 (Implementation) complete
+
+Session: {session_id}
+Tasks completed: {count}
+PR: #{pr_number} created
+
+Next: Review and merge the PR, then run:
+  invoke session.finalize
+```
+
+#### Spike / Maintenance Workflow: → wrap → END
+
+Invoke wrap directly (no validation or publishing):
+
+**wrap** — Invoke `session.wrap` agent:
+```
+agent_type: "session.wrap"
+prompt: "Wrap session {session_id}. Dir: {session_dir}. Do NOT ask clarifying questions."
+```
+
+After wrap completes, output the session summary.
 
 ## Failure Modes to Avoid
 
@@ -349,5 +406,6 @@ After postflight, **return your results** — completed task count, commit count
 - **TDD discipline**: Test → implement → verify → commit
 - **Manual verification**: Required for UI-visible changes
 - **Small commits**: One task per commit
-- **Return, don't chain**: After postflight, return results to the orchestrating agent — do NOT invoke validate/publish yourself
-- **⛔ Boundary reminder**: Do NOT merge PRs, close issues, or do finalize/wrap work. Execution ONLY.
+- **Return, don't chain (sub-agent mode)**: When invoked as sub-agent by session.start --auto, return results after postflight — do NOT invoke validate/publish yourself
+- **Phase 2 orchestration (direct mode)**: When invoked directly by the user, orchestrate validate → publish (development) or wrap (spike/maintenance)
+- **⛔ Boundary reminder**: Do NOT merge PRs, close issues, or do finalize/wrap work during execution. Execution ONLY.

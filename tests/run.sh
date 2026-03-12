@@ -567,12 +567,20 @@ SPECMD
   [[ "$post_wrap_count" -ge 5 ]] || fail "step_history should be preserved after wrap (got $post_wrap_count entries)"
   assert_eq "completed" "$(jq -r '.status' "$sh_dir/state.json")" "session should be completed"
 
+  # 29) wrap step should be marked completed (not stuck in_progress)
+  log "29) wrap step marked completed in state.json"
+  assert_eq "completed" "$(jq -r '.step_status' "$sh_dir/state.json")" "wrap step_status should be completed"
+  assert_eq "wrap" "$(jq -r '.current_step' "$sh_dir/state.json")" "current_step should be wrap"
+  local wrap_history_status
+  wrap_history_status=$(jq -r '[.step_history[] | select(.step == "wrap")] | last | .status' "$sh_dir/state.json")
+  assert_eq "completed" "$wrap_history_status" "wrap step_history entry should be completed"
+
   log "All step history tests passed."
 
   # === Postflight Tests ===
 
-  # 29) postflight marks step as completed
-  log "29) postflight marks step completed"
+  # 30) postflight marks step as completed
+  log "30) postflight marks step completed"
   local start_pf_json pf_id pf_ym pf_dir
   start_pf_json=$(./.session/scripts/bash/session-start.sh --json "Postflight test")
   pf_id=$(echo "$start_pf_json" | jq -r '.session.id')
@@ -595,13 +603,13 @@ SPECMD
   [[ "$(jq -r '.step_history[0].ended_at' "$pf_dir/state.json")" != "null" ]] || fail "ended_at should be set"
 
   # 30) postflight outputs valid next steps
-  log "30) postflight outputs valid next steps"
+  log "31) postflight outputs valid next steps"
   local next_steps
   next_steps=$(echo "$postflight_json" | jq -r '.valid_next_steps[]' | sort | tr '\n' ' ' | sed 's/ $//')
   assert_eq "plan spec" "$next_steps" "scope's valid next steps should be spec and plan"
 
   # 31) postflight rejects mismatched step
-  log "31) postflight rejects mismatched step"
+  log "32) postflight rejects mismatched step"
   ./.session/scripts/bash/session-preflight.sh --step spec --json >/dev/null
   set +e
   local postflight_mismatch
@@ -612,7 +620,7 @@ SPECMD
   assert_eq "error" "$(echo "$postflight_mismatch" | jq -r '.status')" "should be error on mismatch"
 
   # 32) postflight rejects already-completed step
-  log "32) postflight rejects already-completed step"
+  log "33) postflight rejects already-completed step"
   ./.session/scripts/bash/session-postflight.sh --step spec --json >/dev/null
   set +e
   local postflight_double
@@ -623,7 +631,7 @@ SPECMD
   assert_eq "error" "$(echo "$postflight_double" | jq -r '.status')" "should be error on double-complete"
 
   # 33) postflight with --status failed
-  log "33) postflight marks step as failed"
+  log "34) postflight marks step as failed"
   ./.session/scripts/bash/session-preflight.sh --step plan --json >/dev/null
   local postflight_fail_json
   postflight_fail_json=$(./.session/scripts/bash/session-postflight.sh --step plan --status failed --json)
@@ -632,7 +640,7 @@ SPECMD
   assert_eq "failed" "$(jq -r '.step_status' "$pf_dir/state.json")" "step should be failed in state.json"
 
   # 34) preflight + postflight full chain integration
-  log "34) preflight + postflight full chain integration"
+  log "35) preflight + postflight full chain integration"
 
   # Clean up previous test session (test 33 left plan in failed state)
   ./.session/scripts/bash/session-wrap.sh --json >/dev/null 2>&1 || true
