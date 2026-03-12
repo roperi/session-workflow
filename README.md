@@ -20,7 +20,7 @@ When AI context windows reset, work continuity is lost. Session workflow solves 
 **Agent Chain**: `start → scope → spec → plan → task → execute → validate → publish → finalize → wrap`
 
 **Orchestration modes**:
-- **Default**: `session.start` runs Phase 1 (Planning) then stops — review artifacts, run quality agents, then continue with `session.execute`
+- **Default**: `session.start` runs Phase 1 (Planning) then stops — review artifacts, run quality agents, then continue with `session.execute`. Maintenance always auto-chains (no planning to review).
 - **Auto** (`--auto`): Full end-to-end chain in one shot
 - **Copilot review** (`--auto --copilot-review`): Auto chain with Copilot PR review before merge
 

@@ -331,19 +331,9 @@ Next: Review planning artifacts, then run:
   invoke session.execute
 ```
 
-#### Maintenance Workflow: STOP immediately
+#### Maintenance Workflow: Always auto-chain
 
-Maintenance has no planning phase. Output:
-```
-✅ Session initialized (maintenance workflow)
-
-Session: {session_id}
-Workflow: maintenance
-Branch: {current-branch} (no new branch created)
-
-Next: Run:
-  invoke session.execute
-```
+Maintenance has no planning phase — nothing for the user to review. Always auto-chain to execute → wrap regardless of `--auto` flag. Follow the same invocation pattern as [Maintenance Workflow (Auto)](#maintenance-workflow-auto-execute--wrap) below.
 
 ---
 
@@ -441,7 +431,7 @@ When resuming (`--resume`), check `state.json` to determine what step the sessio
 
 ## Notes
 
-- **Mode-aware orchestration**: Default runs Phase 1 (Planning) only; `--auto` runs the entire chain
+- **Mode-aware orchestration**: Default runs Phase 1 (Planning) only; `--auto` runs the entire chain. Exception: maintenance always auto-chains (no planning to review)
 - **No code changes**: Never write application code directly — that's session.execute's job
 - **Invoke, don't impersonate**: Use the task tool to invoke each agent — never `cat` their files and do their work
 - **Three workflows**: development (full), spike (no PR), maintenance (no branch, no PR, no planning)
