@@ -71,7 +71,7 @@ This lets teams use Spec Kit's review and governance workflow while keeping sess
 
 ## Agent Responsibilities
 
-All chain agents are invoked as sub-agents by `session.start`. Each agent runs preflight, does its scoped work, runs postflight, and returns results.
+All chain agents can run either as sub-agents orchestrated by `session.start` or as primary agents invoked directly by the user (e.g., `session.execute` for Phase 2, `session.finalize` for Phase 3). In all modes, each agent runs preflight, does its scoped work, runs postflight, and returns results.
 
 ### session.start (orchestrator)
 - Run `session-start.sh`
@@ -351,20 +351,14 @@ invoke session.execute
 
 ```bash
 invoke session.start --maintenance "Reorder docs/ sections and update TOC"
-# → STOP (no planning phase)
-
-invoke session.execute
-# → execute → wrap → END (no branch, no PR)
+# → auto-chains: execute → wrap → END (no branch, no PR)
 ```
 
 ### Example 5: Read-only Audit
 
 ```bash
 invoke session.start --maintenance --read-only "Find files not referenced by any import"
-# → STOP
-
-invoke session.execute
-# → execute (report only, no commits) → wrap → END
+# → auto-chains: execute (report only, no commits) → wrap → END
 ```
 
 ### Example 6: Resuming After Interruption

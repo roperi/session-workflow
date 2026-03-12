@@ -124,8 +124,9 @@ invoke session.start --auto --copilot-review --issue 123   # with Copilot PR rev
 ```bash
 # Spike (exploration, no PR)
 invoke session.start --spike "Explore Redis caching"
+invoke session.execute  # execute + wrap to complete spike
 
-# Maintenance (small change, no branch/PR)
+# Maintenance (small change, no branch/PR — auto-chains execute + wrap)
 invoke session.start --maintenance "Reorder docs/"
 
 # Audit (read-only, no commits)

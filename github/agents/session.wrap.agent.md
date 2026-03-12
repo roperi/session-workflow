@@ -28,7 +28,7 @@ tools: ["*"]
 
 ⛔ **STOP HERE** until you receive script output. Do NOT proceed without it.
 
-**Note**: session.wrap is terminal — no postflight needed. The wrap script (`session-wrap.sh`) marks both the workflow step and session as completed.
+**Note**: session.wrap is terminal — `session-wrap.sh` marks both the workflow step and session as completed, so no separate postflight call is needed. This is the one exception to the shared-workflow.md rule that every agent runs postflight.
 
 ## User Input
 
