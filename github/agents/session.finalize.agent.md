@@ -19,6 +19,8 @@ tools: ["*"]
 
 **Actions**: Close issues, clean up branches, sync task status — nothing else.
 
+**Note**: When invoked directly by the user (not as a sub-agent), this agent also orchestrates Phase 3 by invoking session.wrap after finalize — see Handoff.
+
 ## User Input
 
 ```text
@@ -322,9 +324,30 @@ Phase X (#issue-number) complete. All Y tasks finished.
 .session/scripts/bash/session-postflight.sh --step finalize --json
 ```
 
-After postflight, **return your results** — issue closure status, task sync status, and branch cleanup status. The orchestrating agent (session.start) will invoke the next step.
+### Sub-agent Mode (invoked by session.start `--auto`)
 
-⛔ Do NOT invoke session.wrap or any other agent yourself.
+If your input (`$ARGUMENTS`) contains "Do NOT ask clarifying questions", you are running as a sub-agent:
+- **Return your results** — issue closure status, task sync status, and branch cleanup status
+- The orchestrating agent (session.start) will invoke the next step
+- ⛔ Do NOT invoke session.wrap or any other agent yourself
+
+### Direct Invocation Mode (user ran `invoke session.finalize`)
+
+If your input does NOT contain "Do NOT ask clarifying questions", you are the primary agent. Continue with **Phase 3 completion**:
+
+**wrap** — Invoke `session.wrap` agent (using the task tool with `agent_type`):
+```
+agent_type: "session.wrap"
+prompt: "Wrap session {session_id}. Dir: {session_dir}. Do NOT ask clarifying questions."
+```
+
+After wrap completes, output:
+```
+✅ Phase 3 (Completion) complete — session fully wrapped.
+
+Session: {session_id}
+Issues closed: #{N}
+```
 
 ## Usage
 
