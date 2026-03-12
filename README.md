@@ -1,91 +1,10 @@
 # Session Workflow
 
-**📝 Changelog**: [CHANGELOG.md](CHANGELOG.md)
+🤖 **Optimized for [GitHub Copilot CLI](https://docs.github.com/en/copilot)** — leverages Copilot's agent invocation, sub-agent orchestration, and code review tools. Works with all models available in Copilot CLI (GPT, Claude, Gemini).
 
-This is the single source of truth for session workflow documentation.
+📝 **Changelog**: [CHANGELOG.md](CHANGELOG.md)
 
-**Compatibility**:
-- ✅ Works with all models available in **GitHub Copilot CLI** — OpenAI (GPT series), Anthropic (Claude series), Google (Gemini series)
-- ⚠️ Other CLIs (Claude Code, Gemini CLI standalone) are unverified and may require adjustments
-
-**Spec-kit support**:
-- ✅ Integrates with **GitHub Spec Kit** specs and tasks  
-  https://github.com/github/spec-kit
-
----
-
-## SDD Positioning
-
-Session-workflow implements a lightweight **Specification-Driven Development (SDD)** process — inspired by [GitHub Spec Kit](https://github.com/github/spec-kit) but designed to work standalone.
-
-### Standalone (Personal / Small Projects)
-
-Session-workflow on its own gives you a structured development loop:
-
-- `session.scope` → define problem boundaries and success criteria
-- `session.spec` → write acceptance criteria and verification contracts
-- `session.plan` → create implementation plan from the spec
-- `session.task` → generate task breakdown
-- `session.execute` → TDD implementation
-- `session.validate` → automated quality gates
-
-All artifacts live in `.session/sessions/` — no external tooling required.
-
-### With Spec Kit (Teams / Enterprise)
-
-When used with `--spec <feature>`, session-workflow maps its steps into Spec Kit's `specs/<feature>/` structure:
-
-| Artifact | Standalone path | Speckit path |
-|----------|----------------|--------------|
-| Scope | `{session_dir}/scope.md` | `specs/{feature}/scope.md` |
-| Spec | `{session_dir}/spec.md` | `specs/{feature}/spec.md` |
-| Plan | `{session_dir}/plan.md` | `specs/{feature}/plan.md` (reference) |
-| Tasks | `{session_dir}/tasks.md` | `specs/{feature}/tasks.md` |
-
-This lets teams use Spec Kit's review and governance workflow while keeping session-workflow's agent chain for implementation.
-
-### When to Use Which
-
-| Scenario | Recommendation |
-|----------|---------------|
-| Solo developer, quick iteration | Session-workflow standalone |
-| Small team, informal process | Session-workflow standalone |
-| Team with formal spec review | Session-workflow + Spec Kit |
-| Enterprise governance requirements | Session-workflow + Spec Kit |
-| Research / spike | Session-workflow standalone (spike workflow) |
-
-### SDD Alignment: Session-Workflow ↔ Spec Kit Commands
-
-| Spec Kit Command | Session-Workflow Equivalent | Notes |
-|---|---|---|
-| `/speckit.constitution` | `constitution-summary.md` (project-context) | Quality standards and conventions |
-| `/speckit.specify` | `session.scope` + `session.spec` | Split into boundary-setting and acceptance criteria |
-| `/speckit.clarify` | `session.clarify` (optional) | Requirements disambiguation |
-| `/speckit.plan` | `session.plan` | Implementation approach and architecture |
-| `/speckit.tasks` | `session.task` | Task breakdown with dependencies |
-| `/speckit.implement` | `session.execute` | TDD implementation loop |
-| `/speckit.analyze` | `session.analyze` (optional) | Cross-artifact consistency check |
-
----
-
-## Table of Contents
-
-1. [Overview](#overview)
-2. [SDD Positioning](#sdd-positioning)
-3. [Installation](#installation)
-4. [Updating](#updating)
-5. [Quick Start](#quick-start)
-6. [Workflow Types](#workflow-types)
-7. [Project Stages](#project-stages)
-8. [Agent Chain](#agent-chain)
-9. [Agent Responsibilities](#agent-responsibilities)
-10. [Optional Quality Agents](#optional-quality-agents)
-11. [Arguments](#arguments)
-12. [Workflow Examples](#workflow-examples)
-13. [Session Lifecycle](#session-lifecycle)
-14. [Testing](#testing)
-15. [File Structure](#file-structure)
-16. [Troubleshooting](#troubleshooting)
+> ⚠️ Other CLIs (Claude Code, Gemini CLI standalone) are unverified and may require adjustments.
 
 ---
 
@@ -93,24 +12,27 @@ This lets teams use Spec Kit's review and governance workflow while keeping sess
 
 When AI context windows reset, work continuity is lost. Session workflow solves this with:
 
-1. **Session tracking** - What's in progress, what's done
-2. **Handoff notes** - Context for the next AI session
-3. **Agent chain** - Automated workflow orchestrated by session.start
-4. **Git hygiene** - Ensures clean state before session ends
+1. **Session tracking** — What's in progress, what's done
+2. **Handoff notes** — Context for the next AI session
+3. **Agent chain** — Structured workflow from scoping to delivery
+4. **Git hygiene** — Ensures clean state before session ends
 
 **Agent Chain**: `start → scope → spec → plan → task → execute → validate → publish → finalize → wrap`
 
-**Orchestration**: `session.start` orchestrates the entire chain automatically — invoke it once and it runs all steps through to completion.
+**Orchestration modes**:
+- **Default**: `session.start` runs Phase 1 (Planning) then stops — review artifacts, run quality agents, then continue with `session.execute`
+- **Auto** (`--auto`): Full end-to-end chain in one shot
+- **Copilot review** (`--auto --copilot-review`): Auto chain with Copilot PR review before merge
 
-**Optional knowledge agents** (version-controlled docs):
-- `session.brainstorm` → writes to `{session_dir}/brainstorm.md` (clarify WHAT/WHY before planning)
-- `session.compound` → writes to `docs/solutions/` (capture reusable learnings after solving)
+> **GitHub ecosystem integration**: `session.start` uses Copilot CLI's task tool for sub-agent orchestration and optionally uses `request_copilot_review` for automated PR reviews. See [Copilot CLI Mechanics](session/docs/copilot-cli-mechanics.md) for internals.
+
+**Spec Kit support**: Integrates with [GitHub Spec Kit](https://github.com/github/spec-kit) — see [SDD Positioning](session/docs/reference.md#sdd-positioning) for details.
 
 ---
 
 ## Installation
 
-> **⚠️ Security Note**: The one-liner below pipes a remote script directly into bash without review.  
+> **⚠️ Security Note**: The one-liner below pipes a remote script directly into bash without review.
 > For production or shared environments, prefer the **download-inspect-run** method or pin to a
 > specific release tag with `--version vX.Y.Z`:
 >
@@ -172,45 +94,46 @@ bash update.sh --version v2.5.0
 
 ## Quick Start
 
-**Pick a workflow:**
-
-```
-Will this produce a PR?
-├─ Yes → invoke session.start --issue 123        (development — full chain)
-├─ Maybe / exploring → invoke session.start --spike "Research caching"
-├─ Small change, no PR → invoke session.start --maintenance "Reorder docs/"
-└─ Read-only audit → invoke session.start --maintenance --read-only "Find stale files"
-
-Not sure what to build yet? → invoke session.brainstorm first, then session.start
-```
+**Default (3-phase, with control points):**
 
 ```bash
-# Development workflow (full chain → PR)
+# Phase 1: Planning (scope, spec, plan, tasks)
 invoke session.start --issue 123
-invoke session.start "Fix performance bug"
 
+# Review artifacts, optionally run quality agents:
+#   invoke session.clarify / invoke session.analyze / invoke session.checklist
+
+# Phase 2: Implementation (execute, validate, publish PR)
+invoke session.execute
+
+# Review and merge the PR, then:
+
+# Phase 3: Completion (finalize, wrap)
+invoke session.finalize
+```
+
+**Auto mode (all phases in one shot):**
+
+```bash
+invoke session.start --auto --issue 123
+invoke session.start --auto --copilot-review --issue 123   # with Copilot PR review
+```
+
+**Other workflows:**
+
+```bash
 # Spike (exploration, no PR)
 invoke session.start --spike "Explore Redis caching"
 
-# Maintenance (small change or housekeeping, no PR)
-invoke session.start --maintenance "Reorder docs/ and update TOC"
-invoke session.start --maintenance "Remove stray .DS_Store files"
+# Maintenance (small change, no branch/PR)
+invoke session.start --maintenance "Reorder docs/"
 
 # Audit (read-only, no commits)
-invoke session.start --maintenance --read-only "Find files not referenced in any import"
+invoke session.start --maintenance --read-only "Find stale files"
 
 # Resume interrupted work
 invoke session.start --resume
-invoke session.execute --resume --comment "Continue from task 5"
-
-# After PR merged
-invoke session.finalize
-
-# End session
-invoke session.wrap
 ```
-
-**Note**: When consuming preflight or session-start JSON, use `repo_root` to resolve repo paths.
 
 ---
 
@@ -220,10 +143,7 @@ invoke session.wrap
 
 **Chain**: `start → scope → spec → plan → task → execute → validate → publish → [review + merge] → finalize → wrap`
 
-Use for:
-- Feature development
-- Bug fixes
-- Work that needs PR review
+Use for feature development, bug fixes, and work that needs PR review.
 
 ```bash
 invoke session.start --issue 123
@@ -234,106 +154,26 @@ invoke session.start "Add caching layer"
 
 **Chain**: `start → scope → plan → task → execute → wrap`
 
-Use for:
-- Research and exploration
-- Prototypes
-- Work that may be discarded
+Use for research, prototypes, and exploratory work. Includes planning but skips PR steps.
 
 ```bash
 invoke session.start --spike "Benchmark Redis vs Memcached"
 ```
 
-**Note**: Spike still includes planning and task generation - it only skips PR steps (validate, publish, finalize).
-
 ### 3. Maintenance
 
 **Chain**: `start → execute → wrap`
 
-Use for:
-- Documentation updates, reordering, or cleanup
-- Small housekeeping tasks (remove files, rename, reformat)
-- Work that doesn't warrant a branch or PR
+Use for docs cleanup, small housekeeping. No branch, no PR, no planning.
 
 ```bash
-invoke session.start --maintenance "Reorder docs/ and update TOC"
-invoke session.start --maintenance "Remove stray .DS_Store and build artifacts"
-```
-
-No branch is created by default; work happens on the current branch.  
-Skips planning and validation — go straight from start to execute.
-
-#### Read-only / Audit mode
-
-Add `--read-only` to prevent any commits or file modifications.  
-The session produces a report file instead of committing changes.
-
-```bash
-invoke session.start --maintenance --read-only "Audit files not referenced by any import"
-invoke session.start --maintenance --read-only "Find TODO comments older than 6 months"
-```
-
----
-
-## Project Stages
-
-The `--stage` flag controls validation strictness and documentation requirements.
-
-| Stage | Constitution | Technical Context | Validation | Use Case |
-|-------|--------------|-------------------|------------|----------|
-| **poc** | Optional | Optional | Relaxed (warnings) | PoCs, spikes, early exploration |
-| **mvp** | Required (brief OK) | Required (partial OK) | Standard | First working version, core features |
-| **production** | Required (full) | Required (complete) | Strict (default) | Production-ready, full quality gates |
-
-### Usage
-
-```bash
-# PoC: PoC work, don't know the stack yet
-invoke session.start --stage poc "Prototype auth flow"
-
-# MVP: Building first version, core requirements defined
-invoke session.start --stage mvp --issue 123
-
-# Production: Full quality (default, flag optional)
-invoke session.start --issue 456
-invoke session.start --stage production --issue 456
-```
-
-### Stage Behavior
-
-**poc** (Proof of Concept):
-- Constitution/technical-context files can be empty stubs
-- Validation reports warnings but never blocks
-- Simple task checklists OK (no user stories required)
-- WIP commits allowed
-
-**mvp** (Minimum Viable Product):
-- Core sections of constitution/technical-context required
-- Validation fails on errors, warns on style issues
-- User stories encouraged but not enforced
-- Standard commit messages
-
-**production** (default):
-- Full constitution and technical-context required
-- All validation checks must pass
-- Full task structure with dependencies
-- Conventional commits required
-
-### Upgrading Stage
-
-As your project matures, upgrade the stage:
-```bash
-# Started as PoC, now building MVP
-invoke session.start --stage mvp --issue 123
-
-# MVP proven, now going to production
-invoke session.start --stage production --issue 456
+invoke session.start --maintenance "Reorder docs/"
+invoke session.start --maintenance --read-only "Find stale files"  # audit mode
 ```
 
 ---
 
 ## Agent Chain
-
-`session.start` orchestrates the entire chain — invoke it once and it runs all steps as sub-agents:
 
 ```
 ┌──────────┐    ┌──────────┐    ┌──────────┐    ┌──────────┐    ┌──────────┐
@@ -360,322 +200,27 @@ invoke session.start --stage production --issue 456
                                                  └──────────┘
 ```
 
-**Development workflow** uses the full chain (10 steps + review cycle).
+Each step is invoked as a sub-agent with its own context and instructions. State is tracked via preflight/postflight scripts.
 
-**Spike workflow** uses: `start → scope → plan → task → execute → wrap` (skips spec, validate, publish, finalize)
+**Optional quality agents** (invoke between phases): `session.clarify`, `session.analyze`, `session.checklist`
 
-**Maintenance workflow** uses: `start → execute → wrap` (skips planning and PR steps)
-
-Each step is invoked as a sub-agent by session.start with its own context and instructions. Steps track state via preflight/postflight scripts.
-
----
-
-## Agent Responsibilities
-
-All chain agents are invoked as sub-agents by `session.start`. Each agent runs preflight, does its scoped work, runs postflight, and returns results.
-
-### session.start (orchestrator)
-- Run `session-start.sh`
-- Load project context
-- Create feature branch
-- Orchestrate the full chain: invoke each step agent in sequence
-- Handle Copilot review cycle (request review, address comments, merge PR)
-
-### session.scope
-- Define problem boundaries and success criteria
-- Interactive dialogue to clarify what's in/out of scope
-- Writes `{session_dir}/scope.md` (or `specs/{feature}/scope.md` for speckit sessions)
-
-### session.spec
-- Define detailed specification with acceptance criteria
-- Derives user stories from scope, defines Given/When/Then criteria
-- Identifies edge cases, error scenarios, and non-functional requirements
-- Marks ambiguities with `[NEEDS CLARIFICATION]`
-- Writes `{session_dir}/spec.md` (or `specs/{feature}/spec.md` for speckit sessions)
-- **Only for**: development workflow (skipped in spike)
-
-### session.plan
-- Create implementation plan and approach
-- Analyze requirements and identify components
-- Or reference existing Speckit plan
-
-### session.task
-- Generate detailed task breakdown
-- Organize by user story with priorities
-- Add parallelization markers [P] and dependencies
-- Use tasks-template.md structure
-
-### session.execute
-- Single-task focus
-- TDD: test → implement → verify
-- Commit after each task
-
-### session.validate
-- Run lint, tests
-- Check git state
-- Verify spec acceptance criteria
-- Offer fixes if failures
-- **Stage-aware**: poc=warnings only, mvp=standard, production=strict
-- **Only for**: development workflow
-
-### session.publish
-- Create or update PR
-- Link issues
-- **Only for**: development workflow
-
-### session.finalize
-- Validate PR is merged
-- Close issues
-- Update parent issues
-- **Only for**: development workflow
-
-### session.wrap
-- Update session notes
-- Update CHANGELOG.md
-- Clean up merged branches
-- Mark session complete
-
----
-
-## Optional Agents
-
-These agents are **not part of the main workflow chain**.
-
-### Knowledge Capture Agents
-
-These create **version-controlled** artifacts under `docs/`.
-
-### session.brainstorm
-- Clarify **WHAT/WHY** and explore 2-3 approaches
-- Captures decisions + open questions in `{session_dir}/brainstorm.md`
-- **Best used**: After `session.start`, before `session.plan` — when you're unsure what to build
-- **Skip if**: you already know what you want to do; just `session.plan` directly
-
-### session.compound
-- Capture solved problems as reusable solution docs in `docs/solutions/`
-- Focus: symptoms → root cause → fix → prevention
-- **Best used**: After a meaningful solution/decision, often near the end of a session
-
-### Quality Agents
-
-Use these for requirements hygiene and consistency checks at any time.
-
-### session.clarify
-- Ask up to 5 targeted questions to reduce ambiguity
-- Records clarifications in session notes
-- **Best used**: Before `session.task` when requirements are vague
-- **Inspired by**: Speckit's `/speckit.clarify`
-
-### session.analyze
-- Cross-artifact consistency and coverage analysis
-- **STRICTLY READ-ONLY** - produces report only
-- **Best used**: After `session.task`, before `session.execute`
-- **Inspired by**: Speckit's `/speckit.analyze`
-
-### session.checklist
-- Generate requirements quality checklists ("unit tests for English")
-- Domain-specific: UX, API, security, performance
-- **Best used**: Before implementation or PR review
-- **Inspired by**: Speckit's `/speckit.checklist`
-
-**Usage patterns:**
-
-Quality (requirements hygiene):
-```
-start → [scope?] → [spec?] → plan → [clarify?] → task → [analyze?] → [checklist?] → execute → ...
-           ↑           ↑                 ↑                    ↑              ↑
-        boundaries  acceptance    Optional quality checks (reduce downstream rework)
-```
-
-Knowledge capture (compounding docs):
-```
-start → [brainstorm?] → [scope?] → [spec?] → plan → task → execute → ... → wrap → [compound?]
-             ↑              ↑           ↑                                              ↑
-       clarify WHAT/WHY  boundaries  acceptance                                 capture learnings
-```
-
----
-
-## Arguments
-
-### session.start
-
-```bash
-# Session types
-invoke session.start --issue 123           # GitHub issue
-invoke session.start --spec 001-feature    # Speckit feature
-invoke session.start "Fix the bug"         # Unstructured (goal as positional arg)
-
-# Workflow selection
-invoke session.start --spike "Research"          # Spike workflow (explore, no PR)
-invoke session.start --maintenance "Reorder docs/" # Maintenance workflow (small tasks, no branch/PR)
-
-# Modifiers
-invoke session.start --maintenance --read-only "Audit stale files"  # No commits, report only
-invoke session.start --stage poc "Prototype auth"                   # Relaxed validation
-
-# Resume
-invoke session.start --resume
-invoke session.start --resume --comment "Continue from task 5"
-```
-
-### All agents
-
-- `--comment "text"` - Provide specific instructions
-- `--resume` - Continue from where you left off
-- `--force` - Skip workflow validation (use with caution)
-
-**Support matrix:**
-
-| Agent | --comment | --resume |
-|-------|-----------|----------|
-| session.start | ✅ | ✅ |
-| session.plan | ✅ | ✅ |
-| session.task | ✅ | ✅ |
-| session.execute | ✅ | ✅ |
-| session.validate | ✅ | ⚠️ (re-runs failed only) |
-| session.publish | ✅ | ✅ |
-| session.finalize | ✅ | N/A |
-| session.wrap | ✅ | N/A |
-
----
-
-## Workflow Examples
-
-### Example 1: Bug Fix (Development)
-
-```bash
-# Single invocation — session.start orchestrates the entire chain
-invoke session.start --issue 456
-# → scope → spec → plan → task → execute → validate → publish
-# → Copilot review → merge → finalize → wrap
-```
-
-### Example 2: Research (Spike)
-
-```bash
-invoke session.start --spike "Research WebSocket vs SSE"
-# → scope → plan → task → execute → wrap
-```
-
-### Example 3: Docs Housekeeping (Maintenance)
-
-```bash
-invoke session.start --maintenance "Reorder docs/ sections and update TOC"
-# → execute → wrap (no planning, no branch, no PR)
-```
-
-### Example 4: Read-only Audit (Maintenance + read-only)
-
-```bash
-invoke session.start --maintenance --read-only "Find files not referenced by any import"
-# → execute (report only, no commits) → wrap
-```
-
-### Example 5: Resuming After Interruption
-
-```bash
-invoke session.start --resume
-# Resumes from the last completed step in the chain
-```
-
----
-
-## Session Lifecycle
-
-### Start
-Creates:
-- `session-info.json` - Metadata
-- `state.json` - Progress tracking (with `step_history[]`)
-- `notes.md` - Handoff notes
-
-### Planning Phase (automated)
-Creates:
-- `scope.md` - Problem boundaries and success criteria
-- `spec.md` - Acceptance criteria and user stories (development only)
-- `plan.md` - Implementation approach
-- `tasks.md` - Task checklist
-
-### Implementation Phase (automated)
-Updates:
-- `tasks.md` - Mark completed: `[ ]` → `[x]`
-- `notes.md` - Key decisions, blockers
-- `validation-results.json` - Quality gate results
-- `pr-summary.md` - PR description
-
-### Wrap
-- Updates CHANGELOG.md
-- Commits documentation
-- Cleans merged branches
-- Clears ACTIVE_SESSION
+**Knowledge capture agents**: `session.brainstorm`, `session.compound`
 
 ---
 
 ## Testing
 
-Session-workflow has both deterministic parts (bash scripts) and non-deterministic parts (LLM output). Our test suite focuses on the deterministic core so it is safe and stable to run in CI.
-
-### Run locally
+Session-workflow has both deterministic parts (bash scripts) and non-deterministic parts (LLM output). The test suite focuses on the deterministic core.
 
 ```bash
-bash tests/run.sh
+bash tests/run.sh                          # run tests
+TEST_VERBOSE=1 bash tests/run.sh           # verbose output
+TEST_KEEP_TMP=1 bash tests/run.sh          # keep temp repo for debugging
 ```
 
 Requires: `bash`, `git`, `jq`.
 
-Optional:
-
-```bash
-TEST_VERBOSE=1 bash tests/run.sh   # prints step-by-step + JSON
-TEST_KEEP_TMP=1 bash tests/run.sh  # keeps the temp repo and prints its path
-```
-
-### What we test
-
-- `session-start.sh --json`: JSON contract (including deterministic `repo_root`) and session file creation
-- `session-preflight.sh --json`: workflow gating (detects interrupted sessions and returns exit code `2`)
-- `session-wrap.sh --json`: clears `.session/ACTIVE_SESSION`
-- `session-cleanup.sh --json`: errant file/dir removal (misplaced session dirs, unknown root files, orphaned files, empty dirs)
-
-### Why we test this (and not the LLM)
-
-We intentionally do not invoke Copilot/LLMs in CI because that would be flaky (model/prompt drift) and typically requires unsafe permissions (paths/tools/URLs). These tests validate the stable “plumbing” that all agents depend on.
-
----
-
-## File Structure
-
-```
-.session/
-├── ACTIVE_SESSION              # Current session ID
-├── project-context/
-│   ├── constitution-summary.md # Quality standards
-│   └── technical-context.md    # Stack, commands
-├── scripts/bash/
-│   ├── session-common.sh
-│   ├── session-start.sh
-│   ├── session-wrap.sh
-│   ├── session-cleanup.sh
-│   └── ...
-├── templates/
-│   └── session-notes.md
-├── sessions/
-│   └── YYYY-MM-DD-N/
-│       ├── session-info.json
-│       ├── state.json
-│       ├── notes.md
-│       └── tasks.md
-└── docs/
-    ├── README.md
-    ├── testing.md
-    └── shared-workflow.md
-
-.github/
-├── agents/
-│   └── session.*.agent.md
-└── prompts/
-    └── session.*.prompt.md
-```
+**What we test**: `session-start.sh`, `session-preflight.sh`, `session-wrap.sh`, `session-cleanup.sh` — JSON contracts, workflow gating, state transitions, and file management.
 
 ---
 
@@ -716,10 +261,22 @@ Run: session.validate --resume
 ```
 
 **Recovery:**
-```
+```bash
 # Resume the interrupted step
 invoke session.[step] --resume
 
 # Or force skip (may cause data loss)
 invoke session.[next-step] --force
 ```
+
+---
+
+## Reference
+
+For detailed documentation:
+
+- **[Reference Guide](session/docs/reference.md)** — Agent responsibilities, arguments, project stages, lifecycle, file structure, workflow examples, SDD positioning
+- **[Copilot CLI Mechanics](session/docs/copilot-cli-mechanics.md)** — How the orchestration works under the hood
+- **[Shared Workflow Rules](session/docs/shared-workflow.md)** — State machine, scope boundaries, stage behavior
+- **[Schema Versioning](session/docs/schema-versioning.md)** — JSON schema for session-info.json and state.json
+- **[Testing Guide](session/docs/testing.md)** — Manual test cases and edge coverage
