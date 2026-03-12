@@ -567,6 +567,14 @@ SPECMD
   [[ "$post_wrap_count" -ge 5 ]] || fail "step_history should be preserved after wrap (got $post_wrap_count entries)"
   assert_eq "completed" "$(jq -r '.status' "$sh_dir/state.json")" "session should be completed"
 
+  # 29) wrap step should be marked completed (not stuck in_progress)
+  log "29) wrap step marked completed in state.json"
+  assert_eq "completed" "$(jq -r '.step_status' "$sh_dir/state.json")" "wrap step_status should be completed"
+  assert_eq "wrap" "$(jq -r '.current_step' "$sh_dir/state.json")" "current_step should be wrap"
+  local wrap_history_status
+  wrap_history_status=$(jq -r '[.step_history[] | select(.step == "wrap")] | last | .status' "$sh_dir/state.json")
+  assert_eq "completed" "$wrap_history_status" "wrap step_history entry should be completed"
+
   log "All step history tests passed."
 
   # === Postflight Tests ===

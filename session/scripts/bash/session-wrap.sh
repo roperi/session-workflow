@@ -305,7 +305,18 @@ main() {
     local warnings
     warnings=$(check_session_readiness "$active_session")
     
-    # Update state and clear sentinel
+    # Mark workflow step completed, update state, and clear sentinel
+    # Ensure wrap is tracked in step_history (handles direct calls without preflight)
+    local session_dir
+    session_dir=$(get_session_dir "$active_session")
+    local current_step_status
+    current_step_status=$(jq -r '.step_status // "none"' "${session_dir}/state.json" 2>/dev/null || echo "none")
+    local current_step
+    current_step=$(jq -r '.current_step // "none"' "${session_dir}/state.json" 2>/dev/null || echo "none")
+    if [[ "$current_step" != "wrap" || "$current_step_status" != "in_progress" ]]; then
+        set_workflow_step "$active_session" "wrap" "in_progress" >/dev/null
+    fi
+    set_workflow_step "$active_session" "wrap" "completed" >/dev/null
     update_session_state "$active_session"
     clear_active_session
     
