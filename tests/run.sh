@@ -722,6 +722,32 @@ SPECMD
   ./.session/scripts/bash/session-wrap.sh --json >/dev/null
 
   log "All postflight tests passed."
+
+  # === session-start orchestration flag compatibility tests ===
+
+  # 38) session-start accepts --auto without error
+  log "38) session-start accepts --auto"
+  local start_auto_json auto_session_id
+  start_auto_json=$(./.session/scripts/bash/session-start.sh --json --auto "Auto compatibility test")
+  assert_eq "ok" "$(echo "$start_auto_json" | jq -r '.status')" "session-start should accept --auto"
+  assert_eq "true" "$(echo "$start_auto_json" | jq -r '.orchestration.auto')" "orchestration.auto should be true"
+  assert_eq "false" "$(echo "$start_auto_json" | jq -r '.orchestration.copilot_review')" "copilot_review should default to false"
+  auto_session_id=$(echo "$start_auto_json" | jq -r '.session.id')
+  set_workflow_step "$auto_session_id" "execute" "completed" >/dev/null
+  ./.session/scripts/bash/session-wrap.sh --json >/dev/null
+
+  # 39) session-start accepts --auto --copilot-review without error
+  log "39) session-start accepts --auto --copilot-review"
+  local start_auto_review_json auto_review_session_id
+  start_auto_review_json=$(./.session/scripts/bash/session-start.sh --json --auto --copilot-review "Auto review compatibility test")
+  assert_eq "ok" "$(echo "$start_auto_review_json" | jq -r '.status')" "session-start should accept --auto --copilot-review"
+  assert_eq "true" "$(echo "$start_auto_review_json" | jq -r '.orchestration.auto')" "orchestration.auto should be true with review"
+  assert_eq "true" "$(echo "$start_auto_review_json" | jq -r '.orchestration.copilot_review')" "copilot_review should be true"
+  auto_review_session_id=$(echo "$start_auto_review_json" | jq -r '.session.id')
+  set_workflow_step "$auto_review_session_id" "execute" "completed" >/dev/null
+  ./.session/scripts/bash/session-wrap.sh --json >/dev/null
+
+  log "All session-start orchestration flag tests passed."
 }
 
 main "$@"
