@@ -72,6 +72,9 @@ SESSION_DIR=$(get_session_dir "$SESSION_ID")
 PR_URL_FILE="${SESSION_DIR}/pr_url.txt"
 if [ ! -f "$PR_URL_FILE" ]; then
     echo "❌ No PR URL found — was session.publish run?"
+    # Mark step as failed so workflow isn't stuck in_progress
+    .session/scripts/bash/session-postflight.sh --step review --status failed --json
+    # Return error to orchestrator
     exit 1
 fi
 PR_URL=$(cat "$PR_URL_FILE")

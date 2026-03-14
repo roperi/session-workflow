@@ -668,7 +668,7 @@ SPECMD
   # Wrap chain test session
   ./.session/scripts/bash/session-wrap.sh --json >/dev/null
 
-  # 35) publish → review transition
+  # 36) publish → review transition
   log "36) publish → review transition"
 
   ./.session/scripts/bash/session-wrap.sh --json >/dev/null 2>&1 || true
@@ -686,8 +686,7 @@ SPECMD
   assert_eq "publish" "$(jq -r '.current_step' "$rev_dir/state.json")" "current step should be publish"
 
   # Transition to review should succeed
-  local review_preflight_json
-  review_preflight_json=$(./.session/scripts/bash/session-preflight.sh --step review --json)
+  ./.session/scripts/bash/session-preflight.sh --step review --json >/dev/null
   assert_eq "review" "$(jq -r '.current_step' "$rev_dir/state.json")" "current step should be review"
   assert_eq "in_progress" "$(jq -r '.step_status' "$rev_dir/state.json")" "review should be in_progress"
 
@@ -699,7 +698,7 @@ SPECMD
   review_next_steps=$(echo "$review_postflight_json" | jq -r '.valid_next_steps[]')
   assert_eq "finalize" "$review_next_steps" "review's valid next step should be finalize"
 
-  # 36) publish → finalize transition (skip review, backward compatibility)
+  # 37) publish → finalize transition (skip review, backward compatibility)
   log "37) publish → finalize transition (skip review)"
 
   # Rewind to publish completed state (we need to start fresh)

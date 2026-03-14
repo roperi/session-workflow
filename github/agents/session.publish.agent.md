@@ -13,6 +13,7 @@ tools: ["*"]
 
 **This agent ONLY creates/updates the pull request. It does NOT:**
 - ❌ Review the PR (that's `session.review`)
+- ❌ Merge the PR (the orchestrator handles merge after review)
 - ❌ Close issues (that's `session.finalize`)
 - ❌ Write session documentation (that's `session.wrap`)
 - ❌ Run validation checks (that's `session.validate`)
