@@ -17,12 +17,12 @@ When AI context windows reset, work continuity is lost. Session workflow solves 
 3. **Agent chain** — Structured workflow from scoping to delivery
 4. **Git hygiene** — Ensures clean state before session ends
 
-**Agent Chain**: `start → scope → spec → plan → task → execute → validate → publish → finalize → wrap`
+**Agent Chain**: `start → scope → spec → plan → task → execute → validate → publish → review → finalize → wrap`
 
 **Orchestration modes**:
 - **Default**: `session.start` runs Phase 1 (Planning) then stops — review artifacts, run quality agents, then continue with `session.execute`. Maintenance always auto-chains (no planning to review).
 - **Auto** (`--auto`): Full end-to-end chain in one shot
-- **Copilot review** (`--auto --copilot-review`): Auto chain with Copilot PR review before merge
+- **Copilot review** (`--auto --copilot-review`): Auto chain with dedicated `session.review` agent for Copilot PR review before merge
 
 > **GitHub ecosystem integration**: `session.start` uses Copilot CLI's task tool for sub-agent orchestration and optionally uses `request_copilot_review` for automated PR reviews. See [Copilot CLI Mechanics](session/docs/copilot-cli-mechanics.md) for internals.
 
@@ -142,7 +142,7 @@ invoke session.start --resume
 
 ### 1. Development (default)
 
-**Chain**: `start → scope → spec → plan → task → execute → validate → publish → [review + merge] → finalize → wrap`
+**Chain**: `start → scope → spec → plan → task → execute → validate → publish → [review] → merge → finalize → wrap`
 
 Use for feature development, bug fixes, and work that needs PR review.
 

@@ -230,7 +230,8 @@ declare -A WORKFLOW_TRANSITIONS=(
     ["task"]="execute"
     ["execute"]="validate execute wrap"
     ["validate"]="publish execute"
-    ["publish"]="finalize"
+    ["publish"]="review finalize"
+    ["review"]="finalize"
     ["finalize"]="wrap"
     ["wrap"]=""
 )

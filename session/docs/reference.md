@@ -78,8 +78,8 @@ All chain agents can run either as sub-agents orchestrated by `session.start` or
 - Load project context
 - Create feature branch
 - **Default mode**: Orchestrate Phase 1 (Planning) — scope → spec → plan → task — then stop
-- **Auto mode** (`--auto`): Orchestrate the full chain including review cycle and merge
-- **Copilot review** (`--auto --copilot-review`): Auto chain + request Copilot PR review before merge
+- **Auto mode** (`--auto`): Orchestrate the full chain including review and merge
+- **Copilot review** (`--auto --copilot-review`): Auto chain + dedicated `session.review` agent for Copilot PR review before merge
 
 ### session.scope
 - Define problem boundaries and success criteria
@@ -109,7 +109,7 @@ All chain agents can run either as sub-agents orchestrated by `session.start` or
 - Single-task focus
 - TDD: test → implement → verify
 - Commit after each task
-- **When invoked directly**: Orchestrates Phase 2 (validate → publish for development; wrap for spike/maintenance)
+- **When invoked directly**: Orchestrates Phase 2 (validate → publish → review for development; wrap for spike/maintenance)
 
 ### session.validate
 - Run lint, tests
@@ -122,6 +122,14 @@ All chain agents can run either as sub-agents orchestrated by `session.start` or
 ### session.publish
 - Create or update PR
 - Link issues
+- **Only for**: development workflow
+
+### session.review
+- Request code review (default: GitHub Copilot Review)
+- Read and address review comments
+- Push follow-up fixes and re-request review
+- Iterate until review is clean (configurable max rounds)
+- Overridable: replace with a custom review agent
 - **Only for**: development workflow
 
 ### session.finalize
@@ -298,6 +306,7 @@ invoke session.start --resume --comment "Continue from task 5"
 | session.execute | ✅ | ✅ |
 | session.validate | ✅ | ⚠️ (re-runs failed only) |
 | session.publish | ✅ | ✅ |
+| session.review | ✅ | ✅ |
 | session.finalize | ✅ | N/A |
 | session.wrap | ✅ | N/A |
 
@@ -316,9 +325,9 @@ invoke session.start --issue 456
 
 # Phase 2: Implementation
 invoke session.execute
-# → execute → validate → publish → STOP
+# → execute → validate → publish → review → STOP
 
-# (review and merge the PR)
+# (merge the PR)
 
 # Phase 3: Completion
 invoke session.finalize
@@ -334,7 +343,7 @@ invoke session.start --auto --issue 456
 
 # With Copilot PR review
 invoke session.start --auto --copilot-review --issue 456
-# → ... → publish → Copilot review → address comments → merge → finalize → wrap
+# → ... → publish → review → merge → finalize → wrap
 ```
 
 ### Example 3: Research (Spike)

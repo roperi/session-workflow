@@ -4,6 +4,8 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+- **NEW (#54)**: Dedicated `session.review` agent — review is now a first-class workflow step instead of inline logic in `session.start`; default implementation uses GitHub Copilot Review (`request_copilot_review`); review agent handles the full review loop (request → wait → read comments → fix → push → re-request); overridable by replacing `session.review.agent.md` with a custom review agent; `WORKFLOW_TRANSITIONS` updated with `publish → review` and `review → finalize`; backward compatible (review can be skipped: `publish → finalize`); `session.execute` Phase 2 chain updated to include review step; development workflow is now 11-agent chain
+
 - **FIX (#53)**: Wrap step stuck `in_progress` — `session-wrap.sh` now calls `set_workflow_step()` to mark wrap as completed in `state.json`; added test 29 for regression coverage
 - **CHANGE (#53)**: Auto-chaining and Copilot review now opt-in — default mode runs Phase 1 (Planning: scope → spec → plan → task) then stops; `--auto` flag runs full chain; `--auto --copilot-review` adds PR review; `session.execute` and `session.finalize` agents updated with Phase 2/3 orchestration for direct invocation
 - **CHANGE (#53)**: Maintenance workflow always auto-chains — no planning phase to review, so maintenance runs execute → wrap regardless of `--auto` flag
