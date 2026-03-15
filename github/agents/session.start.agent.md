@@ -377,6 +377,8 @@ agent_type: "session.review"
 prompt: "Review PR #{pr_number} for issue #{N}. Session: {session_id}, dir: {session_dir}, repo: {owner/repo}. Do NOT ask clarifying questions."
 ```
 
+If `session.review` reports unresolved items, stop and surface them for manual attention. Do **not** auto-merge in that case.
+
 **If `--copilot-review` was NOT specified:**
 - Skip the review step.
 

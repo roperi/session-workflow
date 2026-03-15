@@ -127,8 +127,9 @@ All chain agents can run either as sub-agents orchestrated by `session.start` or
 ### session.review
 - Request code review (default: GitHub Copilot Review)
 - Read and address review comments
-- Push follow-up fixes and re-request review
-- Iterate until review is clean (configurable max rounds)
+- Push follow-up fixes
+- Post one final PR comment summarizing what was addressed
+- Do not automatically re-request review
 - Overridable: replace with a custom review agent
 - **Only for**: development workflow
 

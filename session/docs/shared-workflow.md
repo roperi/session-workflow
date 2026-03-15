@@ -137,7 +137,7 @@ These are concrete violations that agents commonly make:
 |-------|-------|-----------------|
 | **Planning** | scope → spec → plan → task | `session.start` (via sub-agents) |
 | **Implementation** | execute → validate → publish | `session.start` (via sub-agents) |
-| **Review** | review (request review → address comments → iterate) | `session.start` (via `session.review` sub-agent) |
+| **Review** | review (request review → address comments → summarize fixes) | `session.start` (via `session.review` sub-agent) |
 | **Merge** | merge PR, clean up branches | `session.start` (directly) |
 | **Completion** | finalize → wrap | `session.start` (via sub-agents) |
 
