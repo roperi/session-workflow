@@ -9,6 +9,7 @@ set -euo pipefail
 # ============================================================================
 
 REPO_URL="https://raw.githubusercontent.com/roperi/session-workflow/main"
+SOURCE_DIR="${SESSION_WORKFLOW_SOURCE_DIR:-}"
 VERSION="2.6.0"
 DRY_RUN=false
 
@@ -30,16 +31,26 @@ error()    { echo -e "${RED}[ERROR]${NC} $1"; exit 1; }
 dry_note() { echo -e "${YELLOW}[DRY-RUN]${NC} $1"; }
 
 download_file() {
-    local url="$1"
+    local source_path="$1"
     local dest="$2"
 
     if $DRY_RUN; then
-        dry_note "Would download: $dest"
+        if [[ -n "$SOURCE_DIR" ]]; then
+            dry_note "Would copy: ${SOURCE_DIR}/${source_path} -> ${dest}"
+        else
+            dry_note "Would download: $dest"
+        fi
         return
     fi
 
     mkdir -p "$(dirname "$dest")"
 
+    if [[ -n "$SOURCE_DIR" ]]; then
+        cp "${SOURCE_DIR}/${source_path}" "$dest"
+        return
+    fi
+
+    local url="${REPO_URL}/${source_path}"
     if command -v curl &> /dev/null; then
         curl -sSL "$url" -o "$dest"
     else
@@ -76,13 +87,13 @@ update_scripts() {
     )
 
     for script in "${scripts[@]}"; do
-        download_file "${REPO_URL}/session/scripts/bash/${script}" ".session/scripts/bash/${script}"
+        download_file "session/scripts/bash/${script}" ".session/scripts/bash/${script}"
         chmod +x ".session/scripts/bash/${script}"
     done
 
     mkdir -p .session/scripts/bash/lib
     for script in "${lib_scripts[@]}"; do
-        download_file "${REPO_URL}/session/scripts/bash/lib/${script}" ".session/scripts/bash/lib/${script}"
+        download_file "session/scripts/bash/lib/${script}" ".session/scripts/bash/lib/${script}"
     done
 
     success "Scripts updated"
@@ -90,18 +101,19 @@ update_scripts() {
 
 update_templates() {
     info "Updating templates..."
-    download_file "${REPO_URL}/session/templates/session-notes.md" ".session/templates/session-notes.md"
-    download_file "${REPO_URL}/session/templates/tasks-template.md" ".session/templates/tasks-template.md"
+    download_file "session/templates/session-notes.md" ".session/templates/session-notes.md"
+    download_file "session/templates/tasks-template.md" ".session/templates/tasks-template.md"
     success "Templates updated"
 }
 
 update_docs() {
     info "Updating documentation..."
-    download_file "${REPO_URL}/README.md" ".session/docs/README.md"
-    download_file "${REPO_URL}/session/docs/testing.md" ".session/docs/testing.md"
-    download_file "${REPO_URL}/session/docs/shared-workflow.md" ".session/docs/shared-workflow.md"
-    download_file "${REPO_URL}/session/docs/schema-versioning.md" ".session/docs/schema-versioning.md"
-    download_file "${REPO_URL}/session/docs/copilot-cli-mechanics.md" ".session/docs/copilot-cli-mechanics.md"
+    download_file "README.md" ".session/docs/README.md"
+    download_file "session/docs/testing.md" ".session/docs/testing.md"
+    download_file "session/docs/shared-workflow.md" ".session/docs/shared-workflow.md"
+    download_file "session/docs/schema-versioning.md" ".session/docs/schema-versioning.md"
+    download_file "session/docs/copilot-cli-mechanics.md" ".session/docs/copilot-cli-mechanics.md"
+    download_file "session/docs/reference.md" ".session/docs/reference.md"
     success "Documentation updated"
 }
 
@@ -124,10 +136,11 @@ update_agents() {
         "session.compound.agent.md"
         "session.scope.agent.md"
         "session.spec.agent.md"
+        "session.review.agent.md"
     )
 
     for agent in "${agents[@]}"; do
-        download_file "${REPO_URL}/github/agents/${agent}" ".github/agents/${agent}"
+        download_file "github/agents/${agent}" ".github/agents/${agent}"
     done
 
     success "Agents updated"
@@ -152,10 +165,11 @@ update_prompts() {
         "session.compound.prompt.md"
         "session.scope.prompt.md"
         "session.spec.prompt.md"
+        "session.review.prompt.md"
     )
 
     for prompt in "${prompts[@]}"; do
-        download_file "${REPO_URL}/github/prompts/${prompt}" ".github/prompts/${prompt}"
+        download_file "github/prompts/${prompt}" ".github/prompts/${prompt}"
     done
 
     success "Prompts updated"
@@ -173,11 +187,16 @@ This project uses session workflow for AI context continuity.
 See `.session/docs/README.md` for quick reference.
 
 **Agents:**
-- `invoke session.start --issue N` — Development session from GitHub issue (runs full chain automatically)
+- `invoke session.start --issue N` — Development session from GitHub issue (planning phase by default)
+- `invoke session.start --auto --issue N` — Auto through `publish`, then stop for manual/custom review
+- `invoke session.start --auto --copilot-review --issue N` — Full auto with Copilot review before merge
 - `invoke session.start --spec 001-feature` — Spec Kit session
 - `invoke session.start "description"` — Development session (positional description)
 - `invoke session.start --spike "description"` — Spike/research (no PR)
 - `invoke session.start --resume` — Resume active session
+- `invoke session.review` — Run the default or overridden custom review agent after publish
+- `invoke session.finalize` — Post-merge cleanup (after PR merge)
+- `invoke session.wrap` — End session
 
 **Project context:**
 - `.session/project-context/technical-context.md` - Stack, build/test commands
@@ -185,8 +204,7 @@ See `.session/docs/README.md` for quick reference.
 SECTION
 )
 
-    # shellcheck disable=SC2043  # single-item loop kept for future expansion
-    for file in ".github/copilot-instructions.md"; do
+    for file in "AGENTS.md" ".github/copilot-instructions.md"; do
         if [[ ! -f "$file" ]]; then
             warn "$file not found, skipping"
             continue
@@ -246,8 +264,19 @@ main() {
     set -- "${args[@]+"${args[@]}"}"
 
     if [[ -n "$arg_version" ]]; then
+        if [[ -n "$SOURCE_DIR" ]]; then
+            warn "Ignoring --version because SESSION_WORKFLOW_SOURCE_DIR is set"
+        fi
         REPO_URL="https://raw.githubusercontent.com/roperi/session-workflow/refs/tags/${arg_version}"
         info "Pinned to version ${arg_version} (${REPO_URL})"
+    fi
+
+    if [[ -n "$SOURCE_DIR" ]]; then
+        if [[ ! -d "$SOURCE_DIR" ]]; then
+            error "SESSION_WORKFLOW_SOURCE_DIR does not exist: $SOURCE_DIR"
+        fi
+        SOURCE_DIR="$(cd "$SOURCE_DIR" && pwd)"
+        info "Using local source directory ${SOURCE_DIR}"
     fi
 
     echo ""

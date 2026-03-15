@@ -291,6 +291,7 @@ install_docs() {
     download_file "${REPO_URL}/session/docs/shared-workflow.md" ".session/docs/shared-workflow.md"
     download_file "${REPO_URL}/session/docs/schema-versioning.md" ".session/docs/schema-versioning.md"
     download_file "${REPO_URL}/session/docs/copilot-cli-mechanics.md" ".session/docs/copilot-cli-mechanics.md"
+    download_file "${REPO_URL}/session/docs/reference.md" ".session/docs/reference.md"
     
     success "Session docs installed"
 }
@@ -303,7 +304,7 @@ install_bootstrap() {
     
     # Install copilot-instructions.md if it doesn't exist
     if [[ ! -f ".github/copilot-instructions.md" ]]; then
-        download_file "${REPO_URL}/stubs/copilot-instructions.md" ".github/copilot-instructions.md"
+        download_file "${REPO_URL}/stubs/copilot_instructions.md" ".github/copilot-instructions.md"
         success "Created .github/copilot-instructions.md"
     else
         # Append session workflow section if not already present
@@ -312,13 +313,19 @@ install_bootstrap() {
             echo "## Session Workflow" >> .github/copilot-instructions.md
             echo "" >> .github/copilot-instructions.md
             echo "This project uses session workflow for AI context continuity." >> .github/copilot-instructions.md
+            echo "See \`.session/docs/README.md\` for quick reference." >> .github/copilot-instructions.md
             echo "" >> .github/copilot-instructions.md
             echo "**Agents:**" >> .github/copilot-instructions.md
-            echo "- \`invoke session.start --issue N\` — Development session from GitHub issue (runs full chain automatically)" >> .github/copilot-instructions.md
+            echo "- \`invoke session.start --issue N\` — Development session from GitHub issue (planning phase by default)" >> .github/copilot-instructions.md
+            echo "- \`invoke session.start --auto --issue N\` — Auto through \`publish\`, then stop for manual/custom review" >> .github/copilot-instructions.md
+            echo "- \`invoke session.start --auto --copilot-review --issue N\` — Full auto with Copilot review before merge" >> .github/copilot-instructions.md
             echo "- \`invoke session.start --spec 001-feature\` — Spec Kit session" >> .github/copilot-instructions.md
             echo "- \`invoke session.start \"description\"\` — Development session (positional description)" >> .github/copilot-instructions.md
             echo "- \`invoke session.start --spike \"description\"\` — Spike/research (no PR)" >> .github/copilot-instructions.md
             echo "- \`invoke session.start --resume\` — Resume active session" >> .github/copilot-instructions.md
+            echo "- \`invoke session.review\` — Run the default or overridden custom review agent after publish" >> .github/copilot-instructions.md
+            echo "- \`invoke session.finalize\` — Post-merge cleanup (after PR merge)" >> .github/copilot-instructions.md
+            echo "- \`invoke session.wrap\` — End session" >> .github/copilot-instructions.md
             echo "" >> .github/copilot-instructions.md
             echo "**Project context:**" >> .github/copilot-instructions.md
             echo "- \`.session/project-context/technical-context.md\` - Stack, build/test commands" >> .github/copilot-instructions.md
@@ -592,6 +599,7 @@ install_agents() {
         "session.compound.agent.md"
         "session.scope.agent.md"
         "session.spec.agent.md"
+        "session.review.agent.md"
     )
     
     mkdir -p .github/agents
@@ -626,6 +634,7 @@ install_prompts() {
         "session.compound.prompt.md"
         "session.scope.prompt.md"
         "session.spec.prompt.md"
+        "session.review.prompt.md"
     )
     
     mkdir -p .github/prompts
