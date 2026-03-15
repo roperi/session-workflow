@@ -127,7 +127,7 @@ fi
 ✅ PR updated successfully
 
 **Next Steps:**
-1. Review the PR: `session.review` (or orchestrator handles this automatically)
+1. Review the PR manually, OR run `session.review` to use the default or an overridden custom review agent
 2. Once CI passes and PR is merged: `session.finalize`
 3. Then wrap up: `session.wrap`
 ```
@@ -141,7 +141,7 @@ fi
 
 **Next Steps:**
 1. Fix issues in next session, OR
-2. If acceptable, proceed to review and merge
+2. If acceptable, proceed to manual/custom review and merge
 3. After merge: `session.finalize`
 4. Then wrap up: `session.wrap`
 ```
@@ -153,7 +153,7 @@ fi
 .session/scripts/bash/session-postflight.sh --step publish --json
 ```
 
-After postflight, **return your results** — PR number, URL, and status. The orchestrating agent will handle the review step (via `session.review`) and merge.
+After postflight, **return your results** — PR number, URL, and status. The orchestrating agent will either stop here for manual/custom review or invoke `session.review` if automated review was explicitly requested.
 
 ⛔ Do NOT invoke session.finalize or any other agent yourself.
 
@@ -216,4 +216,3 @@ echo "✓ Workflow check passed - proceeding with PR creation"
 - **spike**: Research/exploration work not intended for production PRs
 
 Only development workflow creates pull requests for review.
-

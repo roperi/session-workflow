@@ -5,6 +5,7 @@ All notable changes to this project will be documented in this file.
 ## [Unreleased]
 
 - **FIX**: `session-start.sh` now accepts orchestration-only flags `--auto` and `--copilot-review` instead of rejecting them; the script records those flags in JSON output under `orchestration` so `session.start` auto-mode invocations no longer degrade to planning-only after an unknown-option failure
+- **CHANGE (#54)**: `--auto` without `--copilot-review` now stops after `session.publish` so users can review the PR manually or invoke a custom `session.review` agent explicitly; only `--auto --copilot-review` continues through automated review, merge, finalize, and wrap
 - **CHANGE (#54)**: `session.review` now uses a single review pass by default — request Copilot review once, address actionable comments, push fixes, and leave one final PR summary comment; no automatic re-request loop and no inline replies on each review thread
 - **NEW (#54)**: Dedicated `session.review` agent — review is now a first-class workflow step instead of inline logic in `session.start`; default implementation uses GitHub Copilot Review (`request_copilot_review`); overridable by replacing `session.review.agent.md` with a custom review agent; `WORKFLOW_TRANSITIONS` updated with `publish → review` and `review → finalize`; backward compatible (review can be skipped: `publish → finalize`); `session.execute` Phase 2 chain updated to include review step; development workflow is now 11-agent chain
 

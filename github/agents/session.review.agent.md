@@ -224,6 +224,13 @@ After postflight, **return your results** — review status, comments addressed,
 
 This agent uses GitHub Copilot Review by default. Users can override it with a custom review agent by replacing this file with their own `session.review.agent.md`.
 
+To weave a custom reviewer into the workflow:
+1. Run the normal development flow through PR creation (`invoke session.execute` or `invoke session.start --auto --issue N`)
+2. Stop after `session.publish`
+3. Invoke `session.review` explicitly so the workflow uses whatever implementation is in this file
+4. Merge the PR
+5. Run `invoke session.finalize`
+
 Custom review agents must:
 1. Run preflight on entry (`--step review`)
 2. Perform their review logic (any tool, any reviewer)

@@ -131,13 +131,13 @@ These are concrete violations that agents commonly make:
 
 ### Centralized Orchestration
 
-`session.start` is the **sole orchestrator** for the entire workflow chain. It invokes each step's agent as a separate sub-agent, including the review step via `session.review`.
+`session.start` is the **sole orchestrator** for automatic chain execution. It invokes each step's agent as a separate sub-agent, including the review step via `session.review` when automated review is explicitly requested.
 
 | Phase | Steps | Orchestrated by |
 |-------|-------|-----------------|
 | **Planning** | scope → spec → plan → task | `session.start` (via sub-agents) |
 | **Implementation** | execute → validate → publish | `session.start` (via sub-agents) |
-| **Review** | review (request review → address comments → summarize fixes) | `session.start` (via `session.review` sub-agent) |
+| **Review** | optional review (request review → address comments → summarize fixes) | `session.start` (via `session.review` sub-agent) or direct user invocation |
 | **Merge** | merge PR, clean up branches | `session.start` (directly) |
 | **Completion** | finalize → wrap | `session.start` (via sub-agents) |
 
@@ -155,7 +155,7 @@ session.start invokes each step's agent as a **separate sub-agent** using the ta
 
 The session workflow follows a defined state machine. Each step must complete before the next can begin.
 
-**Development (11-agent chain)**: `start → scope → spec → plan → task → execute → validate → publish → review → finalize → wrap`
+**Development (11-agent chain)**: `start → scope → spec → plan → task → execute → validate → publish → [review] → finalize → wrap`
 
 **Spike (7-agent chain)**: `start → scope → plan → task → execute → wrap`
 
@@ -174,6 +174,10 @@ START → EXECUTE → WRAP
 ```
 
 **⚠️ IMPORTANT**: PR must be merged BEFORE finalize/wrap (development workflow only)!
+
+**Review gate behavior**:
+- `invoke session.start --auto --issue N` stops after `publish` so the user can review manually or invoke `session.review` explicitly
+- `invoke session.start --auto --copilot-review --issue N` continues through the automated `session.review` stage
 
 ## Valid Transitions
 

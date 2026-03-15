@@ -351,7 +351,7 @@ SESSION_DIR=$(get_session_dir "$SESSION_ID")
 WORKFLOW=$(jq -r '.workflow // "development"' "$SESSION_DIR/session-info.json")
 ```
 
-#### Development Workflow: → validate → publish → [review] → STOP
+#### Development Workflow: → validate → publish → STOP
 
 Invoke the remaining Phase 2 agents as sub-agents (using the task tool with `agent_type`):
 
@@ -367,23 +367,18 @@ agent_type: "session.publish"
 prompt: "Publish PR for session {session_id}. Dir: {session_dir}, repo: {owner/repo}, branch: {branch}. Do NOT ask clarifying questions."
 ```
 
-**review** (optional) — If the user requested automated review (e.g., `--copilot-review`), invoke `session.review` agent:
-```
-agent_type: "session.review"
-prompt: "Review PR for session {session_id}. Dir: {session_dir}, repo: {owner/repo}. Do NOT ask clarifying questions."
-```
-
-If the user did NOT request automated review, skip this step.
-
-After publish (or review) completes, output:
+After publish completes, output:
 ```
 ✅ Phase 2 (Implementation) complete
 
 Session: {session_id}
 Tasks completed: {count}
-PR: #{pr_number} created and reviewed
+PR: #{pr_number} created
 
-Next: Merge the PR, then run:
+Next:
+  1. Review the PR manually, OR run `invoke session.review` if you want the workflow to use the default or an overridden custom review agent
+  2. Merge the PR
+  3. Run:
   invoke session.finalize
 ```
 
@@ -415,5 +410,5 @@ After wrap completes, output the session summary.
 - **Manual verification**: Required for UI-visible changes
 - **Small commits**: One task per commit
 - **Return, don't chain (sub-agent mode)**: When invoked as sub-agent by session.start --auto, return results after postflight — do NOT invoke validate/publish yourself
-- **Phase 2 orchestration (direct mode)**: When invoked directly by the user, orchestrate validate → publish → [review] (development) or wrap (spike/maintenance)
+- **Phase 2 orchestration (direct mode)**: When invoked directly by the user, orchestrate validate → publish and then STOP for review/merge (development), or wrap (spike/maintenance)
 - **⛔ Boundary reminder**: Do NOT merge PRs, close issues, or do finalize/wrap work during execution. Execution ONLY.

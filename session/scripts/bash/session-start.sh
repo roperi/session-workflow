@@ -58,7 +58,7 @@ GOAL:
     Not needed if --issue or --spec is provided.
 
 WORKFLOWS:
-    development (default) - Full chain: start → scope → spec → plan → task → execute → validate → publish → finalize → wrap
+    development (default) - Full chain: start → scope → spec → plan → task → execute → validate → publish → [review] → finalize → wrap
     spike (--spike)       - Light chain: start → scope → plan → task → execute → wrap (no PR)
     maintenance           - Minimal chain: start → execute → wrap (no branch, no PR)
 
@@ -99,8 +99,8 @@ EXAMPLES:
     session-start.sh --resume --comment "Continue from task 5"
 
     # Agent/orchestrator compatibility flags (accepted during initialization)
-    session-start.sh --auto --issue 123
-    session-start.sh --auto --copilot-review --issue 123
+    session-start.sh --auto --issue 123                  # auto through publish, then stop for manual/custom review
+    session-start.sh --auto --copilot-review --issue 123 # full auto with Copilot review
 EOF
 }
 

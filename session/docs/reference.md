@@ -78,8 +78,8 @@ All chain agents can run either as sub-agents orchestrated by `session.start` or
 - Load project context
 - Create feature branch
 - **Default mode**: Orchestrate Phase 1 (Planning) — scope → spec → plan → task — then stop
-- **Auto mode** (`--auto`): Orchestrate the full chain including review and merge
-- **Copilot review** (`--auto --copilot-review`): Auto chain + dedicated `session.review` agent for Copilot PR review before merge
+- **Auto mode** (`--auto`): Orchestrate through `publish`, then stop for manual/custom review
+- **Copilot review** (`--auto --copilot-review`): Full auto chain + dedicated `session.review` agent for Copilot PR review before merge
 
 ### session.scope
 - Define problem boundaries and success criteria
@@ -109,7 +109,7 @@ All chain agents can run either as sub-agents orchestrated by `session.start` or
 - Single-task focus
 - TDD: test → implement → verify
 - Commit after each task
-- **When invoked directly**: Orchestrates Phase 2 (validate → publish → review for development; wrap for spike/maintenance)
+- **When invoked directly**: Orchestrates Phase 2 (validate → publish → STOP for development; wrap for spike/maintenance)
 
 ### session.validate
 - Run lint, tests
@@ -131,6 +131,7 @@ All chain agents can run either as sub-agents orchestrated by `session.start` or
 - Post one final PR comment summarizing what was addressed
 - Do not automatically re-request review
 - Overridable: replace with a custom review agent
+- Invoke directly after `session.publish` when you want the workflow to use the default or an overridden custom reviewer
 - **Only for**: development workflow
 
 ### session.finalize
@@ -279,7 +280,7 @@ invoke session.start --spike "Research"          # Spike workflow (explore, no P
 invoke session.start --maintenance "Reorder docs/" # Maintenance workflow (small tasks, no branch/PR)
 
 # Orchestration
-invoke session.start --auto --issue 123                       # Full chain, one shot
+invoke session.start --auto --issue 123                       # Auto through publish, then stop for manual/custom review
 invoke session.start --auto --copilot-review --issue 123      # Full chain + Copilot PR review
 
 # Modifiers
@@ -326,7 +327,11 @@ invoke session.start --issue 456
 
 # Phase 2: Implementation
 invoke session.execute
-# → execute → validate → publish → review → STOP
+# → execute → validate → publish → STOP
+
+# Optional: run the workflow's review stage explicitly
+invoke session.review
+# → review → STOP
 
 # (merge the PR)
 
@@ -338,9 +343,9 @@ invoke session.finalize
 ### Example 2: Bug Fix (Development, auto mode)
 
 ```bash
-# Full chain in one shot
+# Auto through publish, then stop for manual/custom review
 invoke session.start --auto --issue 456
-# → scope → spec → plan → task → execute → validate → publish → merge → finalize → wrap
+# → scope → spec → plan → task → execute → validate → publish → STOP
 
 # With Copilot PR review
 invoke session.start --auto --copilot-review --issue 456

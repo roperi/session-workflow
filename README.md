@@ -17,12 +17,12 @@ When AI context windows reset, work continuity is lost. Session workflow solves 
 3. **Agent chain** — Structured workflow from scoping to delivery
 4. **Git hygiene** — Ensures clean state before session ends
 
-**Agent Chain**: `start → scope → spec → plan → task → execute → validate → publish → review → finalize → wrap`
+**Agent Chain**: `start → scope → spec → plan → task → execute → validate → publish → [review] → finalize → wrap`
 
 **Orchestration modes**:
 - **Default**: `session.start` runs Phase 1 (Planning) then stops — review artifacts, run quality agents, then continue with `session.execute`. Maintenance always auto-chains (no planning to review).
-- **Auto** (`--auto`): Full end-to-end chain in one shot
-- **Copilot review** (`--auto --copilot-review`): Auto chain with dedicated `session.review` agent for Copilot PR review before merge
+- **Auto** (`--auto`): Auto-chain through `publish`, then stop for manual/custom review
+- **Copilot review** (`--auto --copilot-review`): Full end-to-end auto chain with dedicated `session.review` agent before merge
 
 > **GitHub ecosystem integration**: `session.start` uses Copilot CLI's task tool for sub-agent orchestration and optionally uses `request_copilot_review` for automated PR reviews. See [Copilot CLI Mechanics](session/docs/copilot-cli-mechanics.md) for internals.
 
@@ -106,17 +106,27 @@ invoke session.start --issue 123
 # Phase 2: Implementation (execute, validate, publish PR)
 invoke session.execute
 
-# Review and merge the PR, then:
+# Review the PR manually, or run `invoke session.review` if you want the
+# workflow to use the default/custom review agent. Then merge the PR, then:
 
 # Phase 3: Completion (finalize, wrap)
 invoke session.finalize
 ```
 
-**Auto mode (all phases in one shot):**
+**Auto mode (through publish by default, or full with Copilot review):**
 
 ```bash
-invoke session.start --auto --issue 123
-invoke session.start --auto --copilot-review --issue 123   # with Copilot PR review
+invoke session.start --auto --issue 123                    # stops after publish for manual/custom review
+invoke session.start --auto --copilot-review --issue 123   # with Copilot PR review + full completion
+```
+
+**Custom review agent handoff:**
+
+```bash
+invoke session.start --auto --issue 123   # stops after publish
+invoke session.review                     # runs whatever .github/agents/session.review.agent.md defines
+# merge the PR
+invoke session.finalize
 ```
 
 **Other workflows:**

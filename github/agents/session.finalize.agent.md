@@ -83,7 +83,7 @@ Run `invoke session.[step_name] --resume` to complete the interrupted step first
 Cannot proceed with finalize until previous step completes.
 ```
 
-**IF previous step is `validate` or earlier (not `publish`):**
+**IF previous step is `validate` or earlier (not `publish` or `review`):**
 ```
 ⚠️ WORKFLOW SEQUENCE ERROR
 
@@ -91,14 +91,14 @@ Cannot run finalize - previous steps not complete.
 Current state: [step] ([status])
 
 The workflow sequence is:
-  start → plan → execute → validate → publish → finalize → wrap
+  start → plan → execute → validate → publish → [review] → finalize → wrap
 
 REQUIRED ACTION:
 Run the next step in sequence: invoke session.[next_step]
 ```
 
 **Only proceed if:**
-- `current_step` is `publish` AND `step_status` is `completed`
+- `current_step` is `publish` or `review` AND `step_status` is `completed`
 - OR user passed `--force` flag
 
 ## ⚠️ CRITICAL: Pre-Flight Safety Checks
