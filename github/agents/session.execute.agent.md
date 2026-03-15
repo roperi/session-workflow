@@ -375,7 +375,10 @@ Session: {session_id}
 Tasks completed: {count}
 PR: #{pr_number} created
 
-Next: Review and merge the PR, then run:
+Next:
+  1. Review the PR manually, OR run `invoke session.review` if you want the workflow to use the default or an overridden custom review agent
+  2. Merge the PR
+  3. Run:
   invoke session.finalize
 ```
 
@@ -407,5 +410,5 @@ After wrap completes, output the session summary.
 - **Manual verification**: Required for UI-visible changes
 - **Small commits**: One task per commit
 - **Return, don't chain (sub-agent mode)**: When invoked as sub-agent by session.start --auto, return results after postflight — do NOT invoke validate/publish yourself
-- **Phase 2 orchestration (direct mode)**: When invoked directly by the user, orchestrate validate → publish (development) or wrap (spike/maintenance)
+- **Phase 2 orchestration (direct mode)**: When invoked directly by the user, orchestrate validate → publish and then STOP for review/merge (development), or wrap (spike/maintenance)
 - **⛔ Boundary reminder**: Do NOT merge PRs, close issues, or do finalize/wrap work during execution. Execution ONLY.

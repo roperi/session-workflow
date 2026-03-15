@@ -651,24 +651,103 @@ SPECMD
   chain_ym=$(echo "$chain_id" | cut -d'-' -f1,2)
   chain_dir=".session/sessions/${chain_ym}/${chain_id}"
 
-  # Run full chain: scope → spec → plan → execute using preflight+postflight
-  for step in scope spec plan execute; do
+  # Run full chain: scope → spec → plan → execute → validate → publish → review using preflight+postflight
+  for step in scope spec plan execute validate publish review; do
     ./.session/scripts/bash/session-preflight.sh --step "$step" --json >/dev/null
     ./.session/scripts/bash/session-postflight.sh --step "$step" --json >/dev/null
   done
 
-  # Verify all 5 steps are in step_history (start + 4 chain steps) with completed status
-  assert_eq "5" "$(jq '.step_history | length' "$chain_dir/state.json")" "chain should have 5 entries (start + 4 steps)"
+  # Verify all 8 steps are in step_history (start + 7 chain steps) with completed status
+  assert_eq "8" "$(jq '.step_history | length' "$chain_dir/state.json")" "chain should have 8 entries (start + 7 steps)"
   local chain_all_completed
   chain_all_completed=$(jq '[.step_history[] | select(.status == "completed" and .ended_at != null)] | length' "$chain_dir/state.json")
-  assert_eq "5" "$chain_all_completed" "all 5 chain entries should be completed"
-  assert_eq "execute" "$(jq -r '.current_step' "$chain_dir/state.json")" "current step should be execute"
+  assert_eq "8" "$chain_all_completed" "all 8 chain entries should be completed"
+  assert_eq "review" "$(jq -r '.current_step' "$chain_dir/state.json")" "current step should be review"
   assert_eq "completed" "$(jq -r '.step_status' "$chain_dir/state.json")" "step status should be completed"
 
   # Wrap chain test session
   ./.session/scripts/bash/session-wrap.sh --json >/dev/null
 
+  # 36) publish → review transition
+  log "36) publish → review transition"
+
+  ./.session/scripts/bash/session-wrap.sh --json >/dev/null 2>&1 || true
+  local start_rev_json rev_id rev_ym rev_dir
+  start_rev_json=$(./.session/scripts/bash/session-start.sh --json "Review transition test")
+  rev_id=$(echo "$start_rev_json" | jq -r '.session.id')
+  rev_ym=$(echo "$rev_id" | cut -d'-' -f1,2)
+  rev_dir=".session/sessions/${rev_ym}/${rev_id}"
+
+  # Advance to publish completed
+  for step in scope spec plan execute validate publish; do
+    ./.session/scripts/bash/session-preflight.sh --step "$step" --json >/dev/null
+    ./.session/scripts/bash/session-postflight.sh --step "$step" --json >/dev/null
+  done
+  assert_eq "publish" "$(jq -r '.current_step' "$rev_dir/state.json")" "current step should be publish"
+
+  # Transition to review should succeed
+  ./.session/scripts/bash/session-preflight.sh --step review --json >/dev/null
+  assert_eq "review" "$(jq -r '.current_step' "$rev_dir/state.json")" "current step should be review"
+  assert_eq "in_progress" "$(jq -r '.step_status' "$rev_dir/state.json")" "review should be in_progress"
+
+  # Complete review
+  local review_postflight_json
+  review_postflight_json=$(./.session/scripts/bash/session-postflight.sh --step review --json)
+  assert_eq "ok" "$(echo "$review_postflight_json" | jq -r '.status')" "review postflight should succeed"
+  local review_next_steps
+  review_next_steps=$(echo "$review_postflight_json" | jq -r '.valid_next_steps[]')
+  assert_eq "finalize" "$review_next_steps" "review's valid next step should be finalize"
+
+  # 37) publish → finalize transition (skip review, backward compatibility)
+  log "37) publish → finalize transition (skip review)"
+
+  # Rewind to publish completed state (we need to start fresh)
+  ./.session/scripts/bash/session-wrap.sh --json >/dev/null 2>&1 || true
+  local start_skip_json skip_id skip_ym skip_dir
+  start_skip_json=$(./.session/scripts/bash/session-start.sh --json "Skip review test")
+  skip_id=$(echo "$start_skip_json" | jq -r '.session.id')
+  skip_ym=$(echo "$skip_id" | cut -d'-' -f1,2)
+  skip_dir=".session/sessions/${skip_ym}/${skip_id}"
+
+  for step in scope spec plan execute validate publish; do
+    ./.session/scripts/bash/session-preflight.sh --step "$step" --json >/dev/null
+    ./.session/scripts/bash/session-postflight.sh --step "$step" --json >/dev/null
+  done
+
+  # Transition directly to finalize (skipping review) should succeed
+  ./.session/scripts/bash/session-preflight.sh --step finalize --json >/dev/null
+  assert_eq "finalize" "$(jq -r '.current_step' "$skip_dir/state.json")" "should be able to skip review and go to finalize"
+  ./.session/scripts/bash/session-postflight.sh --step finalize --json >/dev/null
+
+  ./.session/scripts/bash/session-wrap.sh --json >/dev/null
+
   log "All postflight tests passed."
+
+  # === session-start orchestration flag compatibility tests ===
+
+  # 38) session-start accepts --auto without error
+  log "38) session-start accepts --auto"
+  local start_auto_json auto_session_id
+  start_auto_json=$(./.session/scripts/bash/session-start.sh --json --auto "Auto compatibility test")
+  assert_eq "ok" "$(echo "$start_auto_json" | jq -r '.status')" "session-start should accept --auto"
+  assert_eq "true" "$(echo "$start_auto_json" | jq -r '.orchestration.auto')" "orchestration.auto should be true"
+  assert_eq "false" "$(echo "$start_auto_json" | jq -r '.orchestration.copilot_review')" "copilot_review should default to false"
+  auto_session_id=$(echo "$start_auto_json" | jq -r '.session.id')
+  set_workflow_step "$auto_session_id" "execute" "completed" >/dev/null
+  ./.session/scripts/bash/session-wrap.sh --json >/dev/null
+
+  # 39) session-start accepts --auto --copilot-review without error
+  log "39) session-start accepts --auto --copilot-review"
+  local start_auto_review_json auto_review_session_id
+  start_auto_review_json=$(./.session/scripts/bash/session-start.sh --json --auto --copilot-review "Auto review compatibility test")
+  assert_eq "ok" "$(echo "$start_auto_review_json" | jq -r '.status')" "session-start should accept --auto --copilot-review"
+  assert_eq "true" "$(echo "$start_auto_review_json" | jq -r '.orchestration.auto')" "orchestration.auto should be true with review"
+  assert_eq "true" "$(echo "$start_auto_review_json" | jq -r '.orchestration.copilot_review')" "copilot_review should be true"
+  auto_review_session_id=$(echo "$start_auto_review_json" | jq -r '.session.id')
+  set_workflow_step "$auto_review_session_id" "execute" "completed" >/dev/null
+  ./.session/scripts/bash/session-wrap.sh --json >/dev/null
+
+  log "All session-start orchestration flag tests passed."
 }
 
 main "$@"

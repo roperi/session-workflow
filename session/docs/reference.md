@@ -78,8 +78,8 @@ All chain agents can run either as sub-agents orchestrated by `session.start` or
 - Load project context
 - Create feature branch
 - **Default mode**: Orchestrate Phase 1 (Planning) — scope → spec → plan → task — then stop
-- **Auto mode** (`--auto`): Orchestrate the full chain including review cycle and merge
-- **Copilot review** (`--auto --copilot-review`): Auto chain + request Copilot PR review before merge
+- **Auto mode** (`--auto`): Orchestrate through `publish`, then stop for manual/custom review
+- **Copilot review** (`--auto --copilot-review`): Full auto chain + dedicated `session.review` agent for Copilot PR review before merge
 
 ### session.scope
 - Define problem boundaries and success criteria
@@ -109,7 +109,7 @@ All chain agents can run either as sub-agents orchestrated by `session.start` or
 - Single-task focus
 - TDD: test → implement → verify
 - Commit after each task
-- **When invoked directly**: Orchestrates Phase 2 (validate → publish for development; wrap for spike/maintenance)
+- **When invoked directly**: Orchestrates Phase 2 (validate → publish → STOP for development; wrap for spike/maintenance)
 
 ### session.validate
 - Run lint, tests
@@ -122,6 +122,16 @@ All chain agents can run either as sub-agents orchestrated by `session.start` or
 ### session.publish
 - Create or update PR
 - Link issues
+- **Only for**: development workflow
+
+### session.review
+- Request code review (default: GitHub Copilot Review)
+- Read and address review comments
+- Push follow-up fixes
+- Post one final PR comment summarizing what was addressed
+- Do not automatically re-request review
+- Overridable: replace with a custom review agent
+- Invoke directly after `session.publish` when you want the workflow to use the default or an overridden custom reviewer
 - **Only for**: development workflow
 
 ### session.finalize
@@ -270,7 +280,7 @@ invoke session.start --spike "Research"          # Spike workflow (explore, no P
 invoke session.start --maintenance "Reorder docs/" # Maintenance workflow (small tasks, no branch/PR)
 
 # Orchestration
-invoke session.start --auto --issue 123                       # Full chain, one shot
+invoke session.start --auto --issue 123                       # Auto through publish, then stop for manual/custom review
 invoke session.start --auto --copilot-review --issue 123      # Full chain + Copilot PR review
 
 # Modifiers
@@ -298,6 +308,7 @@ invoke session.start --resume --comment "Continue from task 5"
 | session.execute | ✅ | ✅ |
 | session.validate | ✅ | ⚠️ (re-runs failed only) |
 | session.publish | ✅ | ✅ |
+| session.review | ✅ | ✅ |
 | session.finalize | ✅ | N/A |
 | session.wrap | ✅ | N/A |
 
@@ -318,7 +329,11 @@ invoke session.start --issue 456
 invoke session.execute
 # → execute → validate → publish → STOP
 
-# (review and merge the PR)
+# Optional: run the workflow's review stage explicitly
+invoke session.review
+# → review → STOP
+
+# (merge the PR)
 
 # Phase 3: Completion
 invoke session.finalize
@@ -328,13 +343,13 @@ invoke session.finalize
 ### Example 2: Bug Fix (Development, auto mode)
 
 ```bash
-# Full chain in one shot
+# Auto through publish, then stop for manual/custom review
 invoke session.start --auto --issue 456
-# → scope → spec → plan → task → execute → validate → publish → merge → finalize → wrap
+# → scope → spec → plan → task → execute → validate → publish → STOP
 
 # With Copilot PR review
 invoke session.start --auto --copilot-review --issue 456
-# → ... → publish → Copilot review → address comments → merge → finalize → wrap
+# → ... → publish → review → merge → finalize → wrap
 ```
 
 ### Example 3: Research (Spike)

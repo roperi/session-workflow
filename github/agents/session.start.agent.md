@@ -60,7 +60,7 @@ If no arguments provided, the script will resume an active session or prompt for
 - `.session/scripts/bash/session-start.sh --json --stage poc "Prototype auth"` - PoC with relaxed validation
 - `.session/scripts/bash/session-start.sh --json --resume` - Resume active session
 - `.session/scripts/bash/session-start.sh --json --resume --comment "Continue from task 5"` - Resume with context
-- `.session/scripts/bash/session-start.sh --json --auto --issue 42` - Full automated chain (all phases)
+- `.session/scripts/bash/session-start.sh --json --auto --issue 42` - Auto through PR publish, then stop for manual/custom review
 - `.session/scripts/bash/session-start.sh --json --auto --copilot-review --issue 42` - Full auto + Copilot PR review
 
 **⚠️ CRITICAL - Session Directory Naming**:
@@ -239,7 +239,7 @@ After session-start.sh completes, the `start` step is already recorded as comple
 ### Mode Detection
 
 Check `$ARGUMENTS` for these flags:
-- **`--auto`**: Run the full workflow chain end-to-end (all phases in one shot)
+- **`--auto`**: Run automatically through `session.publish`, then stop unless automated review was explicitly requested
 - **`--copilot-review`**: Request GitHub Copilot code review before merge (only with `--auto`, development workflow only)
 
 **Default (no `--auto`)**: Orchestrate **Phase 1 (Planning) only**, then stop and guide the user to invoke the next phase manually.
@@ -339,9 +339,9 @@ Maintenance has no planning phase — nothing for the user to review. Always aut
 
 ### Auto Mode (`--auto`)
 
-Orchestrate the **full workflow chain** end-to-end. Invoke each agent in sequence, waiting for each to complete.
+Orchestrate the automatic workflow chain until it reaches a manual review gate, or end-to-end if automated review was explicitly requested. Invoke each agent in sequence, waiting for each to complete.
 
-#### Development Workflow (Auto): scope → spec → plan → task → execute → validate → publish → [review] → finalize → wrap
+#### Development Workflow (Auto): scope → spec → plan → task → execute → validate → publish → [review] → [merge] → [finalize] → [wrap]
 
 **Phase 1: Planning** — Invoke scope, spec, plan, task (same invocation patterns as Default Mode above).
 
@@ -365,26 +365,26 @@ agent_type: "session.publish"
 prompt: "Publish PR for issue #{N}. Session: {session_id}, dir: {session_dir}, repo: {owner/repo}, branch: {branch}. Do NOT ask clarifying questions."
 ```
 
-**Phase 3: Review Cycle (you handle this directly — no agent needed)**
+**Phase 3: Review / Merge Gate**
 
 After publish completes and returns the PR number:
 
 **If `--copilot-review` was specified:**
-1. **Request Copilot review** using the `request_copilot_review` tool (NOT by leaving a comment — commenting triggers Copilot coding agent, not review).
-2. **Wait ~5 minutes** for the review to complete. Check review status periodically.
-3. **Read review comments** — if Copilot left review comments, address them:
-   - Make the necessary code fixes
-   - Commit the fixes
-   - Push to the PR branch
-   - Leave a comment on the PR summarizing fixes made
-4. **Wait for CI** to pass on the PR.
 
-**If `--copilot-review` was NOT specified:**
-- Skip Copilot review.
+**review** — Invoke `session.review` agent:
+```
+agent_type: "session.review"
+prompt: "Review PR #{pr_number} for issue #{N}. Session: {session_id}, dir: {session_dir}, repo: {owner/repo}. Do NOT ask clarifying questions."
+```
+
+If `session.review` reports unresolved items, stop and surface them for manual attention. Do **not** auto-merge in that case.
+
+Only after `session.review` completes cleanly:
 
 **Merge the PR:**
-5. **Merge the PR** to main using squash merge.
-6. **Clean up branches** — delete the remote feature branch after merge.
+1. **Wait for CI** to pass on the PR.
+2. **Merge the PR** to main using squash merge.
+3. **Clean up branches** — delete the remote feature branch after merge.
 
 **Phase 4: Post-merge**
 
@@ -404,8 +404,29 @@ After wrap completes:
 ```
 ✅ Full workflow complete for issue #{N}.
 
-Workflow chain: start → scope → spec → plan → task → execute → validate → publish → [review →] merge → finalize → wrap ✓
+Workflow chain: start → scope → spec → plan → task → execute → validate → publish → [review] → merge → finalize → wrap ✓
 ```
+
+**If `--copilot-review` was NOT specified:**
+- STOP after `session.publish`.
+- Surface the PR URL and tell the user:
+  1. Review the PR manually, OR run `invoke session.review` if they want to use the default or an overridden custom review agent
+  2. Merge the PR once review and CI are satisfied
+  3. Run `invoke session.finalize`
+- Return immediately with a summary like:
+  ```
+  ✅ Auto workflow paused after publish
+
+  PR: #{pr_number}
+  Status: Published, awaiting manual/custom review
+
+  Next:
+    1. Review the PR manually, OR run `invoke session.review`
+    2. Merge the PR
+    3. Run `invoke session.finalize`
+  ```
+
+In this mode, `--auto` means "auto-chain until an external review decision is required." It does **not** bypass manual/custom review and merge gates.
 
 #### Spike Workflow (Auto): scope → plan → task → execute → wrap
 
@@ -431,10 +452,10 @@ When resuming (`--resume`), check `state.json` to determine what step the sessio
 
 ## Notes
 
-- **Mode-aware orchestration**: Default runs Phase 1 (Planning) only; `--auto` runs the entire chain. Exception: maintenance always auto-chains (no planning to review)
+- **Mode-aware orchestration**: Default runs Phase 1 (Planning) only; `--auto` runs through PR publish, then stops unless automated review was explicitly requested. Exception: maintenance always auto-chains (no planning to review)
 - **No code changes**: Never write application code directly — that's session.execute's job
 - **Invoke, don't impersonate**: Use the task tool to invoke each agent — never `cat` their files and do their work
 - **Three workflows**: development (full), spike (no PR), maintenance (no branch, no PR, no planning)
-- **Review cycle**: Only runs with `--auto --copilot-review`; you handle it directly (not via a sub-agent)
+- **Review cycle**: Only auto-runs with `--auto --copilot-review`; otherwise stop after publish for manual review or an explicit `invoke session.review`
 - **Pass constraints through**: If the user's message includes environment constraints (e.g., "containerised app", "don't install locally"), pass them to session.execute
 - **Quality agents**: In default mode, users can invoke session.clarify, session.analyze, and session.checklist between phases

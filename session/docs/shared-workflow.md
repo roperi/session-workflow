@@ -131,13 +131,14 @@ These are concrete violations that agents commonly make:
 
 ### Centralized Orchestration
 
-`session.start` is the **sole orchestrator** for the entire workflow chain. It invokes each step's agent as a separate sub-agent and handles the review/merge cycle directly.
+`session.start` is the **sole orchestrator** for automatic chain execution. It invokes each step's agent as a separate sub-agent, including the review step via `session.review` when automated review is explicitly requested.
 
 | Phase | Steps | Orchestrated by |
 |-------|-------|-----------------|
 | **Planning** | scope → spec → plan → task | `session.start` (via sub-agents) |
 | **Implementation** | execute → validate → publish | `session.start` (via sub-agents) |
-| **Review Cycle** | Copilot review → address comments → merge | `session.start` (directly) |
+| **Review** | optional review (request review → address comments → summarize fixes) | `session.start` (via `session.review` sub-agent) or direct user invocation |
+| **Merge** | merge PR, clean up branches | `session.start` (directly) |
 | **Completion** | finalize → wrap | `session.start` (via sub-agents) |
 
 **Why centralized?** Each sub-agent loads its own instructions and scope boundaries, but session.start controls the sequence. Individual agents MUST NOT invoke the next agent — they return results to session.start after running postflight.
@@ -154,16 +155,16 @@ session.start invokes each step's agent as a **separate sub-agent** using the ta
 
 The session workflow follows a defined state machine. Each step must complete before the next can begin.
 
-**Development (10-agent chain)**: `start → scope → spec → plan → task → execute → validate → publish → finalize → wrap`
+**Development (11-agent chain)**: `start → scope → spec → plan → task → execute → validate → publish → [review] → finalize → wrap`
 
 **Spike (7-agent chain)**: `start → scope → plan → task → execute → wrap`
 
 **Maintenance (3-agent chain)**: `start → execute → wrap`
 
 ```
-START → SCOPE → SPEC → PLAN → TASK → EXECUTE → VALIDATE → PUBLISH → [MERGE PR] → FINALIZE → WRAP
-                                                                          │                  │
-                                                                          └── Manual Step ───┘
+START → SCOPE → SPEC → PLAN → TASK → EXECUTE → VALIDATE → PUBLISH → REVIEW → [MERGE PR] → FINALIZE → WRAP
+                                                                                   │                  │
+                                                                                   └── Manual Step ───┘
 
 Spike (skip spec + publish chain):
 START → SCOPE → PLAN → TASK → EXECUTE → WRAP
@@ -173,6 +174,10 @@ START → EXECUTE → WRAP
 ```
 
 **⚠️ IMPORTANT**: PR must be merged BEFORE finalize/wrap (development workflow only)!
+
+**Review gate behavior**:
+- `invoke session.start --auto --issue N` stops after `publish` so the user can review manually or invoke `session.review` explicitly
+- `invoke session.start --auto --copilot-review --issue N` continues through the automated `session.review` stage
 
 ## Valid Transitions
 
@@ -187,7 +192,8 @@ START → EXECUTE → WRAP
 | `task` | `execute` |
 | `execute` | `validate`, `execute` (loop), `wrap` (maintenance/spike) |
 | `validate` | `publish`, `execute` (if fix needed) |
-| `publish` | `finalize` |
+| `publish` | `review`, `finalize` |
+| `review` | `finalize` |
 | `finalize` | `wrap` |
 | `wrap` | (terminal - session complete) |
 

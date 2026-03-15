@@ -24,6 +24,8 @@ COMMENT=""
 CONTINUES_FROM=""
 GIT_CONTEXT=false
 READ_ONLY=false
+AUTO_MODE=false
+COPILOT_REVIEW=false
 
 # ============================================================================
 # Usage
@@ -46,6 +48,8 @@ OPTIONS:
     --comment "TEXT"           Additional instructions for the session
     --continues-from SESSION_ID New session continues from a previous session
     --git-context              Append a Git Context scaffold block to notes.md (or set SESSION_GIT_CONTEXT=1)
+    --auto                     Accept orchestration auto-chain flag (handled by session.start agent)
+    --copilot-review           Accept orchestration review flag (handled by session.start agent)
     --json                     Output JSON for AI consumption
     -h, --help        Show this help
 
@@ -54,7 +58,7 @@ GOAL:
     Not needed if --issue or --spec is provided.
 
 WORKFLOWS:
-    development (default) - Full chain: start → scope → spec → plan → task → execute → validate → publish → finalize → wrap
+    development (default) - Full chain: start → scope → spec → plan → task → execute → validate → publish → [review] → finalize → wrap
     spike (--spike)       - Light chain: start → scope → plan → task → execute → wrap (no PR)
     maintenance           - Minimal chain: start → execute → wrap (no branch, no PR)
 
@@ -93,6 +97,10 @@ EXAMPLES:
 
     # Resume with context
     session-start.sh --resume --comment "Continue from task 5"
+
+    # Agent/orchestrator compatibility flags (accepted during initialization)
+    session-start.sh --auto --issue 123                  # auto through publish, then stop for manual/custom review
+    session-start.sh --auto --copilot-review --issue 123 # full auto with Copilot review
 EOF
 }
 
@@ -156,6 +164,14 @@ parse_args() {
                 ;;
             --git-context)
                 GIT_CONTEXT=true
+                shift
+                ;;
+            --auto)
+                AUTO_MODE=true
+                shift
+                ;;
+            --copilot-review)
+                COPILOT_REVIEW=true
                 shift
                 ;;
             --json)
@@ -584,6 +600,10 @@ EOF
   "action": "$(if [[ "$is_resume" == "true" ]]; then echo "resumed"; else echo "created"; fi)",
   "resume_mode": $(if [[ "$RESUME_MODE" == "true" ]]; then echo "true"; else echo "false"; fi),
   "user_comment": "$(json_escape "$COMMENT")",
+  "orchestration": {
+    "auto": $(if [[ "$AUTO_MODE" == "true" ]]; then echo "true"; else echo "false"; fi),
+    "copilot_review": $(if [[ "$COPILOT_REVIEW" == "true" ]]; then echo "true"; else echo "false"; fi)
+  },
   "repo_root": "${repo_root}",
   "session": {
     "id": "${session_id}",

@@ -12,7 +12,8 @@ tools: ["*"]
 ## ⛔ SCOPE BOUNDARY
 
 **This agent ONLY creates/updates the pull request. It does NOT:**
-- ❌ Merge the PR (user monitors CI and merges manually)
+- ❌ Review the PR (that's `session.review`)
+- ❌ Merge the PR (the orchestrator handles merge after review)
 - ❌ Close issues (that's `session.finalize`)
 - ❌ Write session documentation (that's `session.wrap`)
 - ❌ Run validation checks (that's `session.validate`)
@@ -126,14 +127,9 @@ fi
 ✅ PR updated successfully
 
 **Next Steps:**
-1. Monitor CI at [PR URL]
+1. Review the PR manually, OR run `session.review` to use the default or an overridden custom review agent
 2. Once CI passes and PR is merged: `session.finalize`
 3. Then wrap up: `session.wrap`
-
-**Why session.finalize next?**
-- session.finalize closes issues and syncs task progress (requires merged PR)
-- session.wrap documents the session (requires all work complete)
-- User must monitor CI and merge PR before finalizing
 ```
 
 ### IF validation failed (overall: "fail"):
@@ -145,14 +141,9 @@ fi
 
 **Next Steps:**
 1. Fix issues in next session, OR
-2. If acceptable, merge as-is (draft PR)
+2. If acceptable, proceed to manual/custom review and merge
 3. After merge: `session.finalize`
 4. Then wrap up: `session.wrap`
-
-**Why session.finalize next?**
-- session.finalize handles post-merge issue management
-- session.wrap is the final documentation step
-- Can't finalize until PR is merged to main
 ```
 
 ## Next step
@@ -162,7 +153,7 @@ fi
 .session/scripts/bash/session-postflight.sh --step publish --json
 ```
 
-After postflight, **return your results** — PR number, URL, and status. The orchestrating agent (session.start) will handle the review cycle and merge.
+After postflight, **return your results** — PR number, URL, and status. The orchestrating agent will either stop here for manual/custom review or invoke `session.review` if automated review was explicitly requested.
 
 ⛔ Do NOT invoke session.finalize or any other agent yourself.
 
@@ -225,4 +216,3 @@ echo "✓ Workflow check passed - proceeding with PR creation"
 - **spike**: Research/exploration work not intended for production PRs
 
 Only development workflow creates pull requests for review.
-

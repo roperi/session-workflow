@@ -4,6 +4,11 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+- **FIX**: `session-start.sh` now accepts orchestration-only flags `--auto` and `--copilot-review` instead of rejecting them; the script records those flags in JSON output under `orchestration` so `session.start` auto-mode invocations no longer degrade to planning-only after an unknown-option failure
+- **CHANGE (#54)**: `--auto` without `--copilot-review` now stops after `session.publish` so users can review the PR manually or invoke a custom `session.review` agent explicitly; only `--auto --copilot-review` continues through automated review, merge, finalize, and wrap
+- **CHANGE (#54)**: `session.review` now uses a single review pass by default — request Copilot review once, address actionable comments, push fixes, and leave one final PR summary comment; no automatic re-request loop and no inline replies on each review thread
+- **NEW (#54)**: Dedicated `session.review` agent — review is now a first-class workflow step instead of inline logic in `session.start`; default implementation uses GitHub Copilot Review (`request_copilot_review`); overridable by replacing `session.review.agent.md` with a custom review agent; `WORKFLOW_TRANSITIONS` updated with `publish → review` and `review → finalize`; backward compatible (review can be skipped: `publish → finalize`); `session.execute` Phase 2 chain updated to include review step; development workflow is now 11-agent chain
+
 - **FIX (#53)**: Wrap step stuck `in_progress` — `session-wrap.sh` now calls `set_workflow_step()` to mark wrap as completed in `state.json`; added test 29 for regression coverage
 - **CHANGE (#53)**: Auto-chaining and Copilot review now opt-in — default mode runs Phase 1 (Planning: scope → spec → plan → task) then stops; `--auto` flag runs full chain; `--auto --copilot-review` adds PR review; `session.execute` and `session.finalize` agents updated with Phase 2/3 orchestration for direct invocation
 - **CHANGE (#53)**: Maintenance workflow always auto-chains — no planning phase to review, so maintenance runs execute → wrap regardless of `--auto` flag
