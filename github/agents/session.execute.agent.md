@@ -199,23 +199,32 @@ Complete **one task fully** before moving to the next:
 
 When you encounter a `[MANUAL]` test task:
 
-1. **Stop** automated execution
-2. **Prompt user**:
+1. **Record a pause checkpoint in `state.json`** before asking the user to test:
+   ```bash
+   source .session/scripts/bash/session-common.sh
+   SESSION_ID=$(get_active_session)
+   set_pause_state "$SESSION_ID" "manual_test" "execute" "{task-id}" "{task-description}" "{specific-action-to-test}" "invoke session.start --resume"
    ```
-   🔍 Manual browser test required:
+2. **Stop** automated execution and **prompt user**:
+   ```
+    🔍 Manual browser test required:
    
    Task: {task-description}
    Action: {specific-action-to-test}
    Expected: {expected-result}
    
-   Please test in browser and confirm:
-   - [ ] Test passed (works as expected)
-   - [ ] Test failed (describe issue)
-   ```
+    Please test in browser and confirm:
+    - [ ] Test passed (works as expected)
+    - [ ] Test failed (describe issue)
+    ```
 3. **Wait** for user confirmation
-4. **If failed**: Debug and fix BEFORE proceeding
-5. **If passed**: Mark task [x] and continue
-6. **Document** result in notes.md
+4. **On resume**, read the active pause state and re-surface the pending action before proceeding
+5. **If failed**: Debug and fix BEFORE proceeding
+6. **If passed**: clear the pause checkpoint, mark task [x], and continue
+   ```bash
+   clear_pause_state "$SESSION_ID" "Manual test confirmed by user"
+   ```
+7. **Document** result in notes.md
 
 **NEVER proceed to commit/push/PR tasks without manual test confirmation.**
 

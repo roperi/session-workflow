@@ -10,7 +10,7 @@ constant before trusting field names.
 
 ## `session-info.json` — current version `2.2`
 
-**Constant**: `SESSION_INFO_SCHEMA_VERSION="2.2"` (in `session-common.sh`)
+**Constant**: `SESSION_INFO_SCHEMA_VERSION="2.2"` (in `session/scripts/bash/lib/session-paths.sh`)
 
 **Common fields** (all types):
 
@@ -43,15 +43,15 @@ constant before trusting field names.
 
 ---
 
-## `state.json` — current version `1.1`
+## `state.json` — current version `1.2`
 
-**Constant**: `STATE_SCHEMA_VERSION="1.1"` (in `session-common.sh`)
+**Constant**: `STATE_SCHEMA_VERSION="1.2"` (in `session/scripts/bash/lib/session-paths.sh`)
 
 **Fields written by `create_session_state()`**:
 
 | Field | Type | Description |
 |-------|------|-------------|
-| `schema_version` | string | Always `"1.1"` |
+| `schema_version` | string | Always `"1.2"` |
 | `session_id` | string | Matches session-info.json |
 | `status` | string | `active` \| `completed` |
 | `started_at` | ISO 8601 string | UTC |
@@ -62,16 +62,21 @@ constant before trusting field names.
 | `git.branch` | string | Branch at session start |
 | `git.last_commit` | string | Short SHA at session start |
 | `notes_summary` | string | |
-| `step_history` | array | `[]` at creation |
+| `step_history` | array | Initialized with a completed `start` entry |
+| `pause` | object | Active human checkpoint state; defaults to inactive fields |
+| `current_step` | string | `start` at creation; later updated by workflow steps |
+| `step_status` | string | `completed` at creation; later updated by workflow steps |
+| `step_started_at` | ISO 8601 string | Start timestamp at creation |
+| `step_updated_at` | ISO 8601 string | Start timestamp at creation |
 
-**Fields added by `set_workflow_step()`** (first preflight call):
+**Fields updated by `set_workflow_step()`** (preflight/postflight calls):
 
 | Field | Type | Description |
 |-------|------|-------------|
-| `current_step` | string | `plan` \| `task` \| `execute` \| `validate` \| `publish` \| `finalize` \| `wrap` |
+| `current_step` | string | Updated to the active workflow step |
 | `step_status` | string | `in_progress` \| `completed` \| `failed` |
-| `step_started_at` | ISO 8601 string | |
-| `step_updated_at` | ISO 8601 string | |
+| `step_started_at` | ISO 8601 string | Reset when a step starts |
+| `step_updated_at` | ISO 8601 string | Updated on every state transition |
 
 **`step_history` entry schema** (appended by `set_workflow_step()`):
 
@@ -83,10 +88,26 @@ constant before trusting field names.
 | `ended_at` | ISO 8601 \| null | Set when step completes/fails |
 | `forced` | boolean | `true` if `--force` was used to bypass transition checks |
 
+**`pause` schema** (written by pause helper functions in `session-state.sh`):
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `active` | boolean | `true` while waiting on a human checkpoint |
+| `kind` | string \| null | `manual_test` or another pause type |
+| `step` | string \| null | Workflow step that owns the pause |
+| `task_id` | string \| null | Related task identifier when available |
+| `summary` | string \| null | Short human-readable checkpoint summary |
+| `required_action` | string \| null | What the user must do before resuming |
+| `resume_command` | string \| null | Suggested resume command |
+| `created_at` | ISO 8601 \| null | When the pause was recorded |
+| `cleared_at` | ISO 8601 \| null | When the pause was cleared |
+| `notes` | string \| null | Resume/confirmation notes |
+
 ### Version history
 
 | Version | Change |
 |---------|--------|
+| `1.2` | Added `pause` object for durable human checkpoints and resume guidance. |
 | `1.1` | Added `step_history` array for append-only workflow audit trail. |
 | `1.0` | Initial. All state.json fields. |
 

@@ -310,7 +310,7 @@ create_session_state() {
     tmp_state=$(mktemp "${state_file}.XXXXXX")
     cat > "$tmp_state" << EOF
 {
-  "schema_version": "1.1",
+  "schema_version": "${STATE_SCHEMA_VERSION}",
   "session_id": "${session_id}",
   "status": "active",
   "started_at": "${started_at}",
@@ -337,7 +337,8 @@ create_session_state() {
   "current_step": "start",
   "step_status": "completed",
   "step_started_at": "${started_at}",
-  "step_updated_at": "${started_at}"
+  "step_updated_at": "${started_at}",
+  "pause": $(default_pause_state_json)
 }
 EOF
     mv "$tmp_state" "$state_file"
@@ -585,6 +586,13 @@ EOF
     sess_parent=$(echo "$session_info" | jq -r '.parent_session_id // empty')
     local sess_parent_escaped
     sess_parent_escaped=$(json_escape "$sess_parent")
+
+    local pause_json pause_active pause_summary pause_required_action pause_resume_command
+    pause_json=$(get_pause_state_json "$session_id")
+    pause_active=$(echo "$pause_json" | jq -r '.active // false')
+    pause_summary=$(echo "$pause_json" | jq -r '.summary // ""')
+    pause_required_action=$(echo "$pause_json" | jq -r '.required_action // ""')
+    pause_resume_command=$(echo "$pause_json" | jq -r '.resume_command // ""')
     
     # Build instructions array incrementally to avoid blank lines from unset vars
     local instructions=()
@@ -592,6 +600,9 @@ EOF
     [[ -n "$prev_session" ]] && instructions+=("\"Review previous session notes for continuity\"")
     [[ "$RESUME_MODE" == "true" ]] && instructions+=("\"RESUME MODE: Continue from where agent left off, do not restart from beginning\"")
     [[ -n "$COMMENT" ]] && instructions+=("\"USER INSTRUCTION: $(json_escape "${COMMENT}")\"")
+    if [[ "$pause_active" == "true" ]]; then
+        instructions+=("\"ACTIVE HUMAN CHECKPOINT: $(json_escape "${pause_summary}. Required action: ${pause_required_action}. Resume with ${pause_resume_command}.")\"")
+    fi
     instructions+=("\"Update notes.md throughout the session\"")
     instructions+=("\"Run '.session/scripts/bash/session-wrap.sh' at end of session\"")
     local instructions_json
@@ -607,6 +618,7 @@ EOF
     "auto": $(if [[ "$AUTO_MODE" == "true" ]]; then echo "true"; else echo "false"; fi),
     "copilot_review": $(if [[ "$COPILOT_REVIEW" == "true" ]]; then echo "true"; else echo "false"; fi)
   },
+  "pause": ${pause_json},
   "repo_root": "${repo_root}",
   "session": {
     "id": "${session_id}",

@@ -37,6 +37,7 @@ Define **WHAT** we're solving and **HOW we'll know it's done** before any planni
 
 - This is a **formal workflow step** (part of the development/spike chain).
 - The scope agent is **interactive/dialogue-driven**: ask clarifying questions rather than assuming.
+- This remains true even when `session.start` is running in `--auto` mode — keep the dialogue focused, but do not suppress it.
 - **Write output to**:
   - **Speckit sessions** (`type: speckit`): `specs/{feature}/scope.md` (read `spec_dir` from `session-info.json`)
   - **All other sessions**: `{session_dir}/scope.md`
@@ -163,6 +164,7 @@ This is the heart of the scope agent. **Ask questions one at a time**, using the
 **Dialogue rules:**
 - Ask **up to 5 questions**, one at a time
 - Stop early if the picture is clear
+- If invoked from an auto-chain, keep the dialogue especially concise and stop as soon as scope is clear
 - For non-developer users, keep language accessible — no jargon
 - If the user provides a detailed issue or brainstorm, you may need fewer questions
 - Use the user's exact language in the scope document (don't over-formalize)
