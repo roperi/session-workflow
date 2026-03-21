@@ -747,6 +747,44 @@ SPECMD
   set_workflow_step "$auto_review_session_id" "execute" "completed" >/dev/null
   ./.session/scripts/bash/session-wrap.sh --json >/dev/null
 
+  # 40) maintenance help text documents lightweight default
+  log "40) maintenance help text documents lightweight default"
+  local help_output
+  help_output=$(./.session/scripts/bash/session-start.sh --help)
+  echo "$help_output" | grep -q "maintenance" \
+    || fail "session-start help should mention the maintenance workflow"
+  echo "$help_output" | grep -q "Lightweight chain" \
+    || fail "session-start help should describe maintenance as a lightweight chain"
+  echo "$help_output" | grep -q "start → execute → STOP by default" \
+    || fail "session-start help should describe maintenance as stop-after-execute by default"
+  echo "$help_output" | grep -q -- "--auto adds wrap" \
+    || fail "session-start help should document that --auto adds wrap for maintenance"
+
+  # 41) maintenance docs/agent contract reflect stop-after-execute default
+  log "41) maintenance docs and agent contract reflect lightweight default"
+  grep -q "Maintenance Workflow: execute → STOP" "$ROOT_DIR/github/agents/session.start.agent.md" \
+    || fail "session.start agent should document maintenance execute → STOP default"
+  grep -q "agent_type: \"session.execute\"" "$ROOT_DIR/github/agents/session.start.agent.md" \
+    || fail "session.start agent should include an explicit maintenance execute sub-agent block"
+  grep -q "Maintenance Workflow: → STOP" "$ROOT_DIR/github/agents/session.execute.agent.md" \
+    || fail "session.execute agent should document maintenance stop-after-execute direct mode"
+  grep -q "Maintenance runs \`execute\` and then stops" "$ROOT_DIR/README.md" \
+    || fail "README should describe maintenance stop-after-execute default"
+  grep -q "# → execute → STOP (no branch, no PR)" "$ROOT_DIR/session/docs/reference.md" \
+    || fail "reference docs should show maintenance execute → STOP example"
+  grep -q "Maintenance (lightweight default)" "$ROOT_DIR/session/docs/shared-workflow.md" \
+    || fail "shared workflow docs should describe the lightweight maintenance default"
+  grep -q "start → execute → STOP" "$ROOT_DIR/session/docs/shared-workflow.md" \
+    || fail "shared workflow docs should show lightweight maintenance default"
+  grep -q "Maintenance workflow" "$ROOT_DIR/.github/copilot-instructions.md" \
+    || fail "copilot instructions should mention the maintenance workflow"
+  grep -q "start → execute → STOP" "$ROOT_DIR/.github/copilot-instructions.md" \
+    || fail "copilot instructions should show maintenance stop-after-execute default"
+  grep -q "Maintenance workflow is now lightweight by default" "$ROOT_DIR/CHANGELOG.md" \
+    || fail "CHANGELOG should record the maintenance default change"
+  ! grep -q "Maintenance workflow always auto-chains" "$ROOT_DIR/CHANGELOG.md" \
+    || fail "CHANGELOG should not retain the old always-auto maintenance wording"
+
   log "All session-start orchestration flag tests passed."
 }
 

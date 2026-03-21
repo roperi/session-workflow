@@ -99,12 +99,12 @@ echo "Workflow: $WORKFLOW, Stage: $STAGE, Read-only: $READ_ONLY"
 **Workflows and their chains:**
 - **development**: Full chain (scope → spec → plan → task → execute → validate → publish → finalize → wrap)
 - **spike**: Light chain (scope → plan → task → execute → wrap) — skips PR steps, not planning
-- **maintenance**: Minimal chain (execute → wrap) — skips branch, planning, validation, and PR
+- **maintenance**: Lightweight chain (execute → STOP by default; `--auto` adds wrap) — skips branch, planning, validation, and PR
 
 **Read-only mode** (`read_only: true`):
 - Only valid with `maintenance` workflow
 - No `git add`, `git commit`, or file deletions during execute
-- Wrap produces a report file; no git changes are committed
+- Execute produces a report file; wrap only closes out the session and records notes
 
 **Smart routing — intent inference:**
 
@@ -242,7 +242,7 @@ Check `$ARGUMENTS` for these flags:
 - **`--auto`**: Run automatically through `session.publish`, then stop unless automated review was explicitly requested
 - **`--copilot-review`**: Request GitHub Copilot code review before merge (only with `--auto`, development workflow only)
 
-**Default (no `--auto`)**: Orchestrate **Phase 1 (Planning) only**, then stop and guide the user to invoke the next phase manually.
+**Default (no `--auto`)**: Orchestrate **Phase 1 (Planning) only** for development/spike. For maintenance, invoke `session.execute` immediately, then stop and guide the user to wrap only if they want a full closeout.
 
 ### ⛔ CRITICAL: Invoke Agents — Do NOT Do Their Work
 
@@ -259,9 +259,9 @@ When invoking sub-agents, include this in every prompt: "Do NOT ask clarifying q
 
 ---
 
-### Default Mode (Phase 1: Planning Only)
+### Default Mode
 
-Orchestrate the planning phase only. After completion, stop and guide the user.
+For development/spike, orchestrate the planning phase only. For maintenance, invoke execute immediately, then stop and guide the user.
 
 #### Development Workflow: scope → spec → plan → task → STOP
 
@@ -331,9 +331,29 @@ Next: Review planning artifacts, then run:
   invoke session.execute
 ```
 
-#### Maintenance Workflow: Always auto-chain
+#### Maintenance Workflow: execute → STOP
 
-Maintenance has no planning phase — nothing for the user to review. Always auto-chain to execute → wrap regardless of `--auto` flag. Follow the same invocation pattern as [Maintenance Workflow (Auto)](#maintenance-workflow-auto-execute--wrap) below.
+Maintenance has no planning phase, so invoke `session.execute` immediately:
+
+**execute** — Invoke `session.execute` agent:
+```
+agent_type: "session.execute"
+prompt: "Execute maintenance work for session {session_id}. Dir: {session_dir}. Tasks in {tasks_file}. Workflow: maintenance. Do NOT ask clarifying questions."
+```
+
+After execute completes, STOP and guide the user to review the result, then run `invoke session.wrap` only when they want to close out the session.
+
+Return a summary like:
+```
+✅ Maintenance execution complete
+
+Session: {session_id}
+Workflow: maintenance
+
+Next:
+  - Review the changes or report output
+  - Run `invoke session.wrap` when you want to close out the session
+```
 
 ---
 
@@ -439,7 +459,7 @@ prompt: "Wrap spike session {session_id}. Dir: {session_dir}. Do NOT ask clarify
 
 #### Maintenance Workflow (Auto): execute → wrap
 
-No planning phase. After initialization, proceed directly to execute, then wrap.
+No planning phase. When `--auto` is explicitly set, proceed directly to execute, then wrap.
 
 ---
 
@@ -452,7 +472,7 @@ When resuming (`--resume`), check `state.json` to determine what step the sessio
 
 ## Notes
 
-- **Mode-aware orchestration**: Default runs Phase 1 (Planning) only; `--auto` runs through PR publish, then stops unless automated review was explicitly requested. Exception: maintenance always auto-chains (no planning to review)
+- **Mode-aware orchestration**: Default runs Phase 1 (Planning) only for development/spike; maintenance runs execute and then stops. `--auto` runs through PR publish for development, and adds wrap for maintenance/spike
 - **No code changes**: Never write application code directly — that's session.execute's job
 - **Invoke, don't impersonate**: Use the task tool to invoke each agent — never `cat` their files and do their work
 - **Three workflows**: development (full), spike (no PR), maintenance (no branch, no PR, no planning)

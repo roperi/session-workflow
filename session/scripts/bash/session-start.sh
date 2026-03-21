@@ -60,7 +60,7 @@ GOAL:
 WORKFLOWS:
     development (default) - Full chain: start → scope → spec → plan → task → execute → validate → publish → [review] → finalize → wrap
     spike (--spike)       - Light chain: start → scope → plan → task → execute → wrap (no PR)
-    maintenance           - Minimal chain: start → execute → wrap (no branch, no PR)
+    maintenance           - Lightweight chain: start → execute → STOP by default; --auto adds wrap (no branch, no PR)
 
 MODIFIERS:
     --read-only           No commits or file modifications; produce report only (use with --maintenance)
@@ -83,11 +83,14 @@ EXAMPLES:
     # Spike/research (no PR expected)
     session-start.sh --spike "Explore Redis caching options"
 
-    # Maintenance: small change, no branch or PR
+    # Maintenance: small change, no branch or PR; stops after execute by default
     session-start.sh --maintenance "Reorder docs/ and update TOC"
 
-    # Audit: read-only, no commits
+    # Audit: read-only, no commits; stops after execute by default
     session-start.sh --maintenance --read-only "Find stale files in src/"
+
+    # Maintenance with explicit auto-closeout
+    session-start.sh --maintenance --auto "Reorder docs/ and update TOC"
 
     # PoC project with relaxed validation
     session-start.sh --stage poc "Prototype new auth flow"

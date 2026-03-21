@@ -46,7 +46,7 @@ Agents live in `github/agents/session.*.agent.md` with corresponding `github/pro
 
 **Spike workflow** (no PR): `start → [scope →] plan → task → execute → wrap`
 
-**Maintenance workflow** (minimal): `start → execute → wrap`
+**Maintenance workflow** (minimal): `start → execute → STOP` by default; `--auto` adds `wrap`
 
 ### Workflow State Machine
 
