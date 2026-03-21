@@ -53,11 +53,24 @@ install_session_workflow_into_repo() {
   local repo_root="$1"
   mkdir -p "$repo_root/.session/scripts/bash" "$repo_root/.session/templates"
   cp "$ROOT_DIR"/session/scripts/bash/*.sh "$repo_root/.session/scripts/bash/"
+  cp "$ROOT_DIR"/session/scripts/update-wrapper.sh "$repo_root/.session/update.sh"
   # Copy lib sub-directory (session-common.sh now sources these)
   mkdir -p "$repo_root/.session/scripts/bash/lib"
   cp "$ROOT_DIR"/session/scripts/bash/lib/*.sh "$repo_root/.session/scripts/bash/lib/"
   cp "$ROOT_DIR"/session/templates/*.md "$repo_root/.session/templates/" 2>/dev/null || true
   chmod +x "$repo_root/.session/scripts/bash"/*.sh
+  chmod +x "$repo_root/.session/update.sh"
+}
+
+sha256_file() {
+  local path="$1"
+  if command -v sha256sum >/dev/null 2>&1; then
+    sha256sum "$path" | awk '{print $1}'
+  elif command -v shasum >/dev/null 2>&1; then
+    shasum -a 256 "$path" | awk '{print $1}'
+  else
+    fail "missing SHA-256 tool"
+  fi
 }
 
 main() {
@@ -1022,6 +1035,89 @@ EOF
   assert_eq "${resume_next_dir}/next.md" "$(echo "$resume_next_json" | jq -r '.session.files.next')" "resume JSON should surface a valid next.md path"
   set_workflow_step "$resume_next_id" "execute" "completed" >/dev/null
   ./.session/scripts/bash/session-wrap.sh --json >/dev/null
+
+  # 52) stable updater wrapper writes manifest and prunes deprecated managed files safely
+  log "52) stable updater wrapper writes manifest and prunes deprecated managed files safely"
+  local obsolete_sha preserved_sha protected_sha
+  chmod -x .session/scripts/bash/session-start.sh
+  cat > .session/templates/obsolete-template.md <<'EOF'
+obsolete managed template
+EOF
+  obsolete_sha=$(sha256_file ".session/templates/obsolete-template.md")
+  cat > .session/templates/preserved-obsolete-template.md <<'EOF'
+preserve this deprecated file
+EOF
+  preserved_sha=$(sha256_file ".session/templates/preserved-obsolete-template.md")
+  echo "local modification" >> .session/templates/preserved-obsolete-template.md
+  cat > do-not-delete.txt <<'EOF'
+do not delete via manifest traversal
+EOF
+  protected_sha=$(sha256_file "do-not-delete.txt")
+  mkdir -p .session/templates/obsolete-dir
+  cat > .session/install-manifest.json <<EOF
+{
+  "schema_version": "1",
+  "generated_at": "2026-03-21T00:00:00Z",
+  "tool": "update",
+  "tool_version": "test",
+  "managed_files": [
+    {
+      "path": ".session/templates/obsolete-template.md",
+      "source": "session/templates/obsolete-template.md",
+      "sha256": "${obsolete_sha}"
+    },
+    {
+      "path": ".session/templates/preserved-obsolete-template.md",
+      "source": "session/templates/preserved-obsolete-template.md",
+      "sha256": "${preserved_sha}"
+    },
+    {
+      "path": ".session/templates/../../do-not-delete.txt",
+      "source": "session/templates/../../do-not-delete.txt",
+      "sha256": "${protected_sha}"
+    },
+    {
+      "path": ".session/templates/obsolete-dir",
+      "source": "session/templates/obsolete-dir",
+      "sha256": "directory-placeholder"
+    }
+  ],
+  "managed_sections": []
+}
+EOF
+  SESSION_WORKFLOW_SOURCE_DIR="$ROOT_DIR" bash ./.session/update.sh >/dev/null
+  [[ -x ".session/scripts/bash/session-start.sh" ]] \
+    || fail "updater should restore executable bits for managed scripts"
+  [[ ! -e ".session/templates/obsolete-template.md" ]] \
+    || fail "updater should remove deprecated managed files when the checksum still matches"
+  assert_file_exists ".session/templates/preserved-obsolete-template.md"
+  assert_file_exists "do-not-delete.txt"
+  assert_dir_exists ".session/templates/obsolete-dir"
+  assert_file_exists ".session/install-manifest.json"
+  assert_eq "true" "$(jq -r 'any(.managed_files[]?; .path == ".session/update.sh")' .session/install-manifest.json)" "manifest should track the stable updater wrapper"
+  assert_eq "false" "$(jq -r 'any(.managed_files[]?; .path == ".session/templates/obsolete-template.md")' .session/install-manifest.json)" "new manifest should not retain pruned deprecated files"
+  assert_eq "false" "$(jq -r 'any(.managed_files[]?; .path == ".session/templates/preserved-obsolete-template.md")' .session/install-manifest.json)" "new manifest should omit deprecated files that were left in place"
+  assert_eq "false" "$(jq -r 'any(.managed_files[]?; .path == ".session/templates/../../do-not-delete.txt")' .session/install-manifest.json)" "new manifest should omit unsafe deprecated paths"
+  assert_eq "false" "$(jq -r 'any(.managed_files[]?; .path == ".session/templates/obsolete-dir")' .session/install-manifest.json)" "new manifest should omit deprecated directory entries"
+
+  # 53) install/update/docs reflect the stable updater wrapper and manifest
+  log "53) stable updater wrapper and manifest are documented"
+  grep -q "\.session/update\.sh" "$ROOT_DIR/README.md" \
+    || fail "README should document the stable updater wrapper"
+  grep -q "install-manifest.json" "$ROOT_DIR/README.md" \
+    || fail "README should document the managed-file manifest"
+  grep -q "update-wrapper.sh" "$ROOT_DIR/install.sh" \
+    || fail "install.sh should install the stable updater wrapper source"
+  grep -q "install-manifest.json" "$ROOT_DIR/install.sh" \
+    || fail "install.sh should write the managed-file manifest"
+  grep -q "update-wrapper.sh" "$ROOT_DIR/update.sh" \
+    || fail "update.sh should refresh the stable updater wrapper"
+  grep -q "install-manifest.json" "$ROOT_DIR/update.sh" \
+    || fail "update.sh should manage the install manifest"
+  grep -q "\.session/update\.sh" "$ROOT_DIR/session/docs/reference.md" \
+    || fail "reference docs should mention the stable updater wrapper"
+  grep -q "install-manifest.json" "$ROOT_DIR/session/docs/reference.md" \
+    || fail "reference docs should mention the managed-file manifest"
 }
 
 main "$@"

@@ -12,6 +12,8 @@ REPO_URL="https://raw.githubusercontent.com/roperi/session-workflow/main"
 SOURCE_DIR="${SESSION_WORKFLOW_SOURCE_DIR:-}"
 VERSION="2.6.0"
 DRY_RUN=false
+MANIFEST_FILE=".session/install-manifest.json"
+MANAGED_FILES=()
 
 # Colors for output
 RED='\033[0;31m'
@@ -58,6 +60,200 @@ download_file() {
     fi
 }
 
+register_managed_file() {
+    local source_path="$1"
+    local dest="$2"
+    MANAGED_FILES+=("${source_path}|${dest}")
+}
+
+update_managed_file() {
+    local source_path="$1"
+    local dest="$2"
+    local mode="${3:-}"
+
+    download_file "$source_path" "$dest"
+    if [[ "$mode" == "executable" ]] && ! $DRY_RUN; then
+        chmod +x "$dest"
+    fi
+    register_managed_file "$source_path" "$dest"
+}
+
+calculate_sha256() {
+    local path="$1"
+
+    if command -v sha256sum >/dev/null 2>&1; then
+        sha256sum "$path" | awk '{print $1}'
+    elif command -v shasum >/dev/null 2>&1; then
+        shasum -a 256 "$path" | awk '{print $1}'
+    else
+        return 1
+    fi
+}
+
+manifest_dependencies_available() {
+    if ! command -v jq >/dev/null 2>&1; then
+        warn "jq not found; skipping install-manifest operations (pruning/generation)"
+        return 1
+    fi
+
+    if ! command -v sha256sum >/dev/null 2>&1 && ! command -v shasum >/dev/null 2>&1; then
+        warn "No SHA-256 tool found; skipping install-manifest operations (pruning/generation)"
+        return 1
+    fi
+
+    return 0
+}
+
+is_prunable_managed_path() {
+    local path="$1"
+
+    case "$path" in
+        .session/update.sh|\
+        .session/scripts/bash/lib/*|\
+        .session/scripts/bash/*|\
+        .session/templates/*|\
+        .session/docs/*|\
+        .github/agents/*|\
+        .github/prompts/*)
+            return 0
+            ;;
+        *)
+            return 1
+            ;;
+    esac
+}
+
+is_safe_managed_relative_path() {
+    local path="$1"
+
+    [[ -n "$path" ]] || return 1
+    [[ "$path" != /* ]] || return 1
+    [[ "$path" != ../* ]] || return 1
+    [[ "$path" != */../* ]] || return 1
+    [[ "$path" != */.. ]] || return 1
+    [[ "$path" != ./* ]] || return 1
+    [[ "$path" != */./* ]] || return 1
+    [[ "$path" != */. ]] || return 1
+    [[ "$path" != *$'\n'* ]] || return 1
+    [[ "$path" != *'//'* ]] || return 1
+
+    return 0
+}
+
+prune_removed_managed_files() {
+    if ! manifest_dependencies_available; then
+        return
+    fi
+
+    if [[ ! -f "$MANIFEST_FILE" ]]; then
+        warn "No ${MANIFEST_FILE} found; skipping deprecated managed-file pruning on this run"
+        return
+    fi
+
+    local current_paths
+    current_paths=$(printf '%s\n' "${MANAGED_FILES[@]}" | while IFS='|' read -r _ dest; do
+        [[ -n "$dest" ]] && printf '%s\n' "$dest"
+    done | sort -u)
+
+    while IFS=$'\t' read -r path sha _source; do
+        [[ -n "$path" ]] || continue
+
+        if printf '%s\n' "$current_paths" | grep -qxF "$path"; then
+            continue
+        fi
+
+        if ! is_safe_managed_relative_path "$path"; then
+            warn "Skipping unsafe manifest path: ${path}"
+            continue
+        fi
+
+        if ! is_prunable_managed_path "$path"; then
+            warn "Skipping manifest entry outside managed roots: ${path}"
+            continue
+        fi
+
+        if [[ ! -e "$path" ]]; then
+            continue
+        fi
+
+        if [[ ! -f "$path" ]]; then
+            warn "Skipping deprecated managed manifest entry because it is not a regular file: ${path}"
+            continue
+        fi
+
+        local current_sha
+        current_sha=$(calculate_sha256 "$path") || {
+            warn "Failed to calculate SHA-256 for ${path}; leaving deprecated file in place"
+            continue
+        }
+
+        if [[ "$current_sha" == "$sha" ]]; then
+            if $DRY_RUN; then
+                dry_note "Would remove deprecated managed file: ${path}"
+            else
+                rm -f "$path"
+                success "Removed deprecated managed file: ${path}"
+            fi
+        else
+            warn "Not removing deprecated managed file with local modifications: ${path}"
+        fi
+    done < <(jq -r '.managed_files[]? | [.path, .sha256, .source] | @tsv' "$MANIFEST_FILE")
+}
+
+write_install_manifest() {
+    if ! manifest_dependencies_available; then
+        return
+    fi
+
+    local unique_entries
+    unique_entries=$(printf '%s\n' "${MANAGED_FILES[@]}" | sort -u)
+
+    local managed_files_json="[]"
+    local entry_json=()
+    while IFS='|' read -r source_path dest; do
+        [[ -n "$source_path" && -f "$dest" ]] || continue
+
+        local sha
+        sha=$(calculate_sha256 "$dest") || {
+            warn "Failed to calculate SHA-256 for ${dest}; skipping install-manifest.json generation"
+            return
+        }
+
+        entry_json+=("$(jq -nc \
+            --arg path "$dest" \
+            --arg source "$source_path" \
+            --arg sha "$sha" \
+            '{path: $path, source: $source, sha256: $sha}')")
+    done <<< "$unique_entries"
+
+    if [[ ${#entry_json[@]} -gt 0 ]]; then
+        managed_files_json=$(printf '%s\n' "${entry_json[@]}" | jq -s '.')
+    fi
+
+    local managed_sections_json
+    managed_sections_json=$(jq -nc '[{"file":"AGENTS.md","section":"Session Workflow"},{"file":".github/copilot-instructions.md","section":"Session Workflow"}]')
+
+    local tmp
+    tmp=$(mktemp)
+    jq -n \
+        --arg schema_version "1" \
+        --arg generated_at "$(date -u +"%Y-%m-%dT%H:%M:%SZ")" \
+        --arg tool "update" \
+        --arg tool_version "$VERSION" \
+        --argjson managed_files "$managed_files_json" \
+        --argjson managed_sections "$managed_sections_json" \
+        '{
+            schema_version: $schema_version,
+            generated_at: $generated_at,
+            tool: $tool,
+            tool_version: $tool_version,
+            managed_files: $managed_files,
+            managed_sections: $managed_sections
+        }' > "$tmp"
+    mv "$tmp" "$MANIFEST_FILE"
+    success "Wrote ${MANIFEST_FILE}"
+}
+
 # ============================================================================
 # Update Functions
 # ============================================================================
@@ -87,34 +283,39 @@ update_scripts() {
     )
 
     for script in "${scripts[@]}"; do
-        download_file "session/scripts/bash/${script}" ".session/scripts/bash/${script}"
-        chmod +x ".session/scripts/bash/${script}"
+        update_managed_file "session/scripts/bash/${script}" ".session/scripts/bash/${script}" executable
     done
 
     mkdir -p .session/scripts/bash/lib
     for script in "${lib_scripts[@]}"; do
-        download_file "session/scripts/bash/lib/${script}" ".session/scripts/bash/lib/${script}"
+        update_managed_file "session/scripts/bash/lib/${script}" ".session/scripts/bash/lib/${script}"
     done
 
     success "Scripts updated"
 }
 
+update_updater_wrapper() {
+    info "Updating stable updater wrapper..."
+    update_managed_file "session/scripts/update-wrapper.sh" ".session/update.sh" executable
+    success "Stable updater wrapper updated"
+}
+
 update_templates() {
     info "Updating templates..."
-    download_file "session/templates/session-notes.md" ".session/templates/session-notes.md"
-    download_file "session/templates/next-template.md" ".session/templates/next-template.md"
-    download_file "session/templates/tasks-template.md" ".session/templates/tasks-template.md"
+    update_managed_file "session/templates/session-notes.md" ".session/templates/session-notes.md"
+    update_managed_file "session/templates/next-template.md" ".session/templates/next-template.md"
+    update_managed_file "session/templates/tasks-template.md" ".session/templates/tasks-template.md"
     success "Templates updated"
 }
 
 update_docs() {
     info "Updating documentation..."
-    download_file "README.md" ".session/docs/README.md"
-    download_file "session/docs/testing.md" ".session/docs/testing.md"
-    download_file "session/docs/shared-workflow.md" ".session/docs/shared-workflow.md"
-    download_file "session/docs/schema-versioning.md" ".session/docs/schema-versioning.md"
-    download_file "session/docs/copilot-cli-mechanics.md" ".session/docs/copilot-cli-mechanics.md"
-    download_file "session/docs/reference.md" ".session/docs/reference.md"
+    update_managed_file "README.md" ".session/docs/README.md"
+    update_managed_file "session/docs/testing.md" ".session/docs/testing.md"
+    update_managed_file "session/docs/shared-workflow.md" ".session/docs/shared-workflow.md"
+    update_managed_file "session/docs/schema-versioning.md" ".session/docs/schema-versioning.md"
+    update_managed_file "session/docs/copilot-cli-mechanics.md" ".session/docs/copilot-cli-mechanics.md"
+    update_managed_file "session/docs/reference.md" ".session/docs/reference.md"
     success "Documentation updated"
 }
 
@@ -141,7 +342,7 @@ update_agents() {
     )
 
     for agent in "${agents[@]}"; do
-        download_file "github/agents/${agent}" ".github/agents/${agent}"
+        update_managed_file "github/agents/${agent}" ".github/agents/${agent}"
     done
 
     success "Agents updated"
@@ -170,7 +371,7 @@ update_prompts() {
     )
 
     for prompt in "${prompts[@]}"; do
-        download_file "github/prompts/${prompt}" ".github/prompts/${prompt}"
+        update_managed_file "github/prompts/${prompt}" ".github/prompts/${prompt}"
     done
 
     success "Prompts updated"
@@ -297,11 +498,16 @@ main() {
     echo ""
     
     update_scripts
+    update_updater_wrapper
     update_templates
     update_docs
     update_agents
     update_prompts
     update_bootstrap_sections
+    prune_removed_managed_files
+    if ! $DRY_RUN; then
+        write_install_manifest
+    fi
     
     # Note: We don't update project-context (user customized)
     warn "Skipping project-context/ (user-customized files)"

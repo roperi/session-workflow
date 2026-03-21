@@ -51,6 +51,8 @@ EOF
 # Files and directories that are valid at .session/ root
 SESSION_ROOT_ALLOWLIST=(
     "ACTIVE_SESSION"
+    "install-manifest.json"
+    "update.sh"
     "validation-results.json"
     "scope.md"
     "spec.md"
