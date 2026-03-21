@@ -42,6 +42,7 @@ OPTIONS:
     --spec DIR        Spec directory name (starts speckit session)
     --spike           Spike workflow: exploration/research, no PR expected
     --maintenance     Maintenance workflow: small tasks, docs, housekeeping (no branch/PR)
+    --debug           Debug workflow: troubleshooting/investigation, no PR by default
     --read-only       Audit/read-only mode: no commits or file changes (use with --maintenance)
     --stage STAGE     Project stage: poc, mvp, or production (default: production)
     --resume                   Resume an active session (including interrupted)
@@ -61,6 +62,7 @@ WORKFLOWS:
     development (default) - Full chain: start → scope → spec → plan → task → execute → validate → publish → [review] → finalize → wrap
     spike (--spike)       - Light chain: start → scope → plan → task → execute → wrap (no PR)
     maintenance           - Lightweight chain: start → execute → STOP by default; --auto adds wrap (no branch, no PR)
+    debug (--debug)       - Investigation chain: start → execute → STOP by default; --auto adds wrap (no PR required)
 
 MODIFIERS:
     --read-only           No commits or file modifications; produce report only (use with --maintenance)
@@ -82,6 +84,9 @@ EXAMPLES:
 
     # Spike/research (no PR expected)
     session-start.sh --spike "Explore Redis caching options"
+
+    # Debug/troubleshoot (no PR required; stops after execute by default)
+    session-start.sh --debug "Trace why background jobs stall"
 
     # Maintenance: small change, no branch or PR; stops after execute by default
     session-start.sh --maintenance "Reorder docs/ and update TOC"
@@ -132,6 +137,10 @@ parse_args() {
                 ;;
             --maintenance)
                 WORKFLOW="maintenance"
+                shift
+                ;;
+            --debug)
+                WORKFLOW="debug"
                 shift
                 ;;
             --read-only)
@@ -218,7 +227,7 @@ create_session_info() {
     local created_at
     created_at=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
     
-    # Workflow is either "development" (default), "spike", or "maintenance"
+    # Workflow is either "development" (default), "spike", "maintenance", or "debug"
     local workflow="${WORKFLOW}"
     
     # Stage is "poc", "mvp", or "production" (default)
@@ -873,9 +882,10 @@ main() {
             echo "  1) Code change — will open a PR          (development)"
             echo "  2) Research or exploration — no PR       (--spike)"
             echo "  3) Docs, housekeeping, small fixes       (--maintenance)"
-            echo "  4) Read-only audit — no commits          (--maintenance --read-only)"
+            echo "  4) Debug, troubleshoot, investigate      (--debug)"
+            echo "  5) Read-only audit — no commits          (--maintenance --read-only)"
             echo ""
-            printf "Enter 1-4, or type your goal directly: "
+            printf "Enter 1-5, or type your goal directly: "
             read -r triage_input
 
             case "$triage_input" in
@@ -898,6 +908,12 @@ main() {
                     WORKFLOW="maintenance"
                     ;;
                 4)
+                    printf "Goal / description: "
+                    read -r GOAL
+                    SESSION_TYPE="unstructured"
+                    WORKFLOW="debug"
+                    ;;
+                5)
                     printf "Goal / description: "
                     read -r GOAL
                     SESSION_TYPE="unstructured"

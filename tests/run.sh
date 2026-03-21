@@ -864,6 +864,58 @@ SPECMD
     || fail "reference docs should mention the pause checkpoint field"
 
   log "All pause-checkpoint and auto human-gate tests passed."
+
+  # 46) session-start accepts --debug and records debug workflow
+  log "46) session-start accepts --debug"
+  local start_debug_json debug_session_id
+  start_debug_json=$(./.session/scripts/bash/session-start.sh --json --debug "Trace flaky worker timeout")
+  assert_eq "ok" "$(echo "$start_debug_json" | jq -r '.status')" "session-start should accept --debug"
+  assert_eq "debug" "$(echo "$start_debug_json" | jq -r '.session.workflow')" "session workflow should be debug"
+  assert_eq "false" "$(echo "$start_debug_json" | jq -r '.session.read_only')" "debug workflow should not imply read-only mode"
+  debug_session_id=$(echo "$start_debug_json" | jq -r '.session.id')
+  set_workflow_step "$debug_session_id" "execute" "completed" >/dev/null
+  ./.session/scripts/bash/session-wrap.sh --json >/dev/null
+
+  # 47) debug help text documents lightweight default
+  log "47) debug help text documents lightweight default"
+  help_output=$(./.session/scripts/bash/session-start.sh --help)
+  echo "$help_output" | grep -q -- "--debug" \
+    || fail "session-start help should mention the --debug flag"
+  echo "$help_output" | grep -q "Debug workflow: troubleshooting/investigation" \
+    || fail "session-start help should describe the debug workflow"
+  echo "$help_output" | grep -q "debug (--debug)       - Investigation chain: start → execute → STOP by default; --auto adds wrap" \
+    || fail "session-start help should describe debug as stop-after-execute by default with optional auto wrap"
+
+  # 48) debug docs and agent contracts reflect lightweight investigation workflow
+  log "48) debug docs and agent contracts reflect lightweight investigation workflow"
+  grep -q "Debug Workflow: execute → STOP" "$ROOT_DIR/github/agents/session.start.agent.md" \
+    || fail "session.start agent should document debug execute → STOP default"
+  grep -q "\`debug\`, \`troubleshoot\`, \`diagnose\`, \`trace\`, \`reproduce\`, \`investigate\`, \`why is\`" "$ROOT_DIR/github/agents/session.start.agent.md" \
+    || fail "session.start agent should include debug smart-routing signals"
+  grep -q "check_workflow_allowed \"\$SESSION_ID\" \"development\" \"spike\" \"maintenance\" \"debug\"" "$ROOT_DIR/github/agents/session.execute.agent.md" \
+    || fail "session.execute agent should allow debug workflow"
+  grep -q "Debug Workflow: → STOP" "$ROOT_DIR/github/agents/session.execute.agent.md" \
+    || fail "session.execute agent should document debug stop-after-execute direct mode"
+  grep -q "invoke session.start --debug" "$ROOT_DIR/README.md" \
+    || fail "README should include a debug workflow example"
+  grep -q "### 4. Debug" "$ROOT_DIR/README.md" \
+    || fail "README should describe the debug workflow type"
+  grep -q "invoke session.start --debug" "$ROOT_DIR/session/docs/reference.md" \
+    || fail "reference docs should include the debug workflow"
+  grep -q "Debug (lightweight investigation)" "$ROOT_DIR/session/docs/shared-workflow.md" \
+    || fail "shared workflow docs should describe the debug workflow"
+  grep -Fq "\`development\` \| \`spike\` \| \`maintenance\` \| \`debug\`" "$ROOT_DIR/session/docs/schema-versioning.md" \
+    || fail "schema docs should include debug as a workflow value"
+  grep -q "Debug workflow" "$ROOT_DIR/.github/copilot-instructions.md" \
+    || fail "copilot instructions should mention the debug workflow"
+  grep -q "invoke session.start --debug" "$ROOT_DIR/stubs/copilot_instructions.md" \
+    || fail "copilot instructions stub should include the debug workflow"
+  grep -q "development/spike/maintenance/debug" "$ROOT_DIR/session/docs/copilot-cli-mechanics.md" \
+    || fail "Copilot CLI mechanics docs should mention the debug workflow"
+  grep -q "dedicated \`debug\` workflow" "$ROOT_DIR/CHANGELOG.md" \
+    || fail "CHANGELOG should record the new debug workflow"
+
+  log "All debug workflow tests passed."
 }
 
 main "$@"

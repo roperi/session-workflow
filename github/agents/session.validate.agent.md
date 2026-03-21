@@ -152,7 +152,7 @@ source .session/scripts/bash/session-common.sh
 # Check if validation is allowed for this workflow
 if ! check_workflow_allowed "$SESSION_ID" "development"; then
     echo "❌ session.validate is only for development workflow"
-    echo "Spike workflow skips validation"
+    echo "Spike, maintenance, and debug workflows skip formal validation"
     exit 1
 fi
 
@@ -163,6 +163,8 @@ echo "✓ Workflow check passed - proceeding with validation"
 
 **Blocked workflows**:
 - **spike**: Research/exploration work skips formal validation
+- **maintenance**: Lightweight housekeeping runs stop after execute
+- **debug**: Investigation runs stop after execute so findings can be reviewed first
 
 Only development workflow requires validation before PR.
 

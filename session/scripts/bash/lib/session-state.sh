@@ -257,7 +257,7 @@ clear_pause_state() {
 detect_workflow() {
     # Get workflow from session-info.json (no auto-detection)
     # Args: session_id
-    # Returns: development|spike|maintenance
+    # Returns: development|spike|maintenance|debug
     
     local session_id="$1"
     local session_dir
@@ -291,7 +291,7 @@ check_branch_for_workflow() {
         return 0
     fi
     
-    # Spike workflow on main is acceptable
+    # Spike, maintenance, and debug workflows on main are acceptable
     return 0
 }
 
@@ -326,7 +326,7 @@ check_workflow_allowed() {
 
 # Valid workflow transitions
 # Note: session.start creates the session but does not track step state.
-# The first tracked step is typically "scope" (development/spike) or "execute" (maintenance).
+# The first tracked step is typically "scope" (development/spike) or "execute" (maintenance/debug).
 # Transition map is workflow-agnostic; workflow-specific routing is handled by agent prompts.
 declare -A WORKFLOW_TRANSITIONS=(
     ["none"]="brainstorm scope plan execute"

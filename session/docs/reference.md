@@ -77,8 +77,8 @@ All chain agents can run either as sub-agents orchestrated by `session.start` or
 - Run `session-start.sh`
 - Load project context
 - Create feature branch
-- **Default mode**: Orchestrate Phase 1 (Planning) — scope → spec → plan → task — then stop
-- **Auto mode** (`--auto`): Orchestrate through `publish`, then stop for manual/custom review
+- **Default mode**: Orchestrate Phase 1 (Planning) per workflow — development runs `scope → spec → plan → task`, spike runs `scope → plan → task` (no spec), and maintenance/debug skip planning and run `execute` then stop
+- **Auto mode** (`--auto`): Continue until the next human gate — development usually stops after `publish`, while spike/maintenance/debug continue through wrap when no pause is active
 - **Copilot review** (`--auto --copilot-review`): Full auto chain + dedicated `session.review` agent for Copilot PR review before merge
 
 ### session.scope
@@ -109,7 +109,7 @@ All chain agents can run either as sub-agents orchestrated by `session.start` or
 - Single-task focus
 - TDD: test → implement → verify
 - Commit after each task
-- **When invoked directly**: Orchestrates Phase 2 (validate → publish → STOP for development; wrap for spike; stop after execute for maintenance)
+- **When invoked directly**: Orchestrates Phase 2 (validate → publish → STOP for development; wrap for spike; stop after execute for maintenance/debug)
 
 ### session.validate
 - Run lint, tests
@@ -278,6 +278,7 @@ invoke session.start "Fix the bug"         # Unstructured (goal as positional ar
 # Workflow selection
 invoke session.start --spike "Research"          # Spike workflow (explore, no PR)
 invoke session.start --maintenance "Reorder docs/" # Maintenance workflow (small tasks, no branch/PR; stops after execute by default)
+invoke session.start --debug "Trace flaky tests"   # Debug workflow (troubleshoot/investigate, no PR by default)
 
 # Orchestration
 invoke session.start --auto --issue 123                       # Auto through publish, then stop for manual/custom review
@@ -372,7 +373,17 @@ invoke session.wrap
 # → wrap → END
 ```
 
-### Example 5: Read-only Audit
+### Example 5: Debug / Troubleshooting
+
+```bash
+invoke session.start --debug "Trace why background jobs time out after deploy"
+# → execute → STOP (investigate/reproduce/verify, no branch or PR required)
+
+invoke session.wrap
+# → wrap → END
+```
+
+### Example 6: Read-only Audit
 
 ```bash
 invoke session.start --maintenance --read-only "Find files not referenced by any import"
@@ -382,7 +393,7 @@ invoke session.wrap
 # → wrap → END
 ```
 
-### Example 6: Resuming After Interruption
+### Example 7: Resuming After Interruption
 
 ```bash
 invoke session.start --resume
