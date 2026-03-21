@@ -21,8 +21,10 @@ When AI context windows reset, work continuity is lost. Session workflow solves 
 
 **Orchestration modes**:
 - **Default**: `session.start` runs Phase 1 (Planning) then stops for development/spike. Maintenance runs `execute` and then stops so you can wrap only if you actually want closeout.
-- **Auto** (`--auto`): Development auto-chains through `publish`, then stops for manual/custom review. Maintenance auto-chains through `wrap`.
+- **Auto** (`--auto`): Continue until the next human gate. Development normally auto-chains through `publish`, but scope dialogue and manual-test checkpoints can pause earlier. Maintenance auto-chains through `wrap` once no human checkpoint is active.
 - **Copilot review** (`--auto --copilot-review`): Full end-to-end auto chain with dedicated `session.review` agent before merge
+
+> **Human gates still apply in auto mode**: scope can ask focused clarifying questions, and manual-test checkpoints are recorded in `state.json.pause`. Resume with `invoke session.start --resume`.
 
 > **GitHub ecosystem integration**: `session.start` uses Copilot CLI's task tool for sub-agent orchestration and optionally uses `request_copilot_review` for automated PR reviews. See [Copilot CLI Mechanics](session/docs/copilot-cli-mechanics.md) for internals.
 

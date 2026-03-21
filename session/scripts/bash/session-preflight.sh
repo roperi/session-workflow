@@ -218,6 +218,9 @@ main() {
         
         local tasks_file
         tasks_file=$(resolve_tasks_file "$session_id")
+
+        local pause_json
+        pause_json=$(get_pause_state_json "$session_id")
         
         local task_total=0 task_completed=0
         if [[ -n "$tasks_file" && -f "$tasks_file" ]]; then
@@ -242,6 +245,7 @@ main() {
             --arg previous_step "$current_step" \
             --arg previous_status "$step_status" \
             --arg deprecation_warning "$deprecation_warning" \
+            --argjson pause "$pause_json" \
             '{
                 status: $status,
                 step: $step,
@@ -261,7 +265,8 @@ main() {
                 previous_state: {
                     step: $previous_step,
                     status: $previous_status
-                }
+                },
+                pause: $pause
             } | if $deprecation_warning != "" then . + {deprecation_warning: $deprecation_warning} else . end'
     else
         print_success "Preflight checks passed for '$STEP_NAME'"

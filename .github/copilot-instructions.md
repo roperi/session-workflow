@@ -88,7 +88,7 @@ This project uses session workflow for AI context continuity.
 
 **Agents:**
 - `invoke session.start --issue N` — Development session from GitHub issue (planning phase by default)
-- `invoke session.start --auto --issue N` — Auto through `publish`, then stop for manual/custom review
+- `invoke session.start --auto --issue N` — Auto until the next human gate; otherwise through `publish`, then stop for manual/custom review
 - `invoke session.start --auto --copilot-review --issue N` — Full auto with Copilot review before merge
 - `invoke session.start --spec 001-feature` — Spec Kit session
 - `invoke session.start "description"` — Development session (positional description)

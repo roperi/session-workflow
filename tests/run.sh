@@ -509,7 +509,8 @@ SPECMD
   assert_eq "completed" "$(jq -r '.step_history[0].status' "$sh_dir/state.json")" "start should be completed"
   assert_eq "start" "$(jq -r '.current_step' "$sh_dir/state.json")" "current_step should be start"
   assert_eq "completed" "$(jq -r '.step_status' "$sh_dir/state.json")" "step_status should be completed"
-  assert_eq "1.1" "$(jq -r '.schema_version' "$sh_dir/state.json")" "state schema should be 1.1"
+  assert_eq "1.2" "$(jq -r '.schema_version' "$sh_dir/state.json")" "state schema should be 1.2"
+  assert_eq "false" "$(jq -r '.pause.active' "$sh_dir/state.json")" "pause should default to inactive"
 
   # 24) preflight appends in_progress entry to step_history
   log "24) preflight appends in_progress entry to step_history"
@@ -786,6 +787,83 @@ SPECMD
     || fail "CHANGELOG should not retain the old always-auto maintenance wording"
 
   log "All session-start orchestration flag tests passed."
+
+  # 42) pause helpers record and clear human checkpoints
+  log "42) pause helpers record and clear human checkpoints"
+  local start_pause_json pause_id pause_ym pause_dir
+  start_pause_json=$(./.session/scripts/bash/session-start.sh --json "Pause helper test")
+  pause_id=$(echo "$start_pause_json" | jq -r '.session.id')
+  pause_ym=$(echo "$pause_id" | cut -d'-' -f1,2)
+  pause_dir=".session/sessions/${pause_ym}/${pause_id}"
+  set_pause_state "$pause_id" "manual_test" "execute" "T042" "Manual browser checkpoint" "Verify the dialog appears in the browser" "invoke session.start --resume"
+  assert_eq "true" "$(jq -r '.pause.active' "$pause_dir/state.json")" "pause should be active after set_pause_state"
+  assert_eq "manual_test" "$(jq -r '.pause.kind' "$pause_dir/state.json")" "pause kind should be recorded"
+  assert_eq "execute" "$(jq -r '.pause.step' "$pause_dir/state.json")" "pause step should be execute"
+  assert_eq "T042" "$(jq -r '.pause.task_id' "$pause_dir/state.json")" "pause task_id should be recorded"
+  clear_pause_state "$pause_id" "User confirmed manual checkpoint"
+  assert_eq "false" "$(jq -r '.pause.active' "$pause_dir/state.json")" "pause should be inactive after clear_pause_state"
+  assert_eq "User confirmed manual checkpoint" "$(jq -r '.pause.notes' "$pause_dir/state.json")" "pause clear notes should be recorded"
+  set_workflow_step "$pause_id" "execute" "completed" >/dev/null
+  ./.session/scripts/bash/session-wrap.sh --json >/dev/null
+
+  # 43) session-start --resume surfaces active pause checkpoints
+  log "43) session-start --resume surfaces active pause checkpoints"
+  local start_resume_json resume_id resume_ym resume_dir resume_json
+  start_resume_json=$(./.session/scripts/bash/session-start.sh --json "Pause resume test")
+  resume_id=$(echo "$start_resume_json" | jq -r '.session.id')
+  resume_ym=$(echo "$resume_id" | cut -d'-' -f1,2)
+  resume_dir=".session/sessions/${resume_ym}/${resume_id}"
+  set_pause_state "$resume_id" "manual_test" "execute" "T043" "Resume checkpoint" "Confirm the manual browser test result" "invoke session.start --resume"
+  resume_json=$(./.session/scripts/bash/session-start.sh --json --resume)
+  assert_eq "true" "$(echo "$resume_json" | jq -r '.pause.active')" "resume JSON should surface active pause"
+  assert_eq "manual_test" "$(echo "$resume_json" | jq -r '.pause.kind')" "resume JSON should include pause kind"
+  assert_eq "T043" "$(echo "$resume_json" | jq -r '.pause.task_id')" "resume JSON should include pause task id"
+  echo "$resume_json" | jq -e '.instructions[] | select(test("ACTIVE HUMAN CHECKPOINT"))' >/dev/null \
+    || fail "resume instructions should mention the active human checkpoint"
+  clear_pause_state "$resume_id" "Resume flow verified"
+  set_workflow_step "$resume_id" "execute" "completed" >/dev/null
+  ./.session/scripts/bash/session-wrap.sh --json >/dev/null
+
+  # 44) session-preflight JSON includes active pause state
+  log "44) session-preflight JSON includes active pause state"
+  local start_pf_pause_json pf_pause_id pf_pause_ym pf_pause_dir preflight_pause_json
+  start_pf_pause_json=$(./.session/scripts/bash/session-start.sh --json --maintenance "Pause preflight test")
+  pf_pause_id=$(echo "$start_pf_pause_json" | jq -r '.session.id')
+  pf_pause_ym=$(echo "$pf_pause_id" | cut -d'-' -f1,2)
+  pf_pause_dir=".session/sessions/${pf_pause_ym}/${pf_pause_id}"
+  set_pause_state "$pf_pause_id" "manual_test" "execute" "T044" "Preflight checkpoint" "Review the generated audit report" "invoke session.start --resume"
+  preflight_pause_json=$(./.session/scripts/bash/session-preflight.sh --step execute --json)
+  assert_eq "true" "$(echo "$preflight_pause_json" | jq -r '.pause.active')" "preflight JSON should surface active pause"
+  assert_eq "execute" "$(echo "$preflight_pause_json" | jq -r '.pause.step')" "preflight JSON should include pause step"
+  assert_eq "T044" "$(echo "$preflight_pause_json" | jq -r '.pause.task_id')" "preflight JSON should include pause task id"
+  clear_pause_state "$pf_pause_id" "Preflight pause JSON verified"
+  ./.session/scripts/bash/session-postflight.sh --step execute --json >/dev/null
+  ./.session/scripts/bash/session-wrap.sh --json >/dev/null
+
+  # 45) auto-mode docs and agent contracts reflect human checkpoints
+  log "45) auto-mode docs and agent contracts reflect human checkpoints"
+  grep -q "session.scope\` remains interactive" "$ROOT_DIR/github/agents/session.start.agent.md" \
+    || fail "session.start agent should keep scope interactive"
+  grep -q "Ask concise clarifying questions when needed" "$ROOT_DIR/github/agents/session.start.agent.md" \
+    || fail "session.start agent should allow scope clarification prompts"
+  grep -q "required human checkpoint" "$ROOT_DIR/github/agents/session.start.agent.md" \
+    || fail "session.start agent should describe auto mode as stopping at human checkpoints"
+  grep -q "running in \`--auto\` mode" "$ROOT_DIR/github/agents/session.scope.agent.md" \
+    || fail "session.scope agent should explicitly allow dialogue in auto mode"
+  grep -q "set_pause_state" "$ROOT_DIR/github/agents/session.execute.agent.md" \
+    || fail "session.execute agent should document pause recording"
+  grep -q "clear_pause_state" "$ROOT_DIR/github/agents/session.execute.agent.md" \
+    || fail "session.execute agent should document pause clearing"
+  grep -q "current version \`1.2\`" "$ROOT_DIR/session/docs/schema-versioning.md" \
+    || fail "schema docs should show state version 1.2"
+  grep -q "\`pause\` object" "$ROOT_DIR/session/docs/schema-versioning.md" \
+    || fail "schema docs should document the pause object"
+  grep -q "next human gate" "$ROOT_DIR/README.md" \
+    || fail "README should describe auto mode in terms of human gates"
+  grep -q "state.json.pause" "$ROOT_DIR/session/docs/reference.md" \
+    || fail "reference docs should mention the pause checkpoint field"
+
+  log "All pause-checkpoint and auto human-gate tests passed."
 }
 
 main "$@"

@@ -389,6 +389,14 @@ invoke session.start --resume
 # Resumes from the last completed step in the chain
 ```
 
+### Auto Mode and Human Checkpoints
+
+`invoke session.start --auto ...` means **continue until the next human gate**, not "never interact with the user."
+
+- `session.scope` may still ask concise clarifying questions
+- `[MANUAL]` tasks in `session.execute` record a checkpoint in `state.json.pause`
+- `invoke session.start --resume` surfaces the active checkpoint and resumes the paused step
+
 ---
 
 ## Session Lifecycle

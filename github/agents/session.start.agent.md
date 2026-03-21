@@ -253,9 +253,10 @@ Why this matters:
 - Each agent appears as a distinct step in the conversation
 - State tracking happens properly within each agent's context
 
-### IMPORTANT: Do NOT ask clarifying questions in sub-agent prompts
+### IMPORTANT: Sub-agent prompt rules
 
-When invoking sub-agents, include this in every prompt: "Do NOT ask clarifying questions. Make reasonable decisions and proceed."
+- For **most** sub-agents, include: "Do NOT ask clarifying questions. Make reasonable decisions and proceed."
+- **Exception: `session.scope` remains interactive**. Its prompt should allow concise clarifying questions because scoping is itself a human gate, even during `--auto`.
 
 ---
 
@@ -268,7 +269,7 @@ For development/spike, orchestrate the planning phase only. For maintenance, inv
 **scope** — Invoke `session.scope` agent:
 ```
 agent_type: "session.scope"
-prompt: "Scope issue #{N}: {title}. Session: {session_id}, dir: {session_dir}, branch: {branch}, workflow: development, stage: {stage}. Do NOT ask clarifying questions."
+prompt: "Scope issue #{N}: {title}. Session: {session_id}, dir: {session_dir}, branch: {branch}, workflow: development, stage: {stage}. Ask concise clarifying questions when needed to define boundaries and success criteria before writing scope.md."
 ```
 
 **spec** — Invoke `session.spec` agent:
@@ -359,7 +360,12 @@ Next:
 
 ### Auto Mode (`--auto`)
 
-Orchestrate the automatic workflow chain until it reaches a manual review gate, or end-to-end if automated review was explicitly requested. Invoke each agent in sequence, waiting for each to complete.
+Orchestrate the automatic workflow chain until it reaches a manual review gate **or any other required human checkpoint** (for example: scope questions, manual test confirmation, or an active pause recorded in `state.json`). Invoke each agent in sequence, waiting for each to complete.
+
+After each sub-agent returns, check whether the session context or `state.json` reports `pause.active = true`. If it does:
+- STOP immediately
+- Surface the pending action and resume command to the user
+- Do **not** invoke the next workflow step until the paused step clears the checkpoint
 
 #### Development Workflow (Auto): scope → spec → plan → task → execute → validate → publish → [review] → [merge] → [finalize] → [wrap]
 
@@ -469,10 +475,12 @@ When resuming (`--resume`), check `state.json` to determine what step the sessio
 - Find the last completed step in `step_history`
 - Resume the chain from the NEXT step after the last completed one
 - If a step is `in_progress`, invoke that step's agent to retry it
+- If `pause.active` is `true`, surface the pending human checkpoint and resume the paused step instead of advancing to the next one
+- Only continue auto-chaining after the resumed step clears the pause
 
 ## Notes
 
-- **Mode-aware orchestration**: Default runs Phase 1 (Planning) only for development/spike; maintenance runs execute and then stops. `--auto` runs through PR publish for development, and adds wrap for maintenance/spike
+- **Mode-aware orchestration**: Default runs Phase 1 (Planning) only for development/spike; maintenance runs execute and then stops. `--auto` continues until the next human gate — review decisions, scope dialogue, or recorded pause checkpoints
 - **No code changes**: Never write application code directly — that's session.execute's job
 - **Invoke, don't impersonate**: Use the task tool to invoke each agent — never `cat` their files and do their work
 - **Three workflows**: development (full), spike (no PR), maintenance (no branch, no PR, no planning)

@@ -16,7 +16,7 @@ TEMPLATES_DIR="${SESSION_ROOT}/templates"
 
 # Schema version constants — keep in sync with session/docs/schema-versioning.md
 SESSION_INFO_SCHEMA_VERSION="2.2"
-STATE_SCHEMA_VERSION="1.1"
+STATE_SCHEMA_VERSION="1.2"
 
 # ============================================================================
 # Directory & Structure Functions

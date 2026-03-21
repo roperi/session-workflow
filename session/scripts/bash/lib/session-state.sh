@@ -27,6 +27,10 @@ validate_schema_version() {
 # Session Context Functions
 # ============================================================================
 
+default_pause_state_json() {
+    echo '{"active":false,"kind":null,"step":null,"task_id":null,"summary":null,"required_action":null,"resume_command":null,"created_at":null,"cleared_at":null,"notes":null}'
+}
+
 get_session_context_json() {
     # Output complete session context as JSON
     # Used by agents to load context without inline bash
@@ -78,6 +82,9 @@ get_session_context_json() {
         current_step=$(jq -r '.current_step // "none"' "${session_dir}/state.json" 2>/dev/null)
         step_status=$(jq -r '.step_status // "none"' "${session_dir}/state.json" 2>/dev/null)
     fi
+
+    local pause_json
+    pause_json=$(get_pause_state_json "$session_id")
     
     # Build JSON output
     jq -n \
@@ -91,6 +98,7 @@ get_session_context_json() {
         --argjson task_completed "$task_completed" \
         --arg current_step "$current_step" \
         --arg step_status "$step_status" \
+        --argjson pause "$pause_json" \
         '{
             status: $status,
             session: {
@@ -106,7 +114,8 @@ get_session_context_json() {
             },
             workflow_state: {
                 current_step: $current_step,
-                step_status: $step_status
+                step_status: $step_status,
+                pause: $pause
             }
         }'
 }
@@ -140,6 +149,122 @@ get_for_next_session_section() {
     else
         echo ""
     fi
+}
+
+get_pause_state_json() {
+    # Return the current pause/checkpoint state for the session.
+    # Args: session_id
+    local session_id="$1"
+    local session_dir
+    session_dir=$(get_session_dir "$session_id")
+    local state_file="${session_dir}/state.json"
+
+    if [[ ! -f "$state_file" ]]; then
+        default_pause_state_json
+        return 0
+    fi
+
+    local pause_json
+    pause_json=$(jq -c '.pause // {
+        active: false,
+        kind: null,
+        step: null,
+        task_id: null,
+        summary: null,
+        required_action: null,
+        resume_command: null,
+        created_at: null,
+        cleared_at: null,
+        notes: null
+    }' "$state_file" 2>/dev/null || true)
+
+    if [[ -n "$pause_json" ]]; then
+        echo "$pause_json"
+    else
+        default_pause_state_json
+    fi
+}
+
+set_pause_state() {
+    # Record an active human checkpoint in state.json.
+    # Args: session_id kind step task_id summary required_action resume_command
+    local session_id="$1"
+    local kind="$2"
+    local step="$3"
+    local task_id="$4"
+    local summary="$5"
+    local required_action="$6"
+    local resume_command="$7"
+
+    local session_dir
+    session_dir=$(get_session_dir "$session_id")
+    local state_file="${session_dir}/state.json"
+
+    if [[ ! -f "$state_file" ]]; then
+        echo -e "${RED}ERROR: state.json not found for session: $session_id${NC}" >&2
+        return 1
+    fi
+
+    local timestamp tmp_file
+    timestamp=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
+    tmp_file=$(mktemp)
+
+    jq --arg kind "$kind" \
+       --arg step "$step" \
+       --arg task_id "$task_id" \
+       --arg summary "$summary" \
+       --arg required_action "$required_action" \
+       --arg resume_command "$resume_command" \
+       --arg timestamp "$timestamp" \
+       '.pause = {
+            active: true,
+            kind: $kind,
+            step: $step,
+            task_id: $task_id,
+            summary: $summary,
+            required_action: $required_action,
+            resume_command: $resume_command,
+            created_at: $timestamp,
+            cleared_at: null,
+            notes: null
+        }' \
+       "$state_file" > "$tmp_file" && mv "$tmp_file" "$state_file"
+}
+
+clear_pause_state() {
+    # Clear the active human checkpoint while keeping the last context for audit.
+    # Args: session_id [notes]
+    local session_id="$1"
+    local notes="${2:-}"
+
+    local session_dir
+    session_dir=$(get_session_dir "$session_id")
+    local state_file="${session_dir}/state.json"
+
+    if [[ ! -f "$state_file" ]]; then
+        echo -e "${RED}ERROR: state.json not found for session: $session_id${NC}" >&2
+        return 1
+    fi
+
+    local timestamp tmp_file
+    timestamp=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
+    tmp_file=$(mktemp)
+
+    jq --arg timestamp "$timestamp" \
+       --arg notes "$notes" \
+       '.pause = ((.pause // {
+            active: false,
+            kind: null,
+            step: null,
+            task_id: null,
+            summary: null,
+            required_action: null,
+            resume_command: null,
+            created_at: null,
+            cleared_at: null,
+            notes: null
+        }) | .active = false | .cleared_at = $timestamp | .notes = $notes)' \
+       "$state_file" > "$tmp_file" && mv "$tmp_file" "$state_file"
 }
 
 # ============================================================================
@@ -303,21 +428,25 @@ set_workflow_step() {
                 ) | [.[].value])' \
                 "$state_file" > "$tmp_file" && mv "$tmp_file" "$state_file"
         fi
-    else
-        # Create new state file (fallback — normally state.json exists from session-start)
-        local history_json
-        if [[ "$status" == "in_progress" ]]; then
-            history_json="[{\"step\":\"$step_name\",\"status\":\"$status\",\"started_at\":\"$timestamp\",\"ended_at\":null,\"forced\":$forced}]"
         else
-            history_json="[]"
-        fi
+            # Create new state file (fallback — normally state.json exists from session-start)
+            local history_json
+            local pause_json
+            pause_json=$(default_pause_state_json)
+            if [[ "$status" == "in_progress" ]]; then
+                history_json="[{\"step\":\"$step_name\",\"status\":\"$status\",\"started_at\":\"$timestamp\",\"ended_at\":null,\"forced\":$forced}]"
+            else
+                history_json="[]"
+            fi
         cat > "$state_file" << STATEJSON
 {
+    "schema_version": "${STATE_SCHEMA_VERSION}",
     "current_step": "$step_name",
     "step_status": "$status",
     "step_started_at": "$timestamp",
     "step_updated_at": "$timestamp",
-    "step_history": $history_json
+    "step_history": $history_json,
+    "pause": $pause_json
 }
 STATEJSON
     fi

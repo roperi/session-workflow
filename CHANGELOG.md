@@ -4,6 +4,7 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+- **CHANGE (#58)**: `--auto` now means "continue until the next human gate" — scope prompts may remain interactive, manual-test pauses are recorded in `state.json.pause`, and resume surfaces the active checkpoint
 - **CHANGE (#57)**: Maintenance workflow is now lightweight by default — `session.start --maintenance` runs `execute` then stops; only `--auto` continues to `wrap`, including read-only maintenance runs
 - **FIX**: `update.sh` now refreshes the latest installed surface area for session-workflow, including `session.review` agent/prompt, `session/docs/reference.md`, and the current Session Workflow bootstrap block; it also updates `AGENTS.md` when present and supports local-source syncing via `SESSION_WORKFLOW_SOURCE_DIR`
 - **FIX**: `install.sh` and `stubs/copilot_instructions.md` now reflect the current review-stage workflow and include the `session.review`/`reference.md` additions used by the latest bootstrap
