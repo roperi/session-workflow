@@ -17,7 +17,7 @@ tools: ["*"]
 - ❌ Run validation or fix code (earlier steps)
 - ❌ Start new sessions
 
-**Output**: Updated `notes.md`, `CHANGELOG.md`, `final-summary.md` — then runs wrap script.
+**Output**: Updated `notes.md`, `next.md`, `CHANGELOG.md`, `final-summary.md` — then runs wrap script.
 
 ## ⚠️ CRITICAL: Workflow State Tracking
 
@@ -60,7 +60,7 @@ Complete ALL steps IN ORDER before running the wrap script. The script only mark
 
 ## Outline
 
-### 1. Update Session Notes
+### 1. Update Session Notes and Handoff Artifacts
 
 Edit `{session_dir}/notes.md` with:
 
@@ -79,6 +79,19 @@ Edit `{session_dir}/notes.md` with:
 - Next steps: [specific actions for next AI]
 - Context needed: [any special context next AI should know]
 ```
+
+Update `{session_dir}/next.md` as the **primary follow-up artifact** with:
+
+```markdown
+## Completed
+## Suggested Next Steps
+## Suggested Workflow
+## Pending Human Actions
+## Blockers
+## Carry Forward
+```
+
+Keep `notes.md`'s `## For Next Session` section compatible during rollout, but prefer `next.md` for structured follow-up guidance.
 
 
 ### 1.5. Workflow-Agnostic Operation

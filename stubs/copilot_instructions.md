@@ -10,6 +10,8 @@ It's read automatically when Copilot CLI starts in this repository.
 This project uses session workflow for AI context continuity.
 See `.session/docs/README.md` for quick reference.
 
+Use `next.md` as the structured follow-up artifact for the next session. Keep `notes.md` for broader running notes and compatibility.
+
 **Agents:**
 - `invoke session.start --issue N` — Development session from GitHub issue (planning phase by default)
 - `invoke session.start --auto --issue N` — Auto until the next human gate; otherwise through `publish`, then stop for manual/custom review

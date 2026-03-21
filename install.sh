@@ -277,6 +277,7 @@ install_templates() {
     
     mkdir -p .session/templates
     download_file "${REPO_URL}/session/templates/session-notes.md" ".session/templates/session-notes.md"
+    download_file "${REPO_URL}/session/templates/next-template.md" ".session/templates/next-template.md"
     download_file "${REPO_URL}/session/templates/tasks-template.md" ".session/templates/tasks-template.md"
     
     success "Templates installed"

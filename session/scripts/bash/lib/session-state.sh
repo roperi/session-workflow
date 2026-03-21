@@ -133,22 +133,99 @@ load_session_notes_summary() {
     fi
 }
 
-get_for_next_session_section() {
-    # Extract "For Next Session" section from notes
-    # Includes blank lines; stops only at next markdown H2 heading or EOF.
+get_next_session_file() {
+    # Return next.md path for a session when it exists.
     local session_id="$1"
-    local notes_file
-    notes_file="$(get_session_dir "$session_id")/notes.md"
+    local next_file
+    next_file="$(get_session_dir "$session_id")/next.md"
 
-    if [[ -f "$notes_file" ]]; then
-        awk '
-            /^## For Next Session[[:space:]]*$/ {found=1; print; next}
-            found && $0 ~ /^## / {exit}
-            found {print}
-        ' "$notes_file" | head -20
+    if [[ -f "$next_file" ]]; then
+        echo "$next_file"
     else
         echo ""
     fi
+}
+
+next_file_has_content() {
+    # Return success when next.md has non-placeholder content.
+    local next_file="$1"
+
+    [[ -f "$next_file" ]] || return 1
+
+    sed \
+        -e '/^[[:space:]]*#/d' \
+        -e '/^[[:space:]]*<!--.*-->[[:space:]]*$/d' \
+        -e '/^[[:space:]]*$/d' \
+        "$next_file" | grep -q '[^[:space:]]'
+}
+
+extract_notes_for_next_session_section() {
+    # Extract the legacy "For Next Session" section from notes.md.
+    local notes_file="$1"
+
+    [[ -f "$notes_file" ]] || return 0
+
+    awk '
+        /^## For Next Session[[:space:]]*$/ {found=1; print; next}
+        found && $0 ~ /^## / {exit}
+        found {print}
+    ' "$notes_file" | head -20
+}
+
+notes_handoff_has_content() {
+    # Return success when notes.md contains meaningful legacy handoff content.
+    local notes_file="$1"
+    local notes_section
+    local notes_body
+
+    [[ -f "$notes_file" ]] || return 1
+
+    notes_section=$(extract_notes_for_next_session_section "$notes_file")
+    notes_body=$(printf '%s\n' "$notes_section" | tail -n +2 2>/dev/null || true)
+    notes_body=$(printf '%s\n' "$notes_body" | sed \
+        -e '/^[[:space:]]*$/d' \
+        -e '/^[[:space:]]*<!--.*-->[[:space:]]*$/d' \
+        -e '/^[[:space:]]*-[[:space:]]*Current state:[[:space:]]*$/d' \
+        -e '/^[[:space:]]*-[[:space:]]*Next steps:[[:space:]]*$/d' \
+        -e '/^[[:space:]]*-[[:space:]]*Context needed:[[:space:]]*$/d')
+
+    printf '%s' "$notes_body" | grep -q '[^[:space:]]'
+}
+
+has_next_session_handoff_content() {
+    # Return success when either next.md or legacy notes handoff content exists.
+    local session_id="$1"
+    local next_file
+    local notes_file
+
+    next_file=$(get_next_session_file "$session_id")
+    if [[ -n "$next_file" ]] && next_file_has_content "$next_file"; then
+        return 0
+    fi
+
+    notes_file="$(get_session_dir "$session_id")/notes.md"
+    if notes_handoff_has_content "$notes_file"; then
+        return 0
+    fi
+
+    return 1
+}
+
+get_for_next_session_section() {
+    # Prefer next.md handoff content, then fall back to notes.md "For Next Session".
+    local session_id="$1"
+    local next_file
+    local notes_file
+
+    next_file=$(get_next_session_file "$session_id")
+    notes_file="$(get_session_dir "$session_id")/notes.md"
+
+    if [[ -n "$next_file" ]] && next_file_has_content "$next_file"; then
+        head -40 "$next_file"
+        return 0
+    fi
+
+    extract_notes_for_next_session_section "$notes_file"
 }
 
 get_pause_state_json() {

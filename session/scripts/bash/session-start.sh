@@ -420,6 +420,35 @@ EOF
     fi
 }
 
+create_session_next() {
+    local session_id="$1"
+    local session_dir
+    session_dir=$(get_session_dir "$session_id")
+
+    local next_file="${session_dir}/next.md"
+    local template_file="${TEMPLATES_DIR}/next-template.md"
+
+    if [[ -f "$template_file" ]]; then
+        sed "s/{SESSION_ID}/${session_id}/g" "$template_file" > "$next_file"
+    else
+        cat > "$next_file" << EOF
+# Next Session: ${session_id}
+
+## Completed
+
+## Suggested Next Steps
+
+## Suggested Workflow
+
+## Pending Human Actions
+
+## Blockers
+
+## Carry Forward
+EOF
+    fi
+}
+
 create_session_tasks() {
     # Only for non-Speckit sessions
     local session_id="$1"
@@ -494,6 +523,7 @@ output_json() {
         prev_session=$(get_previous_session)
     fi
     local prev_info=""
+    local prev_context_instruction=""
     
     if [[ -n "$prev_session" ]]; then
         local prev_notes
@@ -503,6 +533,17 @@ output_json() {
         # Get incomplete tasks from previous session
         local prev_session_dir
         prev_session_dir=$(get_session_dir "$prev_session")
+        local prev_next_file=""
+        if [[ -f "${prev_session_dir}/next.md" ]]; then
+            prev_next_file="${prev_session_dir}/next.md"
+            prev_context_instruction="Review previous session next.md and notes.md for continuity"
+        else
+            prev_context_instruction="Review previous session notes for continuity"
+        fi
+        local prev_next_file_json="null"
+        if [[ -n "$prev_next_file" ]]; then
+            prev_next_file_json="\"$(json_escape "$prev_next_file")\""
+        fi
         local prev_tasks_file="${prev_session_dir}/tasks.md"
         local incomplete_tasks=""
         if [[ -f "$prev_tasks_file" ]]; then
@@ -556,6 +597,7 @@ output_json() {
   "previous_session": {
     "id": "${prev_session}",
     "notes_file": "${prev_session_dir}/notes.md",
+    "next_file": ${prev_next_file_json},
     "for_next_session": "${prev_notes}",
     "incomplete_tasks": "${incomplete_tasks}",
     "git": {
@@ -606,13 +648,13 @@ EOF
     # Build instructions array incrementally to avoid blank lines from unset vars
     local instructions=()
     instructions+=("\"Read project context files for quick orientation\"")
-    [[ -n "$prev_session" ]] && instructions+=("\"Review previous session notes for continuity\"")
+    [[ -n "$prev_context_instruction" ]] && instructions+=("\"${prev_context_instruction}\"")
     [[ "$RESUME_MODE" == "true" ]] && instructions+=("\"RESUME MODE: Continue from where agent left off, do not restart from beginning\"")
     [[ -n "$COMMENT" ]] && instructions+=("\"USER INSTRUCTION: $(json_escape "${COMMENT}")\"")
     if [[ "$pause_active" == "true" ]]; then
         instructions+=("\"ACTIVE HUMAN CHECKPOINT: $(json_escape "${pause_summary}. Required action: ${pause_required_action}. Resume with ${pause_resume_command}.")\"")
     fi
-    instructions+=("\"Update notes.md throughout the session\"")
+    instructions+=("\"Update notes.md and next.md throughout the session\"")
     instructions+=("\"Run '.session/scripts/bash/session-wrap.sh' at end of session\"")
     local instructions_json
     instructions_json=$(printf '    %s,\n' "${instructions[@]}" | sed '$s/,[[:space:]]*$//')
@@ -640,7 +682,8 @@ EOF
     "files": {
       "info": "${session_dir}/session-info.json",
       "state": "${session_dir}/state.json",
-      "notes": "${session_dir}/notes.md"$(if [[ "$sess_type" != "speckit" ]]; then echo ",
+      "notes": "${session_dir}/notes.md",
+      "next": "${session_dir}/next.md"$(if [[ "$sess_type" != "speckit" ]]; then echo ",
       \"tasks\": \"${session_dir}/tasks.md\""; fi)
     }
   },
@@ -710,6 +753,7 @@ output_human() {
     echo "  - session-info.json (session metadata)"
     echo "  - state.json (progress tracking)"
     echo "  - notes.md (handoff notes)"
+    echo "  - next.md (structured follow-up handoff)"
     
     # Get session type
     local sess_type
@@ -732,6 +776,9 @@ output_human() {
         print_info "Previous session: ${prev_session}"
         local prev_session_dir
         prev_session_dir=$(get_session_dir "$prev_session")
+        if [[ -f "${prev_session_dir}/next.md" ]]; then
+            echo "  Review: ${prev_session_dir}/next.md"
+        fi
         echo "  Review: ${prev_session_dir}/notes.md"
     fi
     
@@ -1021,6 +1068,7 @@ main() {
     create_session_info "$session_id"
     create_session_state "$session_id"
     create_session_notes "$session_id"
+    create_session_next "$session_id"
     create_session_tasks "$session_id"
     
     # Set as active session

@@ -13,7 +13,7 @@
 When AI context windows reset, work continuity is lost. Session workflow solves this with:
 
 1. **Session tracking** — What's in progress, what's done
-2. **Handoff notes** — Context for the next AI session
+2. **Handoff artifacts** — `notes.md` plus a dedicated `next.md` for the next AI session
 3. **Agent chain** — Structured workflow from scoping to delivery
 4. **Git hygiene** — Ensures clean state before session ends
 

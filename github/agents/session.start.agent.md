@@ -192,9 +192,11 @@ git checkout -b spike/{short-description}
 ### 7. Review Previous Session
 
 If `previous_session` is not null:
+- If `previous_session.next_file` is not null, read that file as the primary structured handoff artifact
 - Read the `for_next_session` summary
 - Note any `incomplete_tasks` to continue
 - Optionally read full notes at `notes_file`
+- When invoking `session.scope` or `session.plan` for follow-on work, append the previous `next.md` path to the sub-agent prompt when available
 
 ### 8. Verify Before New Work (MANDATORY for continuation sessions)
 

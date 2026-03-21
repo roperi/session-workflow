@@ -118,6 +118,7 @@ echo "Workflow: $WORKFLOW"
 Read available context (when present):
 
 - **Session notes**: `{session_dir}/notes.md`
+- **structured handoff**: if the start-agent prompt provides a previous `next.md` path, read it and carry its follow-up context forward
 - **Session info**: `{session_dir}/session-info.json`
 - **Brainstorm** (if exists): `{session_dir}/brainstorm.md` — use as input, do NOT rewrite
 - **For GitHub issue sessions**: fetch issue details
@@ -135,6 +136,10 @@ If a brainstorm exists:
   ## Brainstorm
   - {session_dir}/brainstorm.md
   ```
+
+If a previous-session `next.md` path is provided in your prompt:
+- Read it and use its **Suggested Next Steps**, **Pending Human Actions**, **Blockers**, and **Carry Forward** sections as continuation context
+- Do NOT blindly copy it into scope; use it to understand what should carry forward into the new scope
 
 ### 4. Dialogue: Ask Clarifying Questions (CORE STEP)
 

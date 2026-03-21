@@ -108,11 +108,13 @@ main() {
   assert_file_exists "$session_dir/session-info.json"
   assert_file_exists "$session_dir/state.json"
   assert_file_exists "$session_dir/notes.md"
+  assert_file_exists "$session_dir/next.md"
   assert_file_exists "$session_dir/tasks.md"
 
   assert_eq "unstructured" "$(jq -r '.type' "$session_dir/session-info.json")" "session type"
   assert_eq "development" "$(jq -r '.workflow' "$session_dir/session-info.json")" "workflow default"
   assert_eq "production" "$(jq -r '.stage' "$session_dir/session-info.json")" "stage default"
+  assert_eq "$session_dir/next.md" "$(echo "$start_json" | jq -r '.session.files.next')" "session JSON should surface next.md"
 
   # 2) session-handoff-list should include the created session
   log "2) session-handoff-list (JSON)"
@@ -121,6 +123,7 @@ main() {
   vlog "list_json: $list_json"
   assert_eq "ok" "$(echo "$list_json" | jq -r '.status')" "handoff list status"
   assert_eq "$session_id" "$(echo "$list_json" | jq -r '.sessions[0].id')" "most recent session should be first"
+  assert_eq "$session_dir/next.md" "$(echo "$list_json" | jq -r '.sessions[0].files.next')" "handoff list should surface next.md"
 
   # 3) Preflight plan should succeed
   log "3) session-preflight plan (JSON)"
@@ -218,15 +221,29 @@ main() {
   set_workflow_step "$s3_id" "execute" "completed" >/dev/null
   ././.session/scripts/bash/session-wrap.sh --json >/dev/null
 
-  # 11) for_next_session and notes_summary non-empty after wrap (F-4 regression)
-  log "11) for_next_session non-empty after wrap (path correctness)"
+  # 11) for_next_session remains compatible with legacy notes handoff content
+  log "11) for_next_session remains compatible with legacy notes handoff content"
   local start4_json s4_id s4_year_month s4_dir
   start4_json=$(./.session/scripts/bash/session-start.sh --json "Notes continuity goal")
   s4_id=$(echo "$start4_json" | jq -r '.session.id')
   s4_year_month=$(echo "$s4_id" | cut -d'-' -f1,2)
   s4_dir=".session/sessions/${s4_year_month}/${s4_id}"
-  # Write a "For Next Session" section
-  printf '\n## For Next Session\n- carry this forward\n' >> "${s4_dir}/notes.md"
+  assert_file_exists "${s4_dir}/next.md"
+  # Populate the legacy "For Next Session" section for fallback compatibility
+  cat > "${s4_dir}/notes.md" <<'EOF'
+# Session Notes: fallback-test
+
+## Summary
+
+## Key Decisions
+
+## Blockers/Issues
+
+## For Next Session
+- carry this forward
+
+## Technical Notes (optional)
+EOF
   set_workflow_step "$s4_id" "execute" "completed" >/dev/null
   ././.session/scripts/bash/session-wrap.sh --json >/dev/null
   # Chain a new session and check for_next_session is populated
@@ -235,6 +252,9 @@ main() {
   local for_next
   for_next=$(echo "$start5_json" | jq -r '.previous_session.for_next_session')
   [[ -n "$for_next" && "$for_next" != "null" ]] || fail "for_next_session should not be empty after wrap (F-4 regression)"
+  echo "$for_next" | grep -q "carry this forward" \
+    || fail "for_next_session should fall back to notes.md content when next.md is still empty"
+  assert_eq "${s4_dir}/next.md" "$(echo "$start5_json" | jq -r '.previous_session.next_file')" "previous_session.next_file should surface next.md path"
   # Wrap the continuation session
   local s5_id
   s5_id=$(echo "$start5_json" | jq -r '.session.id')
@@ -916,6 +936,78 @@ SPECMD
     || fail "CHANGELOG should record the new debug workflow"
 
   log "All debug workflow tests passed."
+
+  # 49) next.md handoff content is preferred over legacy notes section
+  log "49) next.md handoff content is preferred over legacy notes section"
+  local start_next_pref_json next_pref_id next_pref_ym next_pref_dir next_pref_continue_json next_pref_summary
+  start_next_pref_json=$(./.session/scripts/bash/session-start.sh --json "Next artifact priority test")
+  next_pref_id=$(echo "$start_next_pref_json" | jq -r '.session.id')
+  next_pref_ym=$(echo "$next_pref_id" | cut -d'-' -f1,2)
+  next_pref_dir=".session/sessions/${next_pref_ym}/${next_pref_id}"
+  cat > "${next_pref_dir}/next.md" <<'EOF'
+# Next Session: priority-test
+
+## Completed
+- Reproduced the problem locally
+
+## Suggested Next Steps
+- Follow the structured next artifact
+
+## Suggested Workflow
+- debug
+EOF
+  cat > "${next_pref_dir}/notes.md" <<'EOF'
+# Session Notes: next-pref-test
+
+## Summary
+
+## Key Decisions
+
+## Blockers/Issues
+
+## For Next Session
+- legacy notes fallback
+
+## Technical Notes (optional)
+EOF
+  set_workflow_step "$next_pref_id" "execute" "completed" >/dev/null
+  ./.session/scripts/bash/session-wrap.sh --json >/dev/null
+  next_pref_continue_json=$(./.session/scripts/bash/session-start.sh --json --continues-from "$next_pref_id" "Continue next artifact priority test")
+  next_pref_summary=$(echo "$next_pref_continue_json" | jq -r '.previous_session.for_next_session')
+  echo "$next_pref_summary" | grep -q "Follow the structured next artifact" \
+    || fail "for_next_session should prefer next.md content when it exists"
+  ! echo "$next_pref_summary" | grep -q "legacy notes fallback" \
+    || fail "for_next_session should not prefer legacy notes when next.md has content"
+  assert_eq "${next_pref_dir}/next.md" "$(echo "$next_pref_continue_json" | jq -r '.previous_session.next_file')" "previous_session.next_file should point to next.md"
+  local next_pref_continue_id
+  next_pref_continue_id=$(echo "$next_pref_continue_json" | jq -r '.session.id')
+  set_workflow_step "$next_pref_continue_id" "execute" "completed" >/dev/null
+  ./.session/scripts/bash/session-wrap.sh --json >/dev/null
+
+  # 50) next.md docs and install surfaces reflect first-class artifact support
+  log "50) next.md docs and install surfaces reflect first-class artifact support"
+  grep -q "next.md" "$ROOT_DIR/README.md" \
+    || fail "README should mention next.md"
+  grep -q "next-template.md" "$ROOT_DIR/install.sh" \
+    || fail "install.sh should install the next.md template"
+  grep -q "next-template.md" "$ROOT_DIR/update.sh" \
+    || fail "update.sh should update the next.md template"
+  grep -q "previous_session.next_file" "$ROOT_DIR/github/agents/session.start.agent.md" \
+    || fail "session.start agent should mention previous_session.next_file"
+  grep -q "primary follow-up artifact" "$ROOT_DIR/github/agents/session.wrap.agent.md" \
+    || fail "session.wrap agent should treat next.md as the primary follow-up artifact"
+  grep -q "structured handoff" "$ROOT_DIR/github/agents/session.scope.agent.md" \
+    || fail "session.scope agent should accept next.md continuation context"
+  grep -q "previous-session \`next.md\` path" "$ROOT_DIR/github/agents/session.plan.agent.md" \
+    || fail "session.plan agent should accept next.md continuation context"
+  grep -q "next.md" "$ROOT_DIR/session/docs/reference.md" \
+    || fail "reference docs should mention next.md"
+  grep -q "next.md" "$ROOT_DIR/.github/copilot-instructions.md" \
+    || fail "copilot instructions should mention next.md"
+  grep -q "next.md" "$ROOT_DIR/stubs/copilot_instructions.md" \
+    || fail "copilot instructions stub should mention next.md"
+
+  log "All next.md artifact tests passed."
 }
 
 main "$@"

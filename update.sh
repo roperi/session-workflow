@@ -102,6 +102,7 @@ update_scripts() {
 update_templates() {
     info "Updating templates..."
     download_file "session/templates/session-notes.md" ".session/templates/session-notes.md"
+    download_file "session/templates/next-template.md" ".session/templates/next-template.md"
     download_file "session/templates/tasks-template.md" ".session/templates/tasks-template.md"
     success "Templates updated"
 }

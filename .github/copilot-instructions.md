@@ -61,6 +61,8 @@ Two mutable JSON files per session in `.session/sessions/{id}/`:
 - **`session-info.json`** (v2.2) — Immutable metadata: session type (`github_issue|speckit|unstructured`), workflow (`development|spike|maintenance|debug`), stage (`poc|mvp|production`)
 - **`state.json`** (v1.2) — Mutable state: `current_step`, `step_status`, append-only `step_history[]`, `pause`
 
+Session artifacts also include `notes.md` plus `next.md`, where `next.md` is the structured follow-up artifact surfaced by `session.start` as previous-session continuity context when available.
+
 Schema version constants live in `lib/session-paths.sh` (`SESSION_INFO_SCHEMA_VERSION`, `STATE_SCHEMA_VERSION`).
 
 For speckit sessions, `session-info.json` uses `spec_dir` (value: `"specs/{SPEC_DIR}"`), not `feature`.
