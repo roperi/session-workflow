@@ -1038,7 +1038,8 @@ EOF
 
   # 52) stable updater wrapper writes manifest and prunes deprecated managed files safely
   log "52) stable updater wrapper writes manifest and prunes deprecated managed files safely"
-  local obsolete_sha preserved_sha
+  local obsolete_sha preserved_sha protected_sha
+  chmod -x .session/scripts/bash/session-start.sh
   cat > .session/templates/obsolete-template.md <<'EOF'
 obsolete managed template
 EOF
@@ -1048,6 +1049,11 @@ preserve this deprecated file
 EOF
   preserved_sha=$(sha256_file ".session/templates/preserved-obsolete-template.md")
   echo "local modification" >> .session/templates/preserved-obsolete-template.md
+  cat > do-not-delete.txt <<'EOF'
+do not delete via manifest traversal
+EOF
+  protected_sha=$(sha256_file "do-not-delete.txt")
+  mkdir -p .session/templates/obsolete-dir
   cat > .session/install-manifest.json <<EOF
 {
   "schema_version": "1",
@@ -1064,19 +1070,35 @@ EOF
       "path": ".session/templates/preserved-obsolete-template.md",
       "source": "session/templates/preserved-obsolete-template.md",
       "sha256": "${preserved_sha}"
+    },
+    {
+      "path": ".session/templates/../../do-not-delete.txt",
+      "source": "session/templates/../../do-not-delete.txt",
+      "sha256": "${protected_sha}"
+    },
+    {
+      "path": ".session/templates/obsolete-dir",
+      "source": "session/templates/obsolete-dir",
+      "sha256": "directory-placeholder"
     }
   ],
   "managed_sections": []
 }
 EOF
   SESSION_WORKFLOW_SOURCE_DIR="$ROOT_DIR" bash ./.session/update.sh >/dev/null
+  [[ -x ".session/scripts/bash/session-start.sh" ]] \
+    || fail "updater should restore executable bits for managed scripts"
   [[ ! -e ".session/templates/obsolete-template.md" ]] \
     || fail "updater should remove deprecated managed files when the checksum still matches"
   assert_file_exists ".session/templates/preserved-obsolete-template.md"
+  assert_file_exists "do-not-delete.txt"
+  assert_dir_exists ".session/templates/obsolete-dir"
   assert_file_exists ".session/install-manifest.json"
   assert_eq "true" "$(jq -r 'any(.managed_files[]?; .path == ".session/update.sh")' .session/install-manifest.json)" "manifest should track the stable updater wrapper"
   assert_eq "false" "$(jq -r 'any(.managed_files[]?; .path == ".session/templates/obsolete-template.md")' .session/install-manifest.json)" "new manifest should not retain pruned deprecated files"
   assert_eq "false" "$(jq -r 'any(.managed_files[]?; .path == ".session/templates/preserved-obsolete-template.md")' .session/install-manifest.json)" "new manifest should omit deprecated files that were left in place"
+  assert_eq "false" "$(jq -r 'any(.managed_files[]?; .path == ".session/templates/../../do-not-delete.txt")' .session/install-manifest.json)" "new manifest should omit unsafe deprecated paths"
+  assert_eq "false" "$(jq -r 'any(.managed_files[]?; .path == ".session/templates/obsolete-dir")' .session/install-manifest.json)" "new manifest should omit deprecated directory entries"
 
   # 53) install/update/docs reflect the stable updater wrapper and manifest
   log "53) stable updater wrapper and manifest are documented"

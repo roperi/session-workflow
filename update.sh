@@ -72,7 +72,7 @@ update_managed_file() {
     local mode="${3:-}"
 
     download_file "$source_path" "$dest"
-    if [[ "$mode" == "executable" && ! $DRY_RUN ]]; then
+    if [[ "$mode" == "executable" ]] && ! $DRY_RUN; then
         chmod +x "$dest"
     fi
     register_managed_file "$source_path" "$dest"
@@ -92,12 +92,12 @@ calculate_sha256() {
 
 manifest_dependencies_available() {
     if ! command -v jq >/dev/null 2>&1; then
-        warn "jq not found; skipping install-manifest pruning"
+        warn "jq not found; skipping install-manifest operations (pruning/generation)"
         return 1
     fi
 
     if ! command -v sha256sum >/dev/null 2>&1 && ! command -v shasum >/dev/null 2>&1; then
-        warn "No SHA-256 tool found; skipping install-manifest pruning"
+        warn "No SHA-256 tool found; skipping install-manifest operations (pruning/generation)"
         return 1
     fi
 
@@ -123,6 +123,23 @@ is_prunable_managed_path() {
     esac
 }
 
+is_safe_managed_relative_path() {
+    local path="$1"
+
+    [[ -n "$path" ]] || return 1
+    [[ "$path" != /* ]] || return 1
+    [[ "$path" != ../* ]] || return 1
+    [[ "$path" != */../* ]] || return 1
+    [[ "$path" != */.. ]] || return 1
+    [[ "$path" != ./* ]] || return 1
+    [[ "$path" != */./* ]] || return 1
+    [[ "$path" != */. ]] || return 1
+    [[ "$path" != *$'\n'* ]] || return 1
+    [[ "$path" != *'//'* ]] || return 1
+
+    return 0
+}
+
 prune_removed_managed_files() {
     if ! manifest_dependencies_available; then
         return
@@ -145,12 +162,22 @@ prune_removed_managed_files() {
             continue
         fi
 
+        if ! is_safe_managed_relative_path "$path"; then
+            warn "Skipping unsafe manifest path: ${path}"
+            continue
+        fi
+
         if ! is_prunable_managed_path "$path"; then
             warn "Skipping manifest entry outside managed roots: ${path}"
             continue
         fi
 
         if [[ ! -e "$path" ]]; then
+            continue
+        fi
+
+        if [[ ! -f "$path" ]]; then
+            warn "Skipping deprecated managed manifest entry because it is not a regular file: ${path}"
             continue
         fi
 
