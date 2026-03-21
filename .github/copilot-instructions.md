@@ -48,6 +48,8 @@ Agents live in `github/agents/session.*.agent.md` with corresponding `github/pro
 
 **Maintenance workflow** (minimal): `start → execute → STOP` by default; `--auto` adds `wrap`
 
+**Debug workflow** (minimal): `start → execute → STOP` by default; `--auto` adds `wrap`
+
 ### Workflow State Machine
 
 Transitions are defined in `lib/session-state.sh` via `WORKFLOW_TRANSITIONS` associative array and enforced by `session-preflight.sh`. Each step transitions through `in_progress → completed|failed`. Step history is append-only in `state.json`.
@@ -56,8 +58,8 @@ Transitions are defined in `lib/session-state.sh` via `WORKFLOW_TRANSITIONS` ass
 
 Two mutable JSON files per session in `.session/sessions/{id}/`:
 
-- **`session-info.json`** (v2.2) — Immutable metadata: session type (`github_issue|speckit|unstructured`), workflow (`development|spike|maintenance`), stage (`poc|mvp|production`)
-- **`state.json`** (v1.1) — Mutable state: `current_step`, `step_status`, append-only `step_history[]`
+- **`session-info.json`** (v2.2) — Immutable metadata: session type (`github_issue|speckit|unstructured`), workflow (`development|spike|maintenance|debug`), stage (`poc|mvp|production`)
+- **`state.json`** (v1.2) — Mutable state: `current_step`, `step_status`, append-only `step_history[]`, `pause`
 
 Schema version constants live in `lib/session-paths.sh` (`SESSION_INFO_SCHEMA_VERSION`, `STATE_SCHEMA_VERSION`).
 
@@ -93,6 +95,7 @@ This project uses session workflow for AI context continuity.
 - `invoke session.start --spec 001-feature` — Spec Kit session
 - `invoke session.start "description"` — Development session (positional description)
 - `invoke session.start --spike "description"` — Spike/research (no PR)
+- `invoke session.start --debug "description"` — Debug/troubleshooting session (no PR by default)
 - `invoke session.start --resume` — Resume active session
 - `invoke session.review` — Run the default or overridden custom review agent after publish
 - `invoke session.finalize` — Post-merge cleanup (after PR merge)

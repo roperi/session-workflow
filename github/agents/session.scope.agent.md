@@ -111,7 +111,7 @@ echo "Workflow: $WORKFLOW"
 
 **Allowed workflows**: development, spike (both benefit from scoping!)
 
-**Maintenance workflows skip scope** — they go directly to execute.
+**Maintenance and debug workflows skip scope** — they go directly to execute.
 
 ### 3. Gather Input Context
 

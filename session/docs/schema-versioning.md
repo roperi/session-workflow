@@ -19,7 +19,7 @@ constant before trusting field names.
 | `schema_version` | string | Always `"2.2"` |
 | `session_id` | string | `YYYY-MM-DD-N` format |
 | `type` | string | `speckit` \| `github_issue` \| `unstructured` |
-| `workflow` | string | `development` \| `spike` \| `maintenance` |
+| `workflow` | string | `development` \| `spike` \| `maintenance` \| `debug` |
 | `stage` | string | `poc` \| `mvp` \| `production` |
 | `read_only` | boolean \| absent | `true` only for maintenance audit sessions |
 | `created_at` | ISO 8601 string | UTC creation timestamp |

@@ -56,6 +56,7 @@ If no arguments provided, the script will resume an active session or prompt for
 - `.session/scripts/bash/session-start.sh --json "Fix the bug"` - Unstructured work (goal as positional arg)
 - `.session/scripts/bash/session-start.sh --json --spike "Explore caching"` - Spike/research session
 - `.session/scripts/bash/session-start.sh --json --maintenance "Reorder docs/"` - Maintenance (no branch/PR)
+- `.session/scripts/bash/session-start.sh --json --debug "Trace why the jobs stall"` - Debug/troubleshooting session
 - `.session/scripts/bash/session-start.sh --json --maintenance --read-only "Audit stale files"` - Audit (no commits)
 - `.session/scripts/bash/session-start.sh --json --stage poc "Prototype auth"` - PoC with relaxed validation
 - `.session/scripts/bash/session-start.sh --json --resume` - Resume active session
@@ -100,6 +101,7 @@ echo "Workflow: $WORKFLOW, Stage: $STAGE, Read-only: $READ_ONLY"
 - **development**: Full chain (scope → spec → plan → task → execute → validate → publish → finalize → wrap)
 - **spike**: Light chain (scope → plan → task → execute → wrap) — skips PR steps, not planning
 - **maintenance**: Lightweight chain (execute → STOP by default; `--auto` adds wrap) — skips branch, planning, validation, and PR
+- **debug**: Investigation chain (execute → STOP by default; `--auto` adds wrap) — skips branch, planning, validation, and PR by default
 
 **Read-only mode** (`read_only: true`):
 - Only valid with `maintenance` workflow
@@ -115,12 +117,13 @@ When the user's goal or `$ARGUMENTS` are provided without an explicit workflow f
 | `reorder`, `reorganize`, `rename`, `move`, `update TOC`, `cleanup docs` | `--maintenance` |
 | `audit`, `find stale`, `check for`, `inventory`, `list all`, `scan` | `--maintenance --read-only` |
 | `explore`, `research`, `benchmark`, `compare options`, `spike` | `--spike` |
+| `debug`, `troubleshoot`, `diagnose`, `trace`, `reproduce`, `investigate`, `why is` | `--debug` |
 | `remove`, `clean`, `delete`, `purge` (without code context) | ask: "Should this be read-only first?" |
 
 If signals are detected and no explicit workflow flag was given, surface a brief note:
 ```
-ℹ️  This looks like a [maintenance / audit] task. Using --maintenance workflow
-   (no branch created, no PR). Mention "development" to override.
+ℹ️  This looks like a [maintenance / audit / debug] task. Using the inferred lightweight workflow
+   (maintenance/debug skip branch and PR creation by default). Mention "development" to override.
 ```
 Do NOT block or re-prompt; just inform and proceed with the inferred workflow.
 
@@ -157,7 +160,7 @@ git log --oneline -5
 
 ⚠️ **CRITICAL: NEVER work directly on main branch for code changes.**
 
-**Skip this step entirely if workflow is `maintenance`** — maintenance sessions work on the current branch by design.
+**Skip this step entirely if workflow is `maintenance` or `debug`** — these lightweight sessions work on the current branch by design.
 
 **If current branch is `main` AND workflow is `development` or `spike`:**
 
@@ -182,6 +185,7 @@ git checkout -b spike/{short-description}
 
 **Exceptions (can work on main):**
 - `maintenance` workflow (always works on current branch)
+- `debug` workflow (always works on current branch)
 - Documentation-only changes (use `[skip ci]` in commit message)
 - Session wrap commits (documentation updates)
 
@@ -212,7 +216,7 @@ Display session summary:
 
 Session ID: {session.id}
 Type: {speckit|github_issue|unstructured}
-Workflow: {development|spike|maintenance}
+Workflow: {development|spike|maintenance|debug}
 Stage: {poc|mvp|production}
 Read-only: {yes|no}
 Branch: {current-branch}
@@ -239,10 +243,10 @@ After session-start.sh completes, the `start` step is already recorded as comple
 ### Mode Detection
 
 Check `$ARGUMENTS` for these flags:
-- **`--auto`**: Run automatically through `session.publish`, then stop unless automated review was explicitly requested
+- **`--auto`**: Continue automatically until the next human gate. Development usually stops after `session.publish` unless automated review was explicitly requested; spike/maintenance/debug continue through `wrap` when no pause is active
 - **`--copilot-review`**: Request GitHub Copilot code review before merge (only with `--auto`, development workflow only)
 
-**Default (no `--auto`)**: Orchestrate **Phase 1 (Planning) only** for development/spike. For maintenance, invoke `session.execute` immediately, then stop and guide the user to wrap only if they want a full closeout.
+**Default (no `--auto`)**: Orchestrate **Phase 1 (Planning) only** for development/spike. For maintenance/debug, invoke `session.execute` immediately, then stop and guide the user to wrap only if they want a full closeout.
 
 ### ⛔ CRITICAL: Invoke Agents — Do NOT Do Their Work
 
@@ -262,7 +266,7 @@ Why this matters:
 
 ### Default Mode
 
-For development/spike, orchestrate the planning phase only. For maintenance, invoke execute immediately, then stop and guide the user.
+For development/spike, orchestrate the planning phase only. For maintenance/debug, invoke execute immediately, then stop and guide the user.
 
 #### Development Workflow: scope → spec → plan → task → STOP
 
@@ -353,6 +357,30 @@ Workflow: maintenance
 
 Next:
   - Review the changes or report output
+  - Run `invoke session.wrap` when you want to close out the session
+```
+
+#### Debug Workflow: execute → STOP
+
+Debug has no planning phase, so invoke `session.execute` immediately:
+
+**execute** — Invoke `session.execute` agent:
+```
+agent_type: "session.execute"
+prompt: "Execute debug investigation for session {session_id}. Dir: {session_dir}. Tasks in {tasks_file}. Workflow: debug. Do NOT ask clarifying questions."
+```
+
+After execute completes, STOP and guide the user to review the findings, reproduction notes, or fix verification results, then run `invoke session.wrap` only when they want to close out the session.
+
+Return a summary like:
+```
+✅ Debug investigation complete
+
+Session: {session_id}
+Workflow: debug
+
+Next:
+  - Review the findings, reproduction notes, or verification results
   - Run `invoke session.wrap` when you want to close out the session
 ```
 
@@ -467,6 +495,10 @@ prompt: "Wrap spike session {session_id}. Dir: {session_dir}. Do NOT ask clarify
 
 No planning phase. When `--auto` is explicitly set, proceed directly to execute, then wrap.
 
+#### Debug Workflow (Auto): execute → wrap
+
+No planning phase. When `--auto` is explicitly set, proceed directly to execute, then wrap.
+
 ---
 
 ### Resume Mode
@@ -480,10 +512,10 @@ When resuming (`--resume`), check `state.json` to determine what step the sessio
 
 ## Notes
 
-- **Mode-aware orchestration**: Default runs Phase 1 (Planning) only for development/spike; maintenance runs execute and then stops. `--auto` continues until the next human gate — review decisions, scope dialogue, or recorded pause checkpoints
+- **Mode-aware orchestration**: Default runs Phase 1 (Planning) only for development/spike; maintenance/debug run execute and then stop. `--auto` continues until the next human gate — review decisions, scope dialogue, or recorded pause checkpoints
 - **No code changes**: Never write application code directly — that's session.execute's job
 - **Invoke, don't impersonate**: Use the task tool to invoke each agent — never `cat` their files and do their work
-- **Three workflows**: development (full), spike (no PR), maintenance (no branch, no PR, no planning)
+- **Four workflows**: development (full), spike (no PR), maintenance (housekeeping), debug (investigation)
 - **Review cycle**: Only auto-runs with `--auto --copilot-review`; otherwise stop after publish for manual review or an explicit `invoke session.review`
 - **Pass constraints through**: If the user's message includes environment constraints (e.g., "containerised app", "don't install locally"), pass them to session.execute
 - **Quality agents**: In default mode, users can invoke session.clarify, session.analyze, and session.checklist between phases

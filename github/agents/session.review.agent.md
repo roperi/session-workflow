@@ -252,7 +252,7 @@ source .session/scripts/bash/session-common.sh
 
 if ! check_workflow_allowed "$SESSION_ID" "development"; then
     echo "❌ session.review is only for development workflow"
-    echo "Spike workflow does not create PRs or request reviews"
+    echo "Spike, maintenance, and debug workflows do not create PRs or request reviews"
     exit 1
 fi
 
@@ -264,3 +264,4 @@ echo "✓ Workflow check passed - proceeding with review"
 **Blocked workflows**:
 - **spike**: No PRs, so no review
 - **maintenance**: No PRs, so no review
+- **debug**: No PRs by default, so no review

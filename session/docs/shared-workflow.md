@@ -161,6 +161,8 @@ The session workflow follows a defined state machine. Each step must complete be
 
 **Maintenance (lightweight default)**: `start → execute → STOP` (`--auto` adds `wrap`)
 
+**Debug (lightweight investigation)**: `start → execute → STOP` (`--auto` adds `wrap`)
+
 ```
 START → SCOPE → SPEC → PLAN → TASK → EXECUTE → VALIDATE → PUBLISH → REVIEW → [MERGE PR] → FINALIZE → WRAP
                                                                                    │                  │
@@ -173,6 +175,12 @@ Maintenance default:
 START → EXECUTE → STOP
 
 Maintenance auto:
+START → EXECUTE → WRAP
+
+Debug default:
+START → EXECUTE → STOP
+
+Debug auto:
 START → EXECUTE → WRAP
 ```
 
@@ -193,7 +201,7 @@ START → EXECUTE → WRAP
 | `spec` | `plan` |
 | `plan` | `task`, `execute` |
 | `task` | `execute` |
-| `execute` | `validate`, `execute` (loop), `wrap` (maintenance/spike) |
+| `execute` | `validate`, `execute` (loop), `wrap` (maintenance/spike/debug) |
 | `validate` | `publish`, `execute` (if fix needed) |
 | `publish` | `review`, `finalize` |
 | `review` | `finalize` |

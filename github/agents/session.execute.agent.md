@@ -109,7 +109,7 @@ Determine task file location:
 source .session/scripts/bash/session-common.sh
 
 # Check if execution is allowed for this workflow
-if ! check_workflow_allowed "$SESSION_ID" "development" "spike" "maintenance"; then
+if ! check_workflow_allowed "$SESSION_ID" "development" "spike" "maintenance" "debug"; then
     echo "❌ session.execute is not compatible with the current workflow"
     exit 1
 fi
@@ -117,10 +117,11 @@ fi
 echo "✓ Workflow check passed - proceeding with execution"
 ```
 
-**Allowed workflows**: development, spike, maintenance
+**Allowed workflows**: development, spike, maintenance, debug
 
 **Note**: Spike workflow proceeds with lighter validation (no PR required).  
 **Note**: Maintenance workflow skips planning — execute is the first active step.
+**Note**: Debug workflow skips planning — execute is the first active step and direct invocation stops after execution so the user can review findings before deciding on follow-up work.
 
 **Read-only enforcement**: If `session-info.json` contains `"read_only": true`, you **MUST**:
 - Make no file modifications (read and analyse only)
@@ -418,6 +419,21 @@ Next:
   - Run `invoke session.wrap` when you want to close out the session
 ```
 
+#### Debug Workflow: → STOP
+
+Do NOT auto-wrap debug sessions when invoked directly. After execute completes, output a summary like:
+
+```
+✅ Debug investigation complete
+
+Session: {session_id}
+Tasks completed: {count}
+
+Next:
+  - Review the findings, reproduction notes, or fix verification results
+  - Run `invoke session.wrap` when you want to close out the session
+```
+
 ## Failure Modes to Avoid
 
 | ❌ Failure Mode | Description | ✅ Instead |
@@ -434,5 +450,5 @@ Next:
 - **Manual verification**: Required for UI-visible changes
 - **Small commits**: One task per commit
 - **Return, don't chain (sub-agent mode)**: When invoked as sub-agent by session.start --auto, return results after postflight — do NOT invoke validate/publish yourself
-- **Phase 2 orchestration (direct mode)**: When invoked directly by the user, orchestrate validate → publish and then STOP for review/merge (development), wrap after execute (spike), or stop after execute and let the user decide when to wrap (maintenance)
+- **Phase 2 orchestration (direct mode)**: When invoked directly by the user, orchestrate validate → publish and then STOP for review/merge (development), wrap after execute (spike), or stop after execute and let the user decide when to wrap (maintenance/debug)
 - **⛔ Boundary reminder**: Do NOT merge PRs, close issues, or do finalize/wrap work during execution. Execution ONLY.

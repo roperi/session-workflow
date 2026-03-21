@@ -203,7 +203,7 @@ source .session/scripts/bash/session-common.sh
 # Check if publishing is allowed for this workflow
 if ! check_workflow_allowed "$SESSION_ID" "development"; then
     echo "❌ session.publish is only for development workflow"
-    echo "Spike workflow does not create PRs"
+    echo "Spike, maintenance, and debug workflows do not create PRs"
     exit 1
 fi
 
@@ -214,5 +214,7 @@ echo "✓ Workflow check passed - proceeding with PR creation"
 
 **Blocked workflows**:
 - **spike**: Research/exploration work not intended for production PRs
+- **maintenance**: Lightweight housekeeping runs do not create PRs
+- **debug**: Investigation runs do not create PRs by default
 
 Only development workflow creates pull requests for review.

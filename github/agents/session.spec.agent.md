@@ -70,7 +70,7 @@ This agent assumes **session.start** has already run. If not, you will not have 
 Expected session variables from session-info.json:
 - `session_id` - Session identifier (e.g., "2025-12-21-1")
 - `type` - "speckit" | "github_issue" | "unstructured"
-- `workflow` - "development" (spec is skipped for spike/maintenance)
+- `workflow` - "development" (spec is skipped for spike/maintenance/debug)
 - `issue_number` or `spec_id` (if applicable)
 
 **⚠️ NEVER manually construct session directory paths.** Always read from `.session/ACTIVE_SESSION`.
