@@ -165,18 +165,9 @@ get_pause_state_json() {
     fi
 
     local pause_json
-    pause_json=$(jq -c '.pause // {
-        active: false,
-        kind: null,
-        step: null,
-        task_id: null,
-        summary: null,
-        required_action: null,
-        resume_command: null,
-        created_at: null,
-        cleared_at: null,
-        notes: null
-    }' "$state_file" 2>/dev/null || true)
+    local default_pause
+    default_pause=$(default_pause_state_json)
+    pause_json=$(jq -c --argjson default_pause "$default_pause" '.pause // $default_pause' "$state_file" 2>/dev/null || true)
 
     if [[ -n "$pause_json" ]]; then
         echo "$pause_json"
@@ -249,21 +240,13 @@ clear_pause_state() {
     local timestamp tmp_file
     timestamp=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
     tmp_file=$(mktemp)
+    local default_pause
+    default_pause=$(default_pause_state_json)
 
-    jq --arg timestamp "$timestamp" \
+    jq --argjson default_pause "$default_pause" \
+       --arg timestamp "$timestamp" \
        --arg notes "$notes" \
-       '.pause = ((.pause // {
-            active: false,
-            kind: null,
-            step: null,
-            task_id: null,
-            summary: null,
-            required_action: null,
-            resume_command: null,
-            created_at: null,
-            cleared_at: null,
-            notes: null
-        }) | .active = false | .cleared_at = $timestamp | .notes = $notes)' \
+       '.pause = ((.pause // $default_pause) | .active = false | .cleared_at = $timestamp | .notes = $notes)' \
        "$state_file" > "$tmp_file" && mv "$tmp_file" "$state_file"
 }
 

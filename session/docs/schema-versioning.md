@@ -10,7 +10,7 @@ constant before trusting field names.
 
 ## `session-info.json` — current version `2.2`
 
-**Constant**: `SESSION_INFO_SCHEMA_VERSION="2.2"` (in `session-common.sh`)
+**Constant**: `SESSION_INFO_SCHEMA_VERSION="2.2"` (in `session/scripts/bash/lib/session-paths.sh`)
 
 **Common fields** (all types):
 
@@ -45,7 +45,7 @@ constant before trusting field names.
 
 ## `state.json` — current version `1.2`
 
-**Constant**: `STATE_SCHEMA_VERSION="1.2"` (in `session-common.sh`)
+**Constant**: `STATE_SCHEMA_VERSION="1.2"` (in `session/scripts/bash/lib/session-paths.sh`)
 
 **Fields written by `create_session_state()`**:
 
@@ -62,17 +62,21 @@ constant before trusting field names.
 | `git.branch` | string | Branch at session start |
 | `git.last_commit` | string | Short SHA at session start |
 | `notes_summary` | string | |
-| `step_history` | array | `[]` at creation |
+| `step_history` | array | Initialized with a completed `start` entry |
 | `pause` | object | Active human checkpoint state; defaults to inactive fields |
+| `current_step` | string | `start` at creation; later updated by workflow steps |
+| `step_status` | string | `completed` at creation; later updated by workflow steps |
+| `step_started_at` | ISO 8601 string | Start timestamp at creation |
+| `step_updated_at` | ISO 8601 string | Start timestamp at creation |
 
-**Fields added by `set_workflow_step()`** (first preflight call):
+**Fields updated by `set_workflow_step()`** (preflight/postflight calls):
 
 | Field | Type | Description |
 |-------|------|-------------|
-| `current_step` | string | `plan` \| `task` \| `execute` \| `validate` \| `publish` \| `finalize` \| `wrap` |
+| `current_step` | string | Updated to the active workflow step |
 | `step_status` | string | `in_progress` \| `completed` \| `failed` |
-| `step_started_at` | ISO 8601 string | |
-| `step_updated_at` | ISO 8601 string | |
+| `step_started_at` | ISO 8601 string | Reset when a step starts |
+| `step_updated_at` | ISO 8601 string | Updated on every state transition |
 
 **`step_history` entry schema** (appended by `set_workflow_step()`):
 
