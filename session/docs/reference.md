@@ -77,7 +77,7 @@ All chain agents can run either as sub-agents orchestrated by `session.start` or
 - Run `session-start.sh`
 - Load project context
 - Create feature branch
-- **Default mode**: Orchestrate Phase 1 (Planning) — scope → spec → plan → task — then stop for development/spike; maintenance/debug run execute and then stop
+- **Default mode**: Orchestrate Phase 1 (Planning) per workflow — development runs `scope → spec → plan → task`, spike runs `scope → plan → task` (no spec), and maintenance/debug skip planning and run `execute` then stop
 - **Auto mode** (`--auto`): Continue until the next human gate — development usually stops after `publish`, while spike/maintenance/debug continue through wrap when no pause is active
 - **Copilot review** (`--auto --copilot-review`): Full auto chain + dedicated `session.review` agent for Copilot PR review before merge
 
