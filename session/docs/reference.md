@@ -277,14 +277,14 @@ invoke session.start "Fix the bug"         # Unstructured (goal as positional ar
 
 # Workflow selection
 invoke session.start --spike "Research"          # Spike workflow (explore, no PR)
-invoke session.start --maintenance "Reorder docs/" # Maintenance workflow (small tasks, no branch/PR)
+invoke session.start --maintenance "Reorder docs/" # Maintenance workflow (small tasks, no branch/PR; stops after execute by default)
 
 # Orchestration
 invoke session.start --auto --issue 123                       # Auto through publish, then stop for manual/custom review
 invoke session.start --auto --copilot-review --issue 123      # Full chain + Copilot PR review
 
 # Modifiers
-invoke session.start --maintenance --read-only "Audit stale files"  # No commits, report only
+invoke session.start --maintenance --read-only "Audit stale files"  # No commits, report only; stops after execute by default
 invoke session.start --stage poc "Prototype auth"                   # Relaxed validation
 
 # Resume
@@ -366,14 +366,20 @@ invoke session.execute
 
 ```bash
 invoke session.start --maintenance "Reorder docs/ sections and update TOC"
-# → auto-chains: execute → wrap → END (no branch, no PR)
+# → execute → STOP (no branch, no PR)
+
+invoke session.wrap
+# → wrap → END
 ```
 
 ### Example 5: Read-only Audit
 
 ```bash
 invoke session.start --maintenance --read-only "Find files not referenced by any import"
-# → auto-chains: execute (report only, no commits) → wrap → END
+# → execute (report only, no commits) → STOP
+
+invoke session.wrap
+# → wrap → END
 ```
 
 ### Example 6: Resuming After Interruption

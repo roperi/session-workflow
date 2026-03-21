@@ -159,7 +159,7 @@ The session workflow follows a defined state machine. Each step must complete be
 
 **Spike (7-agent chain)**: `start → scope → plan → task → execute → wrap`
 
-**Maintenance (3-agent chain)**: `start → execute → wrap`
+**Maintenance (lightweight default)**: `start → execute → STOP` (`--auto` adds `wrap`)
 
 ```
 START → SCOPE → SPEC → PLAN → TASK → EXECUTE → VALIDATE → PUBLISH → REVIEW → [MERGE PR] → FINALIZE → WRAP
@@ -169,7 +169,10 @@ START → SCOPE → SPEC → PLAN → TASK → EXECUTE → VALIDATE → PUBLISH 
 Spike (skip spec + publish chain):
 START → SCOPE → PLAN → TASK → EXECUTE → WRAP
 
-Maintenance shortcut:
+Maintenance default:
+START → EXECUTE → STOP
+
+Maintenance auto:
 START → EXECUTE → WRAP
 ```
 

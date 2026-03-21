@@ -20,8 +20,8 @@ When AI context windows reset, work continuity is lost. Session workflow solves 
 **Agent Chain**: `start → scope → spec → plan → task → execute → validate → publish → [review] → finalize → wrap`
 
 **Orchestration modes**:
-- **Default**: `session.start` runs Phase 1 (Planning) then stops — review artifacts, run quality agents, then continue with `session.execute`. Maintenance always auto-chains (no planning to review).
-- **Auto** (`--auto`): Auto-chain through `publish`, then stop for manual/custom review
+- **Default**: `session.start` runs Phase 1 (Planning) then stops for development/spike. Maintenance runs `execute` and then stops so you can wrap only if you actually want closeout.
+- **Auto** (`--auto`): Development auto-chains through `publish`, then stops for manual/custom review. Maintenance auto-chains through `wrap`.
 - **Copilot review** (`--auto --copilot-review`): Full end-to-end auto chain with dedicated `session.review` agent before merge
 
 > **GitHub ecosystem integration**: `session.start` uses Copilot CLI's task tool for sub-agent orchestration and optionally uses `request_copilot_review` for automated PR reviews. See [Copilot CLI Mechanics](session/docs/copilot-cli-mechanics.md) for internals.
@@ -136,11 +136,13 @@ invoke session.finalize
 invoke session.start --spike "Explore Redis caching"
 invoke session.execute  # execute + wrap to complete spike
 
-# Maintenance (small change, no branch/PR — auto-chains execute + wrap)
+# Maintenance (small change, no branch/PR — stops after execute by default)
 invoke session.start --maintenance "Reorder docs/"
+invoke session.wrap  # close out when you're ready
 
-# Audit (read-only, no commits)
+# Audit (read-only, no commits — stops after execute by default)
 invoke session.start --maintenance --read-only "Find stale files"
+invoke session.wrap  # close out when you're ready
 
 # Resume interrupted work
 invoke session.start --resume
@@ -173,13 +175,14 @@ invoke session.start --spike "Benchmark Redis vs Memcached"
 
 ### 3. Maintenance
 
-**Chain**: `start → execute → wrap`
+**Chain**: `start → execute → STOP` by default; `--auto` adds `wrap`
 
 Use for docs cleanup, small housekeeping. No branch, no PR, no planning.
 
 ```bash
 invoke session.start --maintenance "Reorder docs/"
 invoke session.start --maintenance --read-only "Find stale files"  # audit mode
+invoke session.start --maintenance --auto "Reorder docs/"          # execute + wrap
 ```
 
 ---
