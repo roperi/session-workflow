@@ -1008,6 +1008,20 @@ EOF
     || fail "copilot instructions stub should mention next.md"
 
   log "All next.md artifact tests passed."
+
+  # 51) session-start --resume backfills next.md for older active sessions
+  log "51) session-start --resume backfills missing next.md"
+  local start_resume_next_json resume_next_id resume_next_ym resume_next_dir resume_next_json
+  start_resume_next_json=$(./.session/scripts/bash/session-start.sh --json "Resume next backfill test")
+  resume_next_id=$(echo "$start_resume_next_json" | jq -r '.session.id')
+  resume_next_ym=$(echo "$resume_next_id" | cut -d'-' -f1,2)
+  resume_next_dir=".session/sessions/${resume_next_ym}/${resume_next_id}"
+  rm -f "${resume_next_dir}/next.md"
+  resume_next_json=$(./.session/scripts/bash/session-start.sh --json --resume)
+  assert_file_exists "${resume_next_dir}/next.md"
+  assert_eq "${resume_next_dir}/next.md" "$(echo "$resume_next_json" | jq -r '.session.files.next')" "resume JSON should surface a valid next.md path"
+  set_workflow_step "$resume_next_id" "execute" "completed" >/dev/null
+  ./.session/scripts/bash/session-wrap.sh --json >/dev/null
 }
 
 main "$@"

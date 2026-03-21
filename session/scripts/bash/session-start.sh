@@ -449,6 +449,16 @@ EOF
     fi
 }
 
+ensure_session_next_exists() {
+    local session_id="$1"
+    local session_dir
+    session_dir=$(get_session_dir "$session_id")
+
+    if [[ ! -f "${session_dir}/next.md" ]]; then
+        create_session_next "$session_id"
+    fi
+}
+
 create_session_tasks() {
     # Only for non-Speckit sessions
     local session_id="$1"
@@ -829,6 +839,7 @@ main() {
             step_status=$(jq -r '.step_status // "unknown"' "$session_dir/state.json" 2>/dev/null || echo "unknown")
             if [[ "$step_status" == "in_progress" || "$step_status" == "starting" ]]; then
                 if [[ "${RESUME_MODE:-false}" == "true" ]]; then
+                    ensure_session_next_exists "$active_session"
                     if $JSON_OUTPUT; then
                         output_json "$active_session" "true"
                     else
@@ -855,6 +866,7 @@ main() {
         fi
 
         if [[ "${RESUME_MODE:-false}" == "true" ]]; then
+            ensure_session_next_exists "$active_session"
             if $JSON_OUTPUT; then
                 output_json "$active_session" "true"
             else
@@ -888,6 +900,7 @@ main() {
             exit 1
         fi
 
+        ensure_session_next_exists "$active_session"
         if $JSON_OUTPUT; then
             output_json "$active_session" "true"
         else
