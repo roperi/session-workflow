@@ -74,25 +74,37 @@ cd your-project
 
 ## Updating
 
-When a new version is released, run `update.sh` from inside the target repo:
+After installation, use the stable updater wrapper committed into the target repo:
+
+```bash
+bash .session/update.sh
+
+# Or sync directly from a local checkout while testing unreleased changes
+SESSION_WORKFLOW_SOURCE_DIR=~/workspace/session-workflow bash .session/update.sh
+
+# Or pin to a specific version
+bash .session/update.sh --version v2.5.0
+```
+
+If you're updating an older installation that does not have `.session/update.sh` yet, bootstrap once with the canonical updater:
 
 ```bash
 curl -sSL https://raw.githubusercontent.com/roperi/session-workflow/main/update.sh | bash
-
-# Or pin to a specific version
-bash update.sh --version v2.5.0
 ```
 
 **What gets updated** (safe to re-run at any time):
 - All agent files (`.github/agents/session.*.agent.md`)
 - All prompt files (`.github/prompts/session.*.prompt.md`)
 - All bash scripts (`.session/scripts/bash/`)
+- The stable updater wrapper (`.session/update.sh`)
 - Templates and documentation (`.session/templates/`, `.session/docs/`)
 - The `## Session Workflow` section in `AGENTS.md` and `.github/copilot-instructions.md`
 
 **What is never touched:**
 - `.session/project-context/` — your customized stack and quality context
 - Any content in `AGENTS.md` or `.github/copilot-instructions.md` outside the `## Session Workflow` block
+
+Managed files are tracked in `.session/install-manifest.json`. On update, files that session-workflow used to manage but no longer ships are removed only if their contents still match the last recorded managed checksum; locally modified files are left in place with a warning.
 
 ---
 

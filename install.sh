@@ -10,6 +10,8 @@ set -euo pipefail
 
 REPO_URL="https://raw.githubusercontent.com/roperi/session-workflow/main"
 VERSION="2.0.0"
+MANIFEST_FILE=".session/install-manifest.json"
+MANAGED_FILES=()
 
 # Colors for output
 RED='\033[0;31m'
@@ -229,6 +231,104 @@ download_file() {
     fi
 }
 
+register_managed_file() {
+    local source_path="$1"
+    local dest="$2"
+    MANAGED_FILES+=("${source_path}|${dest}")
+}
+
+install_managed_file() {
+    local source_path="$1"
+    local dest="$2"
+    local mode="${3:-}"
+
+    download_file "${REPO_URL}/${source_path}" "$dest"
+    if [[ "$mode" == "executable" ]]; then
+        chmod +x "$dest"
+    fi
+    register_managed_file "$source_path" "$dest"
+}
+
+calculate_sha256() {
+    local path="$1"
+
+    if command -v sha256sum >/dev/null 2>&1; then
+        sha256sum "$path" | awk '{print $1}'
+    elif command -v shasum >/dev/null 2>&1; then
+        shasum -a 256 "$path" | awk '{print $1}'
+    else
+        return 1
+    fi
+}
+
+manifest_dependencies_available() {
+    if ! command -v jq >/dev/null 2>&1; then
+        warn "jq not found; skipping install-manifest.json generation"
+        return 1
+    fi
+
+    if ! command -v sha256sum >/dev/null 2>&1 && ! command -v shasum >/dev/null 2>&1; then
+        warn "No SHA-256 tool found; skipping install-manifest.json generation"
+        return 1
+    fi
+
+    return 0
+}
+
+write_install_manifest() {
+    if ! manifest_dependencies_available; then
+        return
+    fi
+
+    local unique_entries
+    unique_entries=$(printf '%s\n' "${MANAGED_FILES[@]}" | sort -u)
+
+    local managed_files_json="[]"
+    local entry_json=()
+    while IFS='|' read -r source_path dest; do
+        [[ -n "$source_path" && -f "$dest" ]] || continue
+
+        local sha
+        sha=$(calculate_sha256 "$dest") || {
+            warn "Failed to calculate SHA-256 for ${dest}; skipping install-manifest.json generation"
+            return
+        }
+
+        entry_json+=("$(jq -nc \
+            --arg path "$dest" \
+            --arg source "$source_path" \
+            --arg sha "$sha" \
+            '{path: $path, source: $source, sha256: $sha}')")
+    done <<< "$unique_entries"
+
+    if [[ ${#entry_json[@]} -gt 0 ]]; then
+        managed_files_json=$(printf '%s\n' "${entry_json[@]}" | jq -s '.')
+    fi
+
+    local managed_sections_json
+    managed_sections_json=$(jq -nc '[{"file":"AGENTS.md","section":"Session Workflow"},{"file":".github/copilot-instructions.md","section":"Session Workflow"}]')
+
+    local tmp
+    tmp=$(mktemp)
+    jq -n \
+        --arg schema_version "1" \
+        --arg generated_at "$(date -u +"%Y-%m-%dT%H:%M:%SZ")" \
+        --arg tool "install" \
+        --arg tool_version "$VERSION" \
+        --argjson managed_files "$managed_files_json" \
+        --argjson managed_sections "$managed_sections_json" \
+        '{
+            schema_version: $schema_version,
+            generated_at: $generated_at,
+            tool: $tool,
+            tool_version: $tool_version,
+            managed_files: $managed_files,
+            managed_sections: $managed_sections
+        }' > "$tmp"
+    mv "$tmp" "$MANIFEST_FILE"
+    success "Wrote ${MANIFEST_FILE}"
+}
+
 # ============================================================================
 # Installation Functions
 # ============================================================================
@@ -260,25 +360,32 @@ install_scripts() {
     mkdir -p .session/scripts/bash
     
     for script in "${scripts[@]}"; do
-        download_file "${REPO_URL}/session/scripts/bash/${script}" ".session/scripts/bash/${script}"
-        chmod +x ".session/scripts/bash/${script}"
+        install_managed_file "session/scripts/bash/${script}" ".session/scripts/bash/${script}" executable
     done
 
     mkdir -p .session/scripts/bash/lib
     for script in "${lib_scripts[@]}"; do
-        download_file "${REPO_URL}/session/scripts/bash/lib/${script}" ".session/scripts/bash/lib/${script}"
+        install_managed_file "session/scripts/bash/lib/${script}" ".session/scripts/bash/lib/${script}"
     done
     
     success "Scripts installed"
+}
+
+install_updater_wrapper() {
+    info "Installing stable updater wrapper..."
+
+    install_managed_file "session/scripts/update-wrapper.sh" ".session/update.sh" executable
+
+    success "Stable updater wrapper installed"
 }
 
 install_templates() {
     info "Installing templates..."
     
     mkdir -p .session/templates
-    download_file "${REPO_URL}/session/templates/session-notes.md" ".session/templates/session-notes.md"
-    download_file "${REPO_URL}/session/templates/next-template.md" ".session/templates/next-template.md"
-    download_file "${REPO_URL}/session/templates/tasks-template.md" ".session/templates/tasks-template.md"
+    install_managed_file "session/templates/session-notes.md" ".session/templates/session-notes.md"
+    install_managed_file "session/templates/next-template.md" ".session/templates/next-template.md"
+    install_managed_file "session/templates/tasks-template.md" ".session/templates/tasks-template.md"
     
     success "Templates installed"
 }
@@ -287,12 +394,12 @@ install_docs() {
     info "Installing session docs..."
     
     mkdir -p .session/docs
-    download_file "${REPO_URL}/README.md" ".session/docs/README.md"
-    download_file "${REPO_URL}/session/docs/testing.md" ".session/docs/testing.md"
-    download_file "${REPO_URL}/session/docs/shared-workflow.md" ".session/docs/shared-workflow.md"
-    download_file "${REPO_URL}/session/docs/schema-versioning.md" ".session/docs/schema-versioning.md"
-    download_file "${REPO_URL}/session/docs/copilot-cli-mechanics.md" ".session/docs/copilot-cli-mechanics.md"
-    download_file "${REPO_URL}/session/docs/reference.md" ".session/docs/reference.md"
+    install_managed_file "README.md" ".session/docs/README.md"
+    install_managed_file "session/docs/testing.md" ".session/docs/testing.md"
+    install_managed_file "session/docs/shared-workflow.md" ".session/docs/shared-workflow.md"
+    install_managed_file "session/docs/schema-versioning.md" ".session/docs/schema-versioning.md"
+    install_managed_file "session/docs/copilot-cli-mechanics.md" ".session/docs/copilot-cli-mechanics.md"
+    install_managed_file "session/docs/reference.md" ".session/docs/reference.md"
     
     success "Session docs installed"
 }
@@ -607,7 +714,7 @@ install_agents() {
     
     for agent in "${agents[@]}"; do
         if [[ ! -f ".github/agents/${agent}" ]]; then
-            download_file "${REPO_URL}/github/agents/${agent}" ".github/agents/${agent}"
+            install_managed_file "github/agents/${agent}" ".github/agents/${agent}"
         else
             warn "${agent} already exists, skipping"
         fi
@@ -642,7 +749,7 @@ install_prompts() {
     
     for prompt in "${prompts[@]}"; do
         if [[ ! -f ".github/prompts/${prompt}" ]]; then
-            download_file "${REPO_URL}/github/prompts/${prompt}" ".github/prompts/${prompt}"
+            install_managed_file "github/prompts/${prompt}" ".github/prompts/${prompt}"
         else
             warn "${prompt} already exists, skipping"
         fi
@@ -729,12 +836,14 @@ main() {
     # Installation phase
     echo -e "${BLUE}── Installation ──${NC}"
     install_scripts
+    install_updater_wrapper
     install_templates
     install_docs
     install_bootstrap
     install_project_context
     install_agents
     install_prompts
+    write_install_manifest
     update_gitignore
     create_sessions_dir
     
@@ -754,7 +863,8 @@ main() {
     echo ""
     echo -e "${BLUE}Next steps:${NC}"
     echo "  1. Review generated context files (already populated!)"
-    echo "  2. Start a session: invoke session.start 'Your goal'"
+    echo "  2. Update later with: bash .session/update.sh"
+    echo "  3. Start a session: invoke session.start 'Your goal'"
     echo ""
     echo -e "${BLUE}Quick start:${NC}"
     echo "  invoke session.start --issue 123       # Work on GitHub issue"

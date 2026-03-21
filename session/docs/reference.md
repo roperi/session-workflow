@@ -447,9 +447,11 @@ Updates:
 ```
 .session/
 ├── ACTIVE_SESSION              # Current session ID
+├── install-manifest.json       # Managed-file manifest for safe updates
 ├── project-context/
 │   ├── constitution-summary.md # Quality standards
 │   └── technical-context.md    # Stack, commands
+├── update.sh                   # Stable updater wrapper
 ├── scripts/bash/
 │   ├── session-common.sh
 │   ├── session-start.sh
@@ -480,3 +482,5 @@ Updates:
 └── prompts/
     └── session.*.prompt.md
 ```
+
+`bash .session/update.sh` is the stable update entrypoint for installed repos. It refreshes the managed session-workflow surface, rewrites the Session Workflow bootstrap block in `AGENTS.md` / `.github/copilot-instructions.md`, and uses `.session/install-manifest.json` to prune deprecated managed files only when they still match the last recorded managed checksum.
