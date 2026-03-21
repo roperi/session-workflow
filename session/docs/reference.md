@@ -109,7 +109,7 @@ All chain agents can run either as sub-agents orchestrated by `session.start` or
 - Single-task focus
 - TDD: test → implement → verify
 - Commit after each task
-- **When invoked directly**: Orchestrates Phase 2 (validate → publish → STOP for development; wrap for spike/maintenance)
+- **When invoked directly**: Orchestrates Phase 2 (validate → publish → STOP for development; wrap for spike; stop after execute for maintenance)
 
 ### session.validate
 - Run lint, tests

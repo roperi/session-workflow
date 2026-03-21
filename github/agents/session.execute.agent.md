@@ -382,7 +382,7 @@ Next:
   invoke session.finalize
 ```
 
-#### Spike / Maintenance Workflow: → wrap → END
+#### Spike Workflow: → wrap → END
 
 Invoke wrap directly (no validation or publishing):
 
@@ -393,6 +393,21 @@ prompt: "Wrap session {session_id}. Dir: {session_dir}. Do NOT ask clarifying qu
 ```
 
 After wrap completes, output the session summary.
+
+#### Maintenance Workflow: → STOP
+
+Do NOT auto-wrap maintenance sessions when invoked directly. After execute completes, output a summary like:
+
+```
+✅ Maintenance execution complete
+
+Session: {session_id}
+Tasks completed: {count}
+
+Next:
+  - Review the changes or report output
+  - Run `invoke session.wrap` when you want to close out the session
+```
 
 ## Failure Modes to Avoid
 
@@ -410,5 +425,5 @@ After wrap completes, output the session summary.
 - **Manual verification**: Required for UI-visible changes
 - **Small commits**: One task per commit
 - **Return, don't chain (sub-agent mode)**: When invoked as sub-agent by session.start --auto, return results after postflight — do NOT invoke validate/publish yourself
-- **Phase 2 orchestration (direct mode)**: When invoked directly by the user, orchestrate validate → publish and then STOP for review/merge (development), or wrap (spike/maintenance)
+- **Phase 2 orchestration (direct mode)**: When invoked directly by the user, orchestrate validate → publish and then STOP for review/merge (development), wrap after execute (spike), or stop after execute and let the user decide when to wrap (maintenance)
 - **⛔ Boundary reminder**: Do NOT merge PRs, close issues, or do finalize/wrap work during execution. Execution ONLY.

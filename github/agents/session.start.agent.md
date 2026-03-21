@@ -333,7 +333,15 @@ Next: Review planning artifacts, then run:
 
 #### Maintenance Workflow: execute → STOP
 
-Maintenance has no planning phase, so invoke `session.execute` immediately. After execute completes, STOP and guide the user to review the result, then run `invoke session.wrap` only when they want to close out the session.
+Maintenance has no planning phase, so invoke `session.execute` immediately:
+
+**execute** — Invoke `session.execute` agent:
+```
+agent_type: "session.execute"
+prompt: "Execute maintenance work for session {session_id}. Dir: {session_dir}. Tasks in {tasks_file}. Workflow: maintenance. Do NOT ask clarifying questions."
+```
+
+After execute completes, STOP and guide the user to review the result, then run `invoke session.wrap` only when they want to close out the session.
 
 Return a summary like:
 ```
