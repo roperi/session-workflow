@@ -417,6 +417,7 @@ Creates:
 - `session-info.json` - Metadata
 - `state.json` - Progress tracking (with `step_history[]`)
 - `notes.md` - Handoff notes
+- `next.md` - Structured follow-up / next-session artifact
 
 ### Planning Phase
 Creates:
@@ -429,6 +430,7 @@ Creates:
 Updates:
 - `tasks.md` - Mark completed: `[ ]` → `[x]`
 - `notes.md` - Key decisions, blockers
+- `next.md` - Suggested follow-up steps, workflow, blockers, and carry-forward context
 - `validation-results.json` - Quality gate results
 - `pr-summary.md` - PR description
 
@@ -455,6 +457,7 @@ Updates:
 │   ├── session-cleanup.sh
 │   └── ...
 ├── templates/
+│   ├── next-template.md
 │   └── session-notes.md
 ├── sessions/
 │   └── YYYY-MM/
@@ -462,6 +465,7 @@ Updates:
 │           ├── session-info.json
 │           ├── state.json
 │           ├── notes.md
+│           ├── next.md
 │           └── tasks.md
 └── docs/
     ├── copilot-cli-mechanics.md

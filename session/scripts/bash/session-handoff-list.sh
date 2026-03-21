@@ -100,6 +100,10 @@ output_json() {
         last_commit=$(jq -r '.git.last_commit // ""' "$state_file" 2>/dev/null || echo "")
         tasks_total=$(jq -r '.tasks.total // 0' "$state_file" 2>/dev/null || echo 0)
         tasks_completed=$(jq -r '.tasks.completed // 0' "$state_file" 2>/dev/null || echo 0)
+        local next_file=""
+        if [[ -f "${d}/next.md" ]]; then
+            next_file="${d}/next.md"
+        fi
 
         jq -n \
             --arg id "$id" \
@@ -112,6 +116,7 @@ output_json() {
             --arg branch "$branch" \
             --arg last_commit "$last_commit" \
             --arg notes_file "${d}/notes.md" \
+            --arg next_file "$next_file" \
             --arg tasks_file "${d}/tasks.md" \
             --argjson tasks_total "$tasks_total" \
             --argjson tasks_completed "$tasks_completed" \
@@ -127,7 +132,11 @@ output_json() {
                     git: {branch: $branch, last_commit: $last_commit},
                     tasks: {total: $tasks_total, completed: $tasks_completed}
                 },
-                files: {notes: $notes_file, tasks: $tasks_file}
+                files: {
+                    notes: $notes_file,
+                    next: (if $next_file == "" then null else $next_file end),
+                    tasks: $tasks_file
+                }
             }' >> "$tmp"
     done <<< "$dirs"
 

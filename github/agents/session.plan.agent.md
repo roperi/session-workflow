@@ -144,6 +144,10 @@ If a scope exists:
 
 **Priority**: When both spec.md and scope.md exist, spec.md takes precedence for requirements (it is derived from scope). Use scope.md for boundary validation.
 
+If a previous-session `next.md` path is provided in your prompt:
+- Read it and use its **Suggested Next Steps**, **Suggested Workflow**, **Pending Human Actions**, **Blockers**, and **Carry Forward** sections as continuation context
+- Reconcile it with the current scope/spec instead of copying it blindly; it is handoff guidance, not a contract
+
 If `{session_dir}/brainstorm.md` exists, use it as planning input (do not rewrite it).
 
 ```bash

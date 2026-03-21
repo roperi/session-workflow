@@ -106,18 +106,9 @@ check_session_readiness() {
         fi
     fi
     
-    # Check notes have "For Next Session" content
-    local notes_file="${session_dir}/notes.md"
-    if [[ -f "$notes_file" ]]; then
-        local for_next
-        for_next=$(get_for_next_session_section "$session_id")
-        # Extract the body of the "For Next Session" section (excluding the header).
-        # A body containing only whitespace (spaces, tabs, newlines) is treated as empty.
-        local for_next_body
-        for_next_body=$(echo "$for_next" | tail -n +2 2>/dev/null || true)
-        if [[ -z "$for_next" ]] || ! printf '%s' "$for_next_body" | grep -q '[^[:space:]]'; then
-            warnings+=("notes.md missing 'For Next Session' content")
-        fi
+    # Check next-session handoff content (prefer next.md, fall back to notes.md)
+    if ! has_next_session_handoff_content "$session_id"; then
+        warnings+=("next.md or notes.md missing next-session handoff content")
     fi
     
     # Return warnings (newline-separated)

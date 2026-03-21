@@ -4,6 +4,7 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+- **NEW (#56)**: Added `next.md` as a first-class session handoff artifact — new sessions create a dedicated follow-up template, continuation flow prefers structured `next.md` content over legacy `notes.md` handoff text, and install/update/docs now surface the artifact explicitly
 - **NEW (#59)**: Added a dedicated `debug` workflow for troubleshooting/investigation — `session.start --debug` now initializes lightweight debug sessions that run `execute` and stop by default, with optional `--auto` continuing to `wrap`; workflow docs and routing guidance now recognize debugging language like `debug`, `troubleshoot`, `trace`, and `reproduce`
 - **CHANGE (#58)**: `--auto` now means "continue until the next human gate" — scope prompts may remain interactive, manual-test pauses are recorded in `state.json.pause`, and resume surfaces the active checkpoint
 - **CHANGE (#57)**: Maintenance workflow is now lightweight by default — `session.start --maintenance` runs `execute` then stops; only `--auto` continues to `wrap`, including read-only maintenance runs
