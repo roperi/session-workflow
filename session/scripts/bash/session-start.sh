@@ -44,6 +44,7 @@ OPTIONS:
     --spike           Spike workflow: exploration/research, no PR expected
     --maintenance     Maintenance workflow: small tasks, docs, housekeeping (no branch/PR)
     --debug           Debug workflow: troubleshooting/investigation, no PR by default
+    --operational     Operational workflow: iterative pipeline/batch runs with patching between passes
     --read-only       Audit/read-only mode: no commits or file changes (use with --maintenance)
     --brainstorm      Insert optional brainstorm step before planning (development/spike only)
     --stage STAGE     Project stage: poc, mvp, or production (default: production)
@@ -65,6 +66,7 @@ WORKFLOWS:
     spike (--spike)       - Light chain: start → [brainstorm] → scope → plan → task → execute → wrap (no PR)
     maintenance           - Lightweight chain: start → execute → STOP by default; --auto adds wrap (no branch, no PR)
     debug (--debug)       - Investigation chain: start → execute → STOP by default; --auto adds wrap (no PR required)
+    operational (--operational) - Runtime loop: start → execute → STOP by default; --auto adds wrap (feature branch, no PR by default)
 
 MODIFIERS:
     --read-only           No commits or file modifications; produce report only (use with --maintenance)
@@ -92,6 +94,9 @@ EXAMPLES:
 
     # Debug/troubleshoot (no PR required; stops after execute by default)
     session-start.sh --debug "Trace why background jobs stall"
+
+    # Operational batch/pipeline loop (feature branch, no PR by default)
+    session-start.sh --operational "Process webpage mp3 files in batches"
 
     # Maintenance: small change, no branch or PR; stops after execute by default
     session-start.sh --maintenance "Reorder docs/ and update TOC"
@@ -147,6 +152,10 @@ parse_args() {
                 ;;
             --debug)
                 WORKFLOW="debug"
+                shift
+                ;;
+            --operational)
+                WORKFLOW="operational"
                 shift
                 ;;
             --read-only)
@@ -237,7 +246,8 @@ create_session_info() {
     local created_at
     created_at=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
     
-    # Workflow is either "development" (default), "spike", "maintenance", or "debug"
+    # Workflow is either "development" (default), "spike", "maintenance",
+    # "debug", or "operational"
     local workflow="${WORKFLOW}"
     
     # Stage is "poc", "mvp", or "production" (default)
@@ -968,9 +978,10 @@ main() {
             echo "  2) Research or exploration — no PR       (--spike)"
             echo "  3) Docs, housekeeping, small fixes       (--maintenance)"
             echo "  4) Debug, troubleshoot, investigate      (--debug)"
-            echo "  5) Read-only audit — no commits          (--maintenance --read-only)"
+            echo "  5) Batch/pipeline run → patch → rerun    (--operational)"
+            echo "  6) Read-only audit — no commits          (--maintenance --read-only)"
             echo ""
-            printf "Enter 1-5, or type your goal directly: "
+            printf "Enter 1-6, or type your goal directly: "
             read -r triage_input
 
             case "$triage_input" in
@@ -1002,6 +1013,12 @@ main() {
                     printf "Goal / description: "
                     read -r GOAL
                     SESSION_TYPE="unstructured"
+                    WORKFLOW="operational"
+                    ;;
+                6)
+                    printf "Goal / description: "
+                    read -r GOAL
+                    SESSION_TYPE="unstructured"
                     WORKFLOW="maintenance"
                     READ_ONLY=true
                     ;;
@@ -1026,7 +1043,7 @@ main() {
         exit 1
     fi
 
-    if [[ "$BRAINSTORM_MODE" == "true" && ( "$WORKFLOW" == "maintenance" || "$WORKFLOW" == "debug" ) ]]; then
+    if [[ "$BRAINSTORM_MODE" == "true" && "$WORKFLOW" != "development" && "$WORKFLOW" != "spike" ]]; then
         echo "ERROR: --brainstorm is only supported for development or spike workflows" >&2
         exit 1
     fi

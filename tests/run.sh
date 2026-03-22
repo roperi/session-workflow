@@ -925,8 +925,8 @@ SPECMD
     || fail "session.start agent should document debug execute → STOP default"
   grep -q "\`debug\`, \`troubleshoot\`, \`diagnose\`, \`trace\`, \`reproduce\`, \`investigate\`, \`why is\`" "$ROOT_DIR/github/agents/session.start.agent.md" \
     || fail "session.start agent should include debug smart-routing signals"
-  grep -q "check_workflow_allowed \"\$SESSION_ID\" \"development\" \"spike\" \"maintenance\" \"debug\"" "$ROOT_DIR/github/agents/session.execute.agent.md" \
-    || fail "session.execute agent should allow debug workflow"
+  grep -q "check_workflow_allowed \"\$SESSION_ID\" \"development\" \"spike\" \"maintenance\" \"debug\" \"operational\"" "$ROOT_DIR/github/agents/session.execute.agent.md" \
+    || fail "session.execute agent should allow debug and operational workflows"
   grep -q "Debug Workflow: → STOP" "$ROOT_DIR/github/agents/session.execute.agent.md" \
     || fail "session.execute agent should document debug stop-after-execute direct mode"
   grep -q "invoke session.start --debug" "$ROOT_DIR/README.md" \
@@ -937,14 +937,14 @@ SPECMD
     || fail "reference docs should include the debug workflow"
   grep -q "Debug (lightweight investigation)" "$ROOT_DIR/session/docs/shared-workflow.md" \
     || fail "shared workflow docs should describe the debug workflow"
-  grep -Fq "\`development\` \| \`spike\` \| \`maintenance\` \| \`debug\`" "$ROOT_DIR/session/docs/schema-versioning.md" \
-    || fail "schema docs should include debug as a workflow value"
+  grep -Fq "\`development\` \| \`spike\` \| \`maintenance\` \| \`debug\` \| \`operational\`" "$ROOT_DIR/session/docs/schema-versioning.md" \
+    || fail "schema docs should include debug and operational as workflow values"
   grep -q "Debug workflow" "$ROOT_DIR/.github/copilot-instructions.md" \
     || fail "copilot instructions should mention the debug workflow"
   grep -q "invoke session.start --debug" "$ROOT_DIR/stubs/copilot_instructions.md" \
     || fail "copilot instructions stub should include the debug workflow"
-  grep -q "development/spike/maintenance/debug" "$ROOT_DIR/session/docs/copilot-cli-mechanics.md" \
-    || fail "Copilot CLI mechanics docs should mention the debug workflow"
+  grep -q "development/spike/maintenance/debug/operational" "$ROOT_DIR/session/docs/copilot-cli-mechanics.md" \
+    || fail "Copilot CLI mechanics docs should mention the debug and operational workflows"
   grep -q "dedicated \`debug\` workflow" "$ROOT_DIR/CHANGELOG.md" \
     || fail "CHANGELOG should record the new debug workflow"
 
@@ -1132,7 +1132,7 @@ EOF
 
   # 55) brainstorm workflow contract and docs are explicit
   log "55) brainstorm workflow is explicitly documented"
-  local invalid_brainstorm_output invalid_brainstorm_status brainstorm_help_output
+  local invalid_brainstorm_output invalid_brainstorm_status invalid_brainstorm_operational_output invalid_brainstorm_operational_status brainstorm_help_output
   set +e
   invalid_brainstorm_output=$(./.session/scripts/bash/session-start.sh --json --maintenance --brainstorm "Bad combo" 2>&1)
   invalid_brainstorm_status=$?
@@ -1141,6 +1141,15 @@ EOF
     || fail "session-start should reject --brainstorm for maintenance workflow"
   echo "$invalid_brainstorm_output" | grep -q -- "--brainstorm is only supported for development or spike workflows" \
     || fail "session-start should explain that brainstorm is limited to planning workflows"
+
+  set +e
+  invalid_brainstorm_operational_output=$(./.session/scripts/bash/session-start.sh --json --operational --brainstorm "Bad operational combo" 2>&1)
+  invalid_brainstorm_operational_status=$?
+  set -e
+  [[ $invalid_brainstorm_operational_status -ne 0 ]] \
+    || fail "session-start should reject --brainstorm for operational workflow"
+  echo "$invalid_brainstorm_operational_output" | grep -q -- "--brainstorm is only supported for development or spike workflows" \
+    || fail "session-start should explain that brainstorm is limited to development or spike workflows"
 
   brainstorm_help_output=$(./.session/scripts/bash/session-start.sh --help)
   echo "$brainstorm_help_output" | grep -q -- "--brainstorm" \
@@ -1163,6 +1172,58 @@ EOF
     || fail "copilot instructions stub should mention the brainstorm entrypoint"
   grep -q "session.start.*--brainstorm" "$ROOT_DIR/CHANGELOG.md" \
     || fail "CHANGELOG should record the brainstorm entrypoint change"
+
+  # 56) session-start accepts --operational and records operational workflow
+  log "56) session-start accepts --operational"
+  local start_operational_json operational_session_id
+  start_operational_json=$(./.session/scripts/bash/session-start.sh --json --operational "Run monitored batch pipeline")
+  assert_eq "ok" "$(echo "$start_operational_json" | jq -r '.status')" "session-start should accept --operational"
+  assert_eq "operational" "$(echo "$start_operational_json" | jq -r '.session.workflow')" "session workflow should be operational"
+  assert_eq "false" "$(echo "$start_operational_json" | jq -r '.session.read_only')" "operational workflow should not imply read-only mode"
+  operational_session_id=$(echo "$start_operational_json" | jq -r '.session.id')
+  set_workflow_step "$operational_session_id" "execute" "completed" >/dev/null
+  ./.session/scripts/bash/session-wrap.sh --json >/dev/null
+
+  # 57) operational help text documents runtime-loop default
+  log "57) operational help text documents runtime loop"
+  help_output=$(./.session/scripts/bash/session-start.sh --help)
+  echo "$help_output" | grep -q -- "--operational" \
+    || fail "session-start help should mention the --operational flag"
+  echo "$help_output" | grep -q "Operational workflow: iterative pipeline/batch runs" \
+    || fail "session-start help should describe the operational workflow"
+  echo "$help_output" | grep -q "operational (--operational) - Runtime loop: start → execute → STOP by default; --auto adds wrap" \
+    || fail "session-start help should describe operational as a stop-after-execute runtime loop"
+
+  # 58) operational docs and agent contracts reflect iterative runtime workflow
+  log "58) operational docs and agent contracts reflect runtime workflow"
+  grep -q "Operational Workflow: execute → STOP" "$ROOT_DIR/github/agents/session.start.agent.md" \
+    || fail "session.start agent should document operational execute → STOP default"
+  grep -q "\`batch\`, \`pipeline\`, \`backfill\`, \`ingest\`, \`scrape\`, \`transcode\`, \`reprocess\`, \`rerun\`" "$ROOT_DIR/github/agents/session.start.agent.md" \
+    || fail "session.start agent should include operational smart-routing signals"
+  grep -q "workflow is \`development\`, \`spike\`, or \`operational\`" "$ROOT_DIR/github/agents/session.start.agent.md" \
+    || fail "session.start agent should create a branch for operational workflow"
+  grep -q "check_workflow_allowed \"\$SESSION_ID\" \"development\" \"spike\" \"maintenance\" \"debug\" \"operational\"" "$ROOT_DIR/github/agents/session.execute.agent.md" \
+    || fail "session.execute agent should allow operational workflow"
+  grep -q "Operational Workflow: → STOP" "$ROOT_DIR/github/agents/session.execute.agent.md" \
+    || fail "session.execute agent should document operational stop-after-execute direct mode"
+  grep -q "invoke session.start --operational" "$ROOT_DIR/README.md" \
+    || fail "README should include an operational workflow example"
+  grep -q "### 5. Operational" "$ROOT_DIR/README.md" \
+    || fail "README should describe the operational workflow type"
+  grep -q "invoke session.start --operational" "$ROOT_DIR/session/docs/reference.md" \
+    || fail "reference docs should include the operational workflow"
+  grep -q "Operational (iterative runtime work)" "$ROOT_DIR/session/docs/shared-workflow.md" \
+    || fail "shared workflow docs should describe the operational workflow"
+  grep -Fq "\`development\` \| \`spike\` \| \`maintenance\` \| \`debug\` \| \`operational\`" "$ROOT_DIR/session/docs/schema-versioning.md" \
+    || fail "schema docs should include operational as a workflow value"
+  grep -q "Operational workflow" "$ROOT_DIR/.github/copilot-instructions.md" \
+    || fail "copilot instructions should mention the operational workflow"
+  grep -q "invoke session.start --operational" "$ROOT_DIR/stubs/copilot_instructions.md" \
+    || fail "copilot instructions stub should include the operational workflow"
+  grep -q "development/spike/maintenance/debug/operational" "$ROOT_DIR/session/docs/copilot-cli-mechanics.md" \
+    || fail "Copilot CLI mechanics docs should mention the operational workflow"
+  grep -q "Added an \`operational\` workflow" "$ROOT_DIR/CHANGELOG.md" \
+    || fail "CHANGELOG should record the new operational workflow"
 }
 
 main "$@"

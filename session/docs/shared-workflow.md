@@ -163,6 +163,8 @@ The session workflow follows a defined state machine. Each step must complete be
 
 **Debug (lightweight investigation)**: `start → execute → STOP` (`--auto` adds `wrap`)
 
+**Operational (iterative runtime work)**: `start → execute → STOP` (`--auto` adds `wrap`)
+
 ```
 START → SCOPE → SPEC → PLAN → TASK → EXECUTE → VALIDATE → PUBLISH → REVIEW → [MERGE PR] → FINALIZE → WRAP
                                                                                    │                  │
@@ -181,6 +183,12 @@ Debug default:
 START → EXECUTE → STOP
 
 Debug auto:
+START → EXECUTE → WRAP
+
+Operational default:
+START → EXECUTE → STOP
+
+Operational auto:
 START → EXECUTE → WRAP
 ```
 
@@ -201,7 +209,7 @@ START → EXECUTE → WRAP
 | `spec` | `plan` |
 | `plan` | `task`, `execute` |
 | `task` | `execute` |
-| `execute` | `validate`, `execute` (loop), `wrap` (maintenance/spike/debug) |
+| `execute` | `validate`, `execute` (loop), `wrap` (maintenance/spike/debug/operational) |
 | `validate` | `publish`, `execute` (if fix needed) |
 | `publish` | `review`, `finalize` |
 | `review` | `finalize` |

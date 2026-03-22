@@ -58,6 +58,7 @@ If no arguments provided, the script will resume an active session or prompt for
 - `.session/scripts/bash/session-start.sh --json --brainstorm "Compare caching approaches"` - Development/spike session with an upfront brainstorm before normal planning
 - `.session/scripts/bash/session-start.sh --json --maintenance "Reorder docs/"` - Maintenance (no branch/PR)
 - `.session/scripts/bash/session-start.sh --json --debug "Trace why the jobs stall"` - Debug/troubleshooting session
+- `.session/scripts/bash/session-start.sh --json --operational "Process mp3 batches"` - Operational batch/pipeline loop (branch, no PR by default)
 - `.session/scripts/bash/session-start.sh --json --maintenance --read-only "Audit stale files"` - Audit (no commits)
 - `.session/scripts/bash/session-start.sh --json --stage poc "Prototype auth"` - PoC with relaxed validation
 - `.session/scripts/bash/session-start.sh --json --resume` - Resume active session
@@ -104,6 +105,7 @@ echo "Workflow: $WORKFLOW, Stage: $STAGE, Read-only: $READ_ONLY"
 - **spike**: Light chain (scope → plan → task → execute → wrap) — skips PR steps, not planning
 - **maintenance**: Lightweight chain (execute → STOP by default; `--auto` adds wrap) — skips branch, planning, validation, and PR
 - **debug**: Investigation chain (execute → STOP by default; `--auto` adds wrap) — skips branch, planning, validation, and PR by default
+- **operational**: Runtime loop (execute → STOP by default; `--auto` adds wrap) — uses a feature branch, skips planning, validation, and PR by default
 
 **Read-only mode** (`read_only: true`):
 - Only valid with `maintenance` workflow
@@ -119,13 +121,14 @@ When the user's goal or `$ARGUMENTS` are provided without an explicit workflow f
 | `reorder`, `reorganize`, `rename`, `move`, `update TOC`, `cleanup docs` | `--maintenance` |
 | `audit`, `find stale`, `check for`, `inventory`, `list all`, `scan` | `--maintenance --read-only` |
 | `explore`, `research`, `benchmark`, `compare options`, `spike` | `--spike` |
+| `batch`, `pipeline`, `backfill`, `ingest`, `scrape`, `transcode`, `reprocess`, `rerun` | `--operational` |
 | `debug`, `troubleshoot`, `diagnose`, `trace`, `reproduce`, `investigate`, `why is` | `--debug` |
 | `remove`, `clean`, `delete`, `purge` (without code context) | ask: "Should this be read-only first?" |
 
 If signals are detected and no explicit workflow flag was given, surface a brief note:
 ```
-ℹ️  This looks like a [maintenance / audit / debug] task. Using the inferred lightweight workflow
-   (maintenance/debug skip branch and PR creation by default). Mention "development" to override.
+ℹ️  This looks like an [operational / maintenance / audit / debug] task. Using the inferred lightweight workflow
+   (operational uses a feature branch; maintenance/debug skip branch and PR creation by default). Mention "development" to override.
 ```
 Do NOT block or re-prompt; just inform and proceed with the inferred workflow.
 
@@ -164,7 +167,7 @@ git log --oneline -5
 
 **Skip this step entirely if workflow is `maintenance` or `debug`** — these lightweight sessions work on the current branch by design.
 
-**If current branch is `main` AND workflow is `development` or `spike`:**
+**If current branch is `main` AND workflow is `development`, `spike`, or `operational`:**
 
 ```bash
 # For GitHub issues
@@ -177,12 +180,16 @@ git checkout -b feat/{feature-id}-short-description
 git checkout -b feat/{short-description}
 # or
 git checkout -b spike/{short-description}
+
+# For operational runtime work
+git checkout -b ops/{short-description}
 ```
 
 **Branch naming conventions:**
 - `fix/` - Bug fixes, issue resolutions
 - `feat/` - New features, enhancements
 - `spike/` - Research, exploration, prototyping
+- `ops/` - Iterative runtime or pipeline operations
 - `docs/` - Documentation-only changes
 
 **Exceptions (can work on main):**
@@ -220,7 +227,7 @@ Display session summary:
 
 Session ID: {session.id}
 Type: {speckit|github_issue|unstructured}
-Workflow: {development|spike|maintenance|debug}
+Workflow: {development|spike|maintenance|debug|operational}
 Stage: {poc|mvp|production}
 Read-only: {yes|no}
 Branch: {current-branch}
@@ -248,10 +255,10 @@ After session-start.sh completes, the `start` step is already recorded as comple
 
 Check `$ARGUMENTS` for these flags:
 - **`--brainstorm`**: Insert `session.brainstorm` before the normal planning chain for `development` and `spike`. This is the supported way to start a brainstormed session.
-- **`--auto`**: Continue automatically until the next human gate. Development usually stops after `session.publish` unless automated review was explicitly requested; spike/maintenance/debug continue through `wrap` when no pause is active
+- **`--auto`**: Continue automatically until the next human gate. Development usually stops after `session.publish` unless automated review was explicitly requested; spike/maintenance/debug/operational continue through `wrap` when no pause is active
 - **`--copilot-review`**: Request GitHub Copilot code review before merge (only with `--auto`, development workflow only)
 
-**Default (no `--auto`)**: Orchestrate **Phase 1 (Planning) only** for development/spike. For maintenance/debug, invoke `session.execute` immediately, then stop and guide the user to wrap only if they want a full closeout.
+**Default (no `--auto`)**: Orchestrate **Phase 1 (Planning) only** for development/spike. For maintenance/debug/operational, invoke `session.execute` immediately, then stop and guide the user to wrap only if they want a full closeout.
 
 ### ⛔ CRITICAL: Invoke Agents — Do NOT Do Their Work
 
@@ -272,7 +279,7 @@ Why this matters:
 
 ### Default Mode
 
-For development/spike, orchestrate the planning phase only. For maintenance/debug, invoke execute immediately, then stop and guide the user.
+For development/spike, orchestrate the planning phase only. For maintenance/debug/operational, invoke execute immediately, then stop and guide the user.
 
 #### Optional Brainstorm Insert (`--brainstorm`)
 
@@ -405,6 +412,31 @@ Next:
   - Run `invoke session.wrap` when you want to close out the session
 ```
 
+#### Operational Workflow: execute → STOP
+
+Operational has no planning phase, so invoke `session.execute` immediately:
+
+**execute** — Invoke `session.execute` agent:
+```
+agent_type: "session.execute"
+prompt: "Execute operational work for session {session_id}. Dir: {session_dir}. Tasks in {tasks_file}. Workflow: operational. Treat tasks.md as a living checklist for monitored runs and follow-up fixes. Do NOT ask clarifying questions."
+```
+
+After execute completes, STOP and guide the user to review the batch outputs, metrics, or logs, patch if needed, and resume with another execution pass before wrapping the session.
+
+Return a summary like:
+```
+✅ Operational execution pass complete
+
+Session: {session_id}
+Workflow: operational
+
+Next:
+  - Review the batch outputs, metrics, or logs
+  - Apply follow-up fixes, then run `invoke session.execute --resume` for the next pass
+  - Run `invoke session.wrap` when you want to close out the session
+```
+
 ---
 
 ### Auto Mode (`--auto`)
@@ -520,6 +552,10 @@ No planning phase. When `--auto` is explicitly set, proceed directly to execute,
 
 No planning phase. When `--auto` is explicitly set, proceed directly to execute, then wrap.
 
+#### Operational Workflow (Auto): execute → wrap
+
+No planning phase. When `--auto` is explicitly set, proceed directly to execute, then wrap. Use default mode instead if you expect repeated run/inspect/patch cycles before closeout.
+
 ---
 
 ### Resume Mode
@@ -533,11 +569,11 @@ When resuming (`--resume`), check `state.json` to determine what step the sessio
 
 ## Notes
 
-- **Mode-aware orchestration**: Default runs Phase 1 (Planning) only for development/spike; maintenance/debug run execute and then stop. `--auto` continues until the next human gate — review decisions, scope dialogue, or recorded pause checkpoints
+- **Mode-aware orchestration**: Default runs Phase 1 (Planning) only for development/spike; maintenance/debug/operational run execute and then stop. `--auto` continues until the next human gate — review decisions, scope dialogue, or recorded pause checkpoints
 - **Brainstorm entrypoint**: Prefer `session.start --brainstorm` when the WHAT/WHY is fuzzy. Direct `invoke session.brainstorm` only applies once an active planning session already exists
 - **No code changes**: Never write application code directly — that's session.execute's job
 - **Invoke, don't impersonate**: Use the task tool to invoke each agent — never `cat` their files and do their work
-- **Four workflows**: development (full), spike (no PR), maintenance (housekeeping), debug (investigation)
+- **Five workflows**: development (full), spike (no PR), maintenance (housekeeping), debug (investigation), operational (iterative runtime work)
 - **Review cycle**: Only auto-runs with `--auto --copilot-review`; otherwise stop after publish for manual review or an explicit `invoke session.review`
 - **Pass constraints through**: If the user's message includes environment constraints (e.g., "containerised app", "don't install locally"), pass them to session.execute
 - **Quality agents**: In default mode, users can invoke session.clarify, session.analyze, and session.checklist between phases

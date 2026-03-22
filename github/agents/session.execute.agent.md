@@ -51,7 +51,7 @@ Expected context:
 
 **Reads**: `tasks.md` for task list. **Modifies**: source code per task requirements. **Marks**: tasks as `[x]` complete in `tasks.md`.
 
-**Note**: When invoked directly by the user (not as a sub-agent), this agent also orchestrates the rest of Phase 2 by invoking validate and publish agents after execution — see Chaining & Handoff.
+**Note**: When invoked directly by the user (not as a sub-agent), this agent also orchestrates the rest of Phase 2 by invoking validate and publish agents after execution — see Chaining & Handoff. Spike wraps after execute; maintenance, debug, and operational stop after execute unless the user explicitly closes the session.
 
 ## Outline
 
@@ -109,7 +109,7 @@ Determine task file location:
 source .session/scripts/bash/session-common.sh
 
 # Check if execution is allowed for this workflow
-if ! check_workflow_allowed "$SESSION_ID" "development" "spike" "maintenance" "debug"; then
+if ! check_workflow_allowed "$SESSION_ID" "development" "spike" "maintenance" "debug" "operational"; then
     echo "❌ session.execute is not compatible with the current workflow"
     exit 1
 fi
@@ -117,11 +117,12 @@ fi
 echo "✓ Workflow check passed - proceeding with execution"
 ```
 
-**Allowed workflows**: development, spike, maintenance, debug
+**Allowed workflows**: development, spike, maintenance, debug, operational
 
 **Note**: Spike workflow proceeds with lighter validation (no PR required).  
 **Note**: Maintenance workflow skips planning — execute is the first active step.
 **Note**: Debug workflow skips planning — execute is the first active step and direct invocation stops after execution so the user can review findings before deciding on follow-up work.
+**Note**: Operational workflow skips planning — execute is the first active step, uses a feature branch by default, and direct invocation stops after each pass so the user can inspect runtime results before the next resume.
 
 **Read-only enforcement**: If `session-info.json` contains `"read_only": true`, you **MUST**:
 - Make no file modifications (read and analyse only)
@@ -143,6 +144,8 @@ Display current task status:
 - Count completed tasks [x]
 - Count incomplete tasks [ ]
 - Identify next incomplete task
+
+**Operational workflow note**: In `operational` sessions, `tasks.md` can be a living checklist that evolves between passes. Capture each run's follow-up fixes, observations, and next batch actions in `tasks.md` and `notes.md` before resuming.
 
 ### 3. Execute Tasks One at a Time
 
@@ -273,11 +276,12 @@ Completed: {count} tasks
 Remaining: {count} tasks
 
 Recommend pausing now.
-You can resume with session.execute in next session.
+You can resume with invoke session.execute in next session.
 
 Options:
-- session.validate → Run quality checks then proceed to publish
-- session.wrap → Skip validation and wrap directly
+- invoke session.execute --resume → Continue the next batch / patch cycle
+- invoke session.validate → Run quality checks then proceed to publish
+- invoke session.wrap → Skip validation and wrap directly
 ```
 
 ### 7. Phase Completion (Speckit Sessions Only)
@@ -434,6 +438,22 @@ Next:
   - Run `invoke session.wrap` when you want to close out the session
 ```
 
+#### Operational Workflow: → STOP
+
+Do NOT auto-wrap operational sessions when invoked directly. After execute completes, output a summary like:
+
+```
+✅ Operational execution pass complete
+
+Session: {session_id}
+Tasks completed: {count}
+
+Next:
+  - Review the outputs, metrics, or logs from this pass
+  - Apply follow-up fixes, then run `invoke session.execute --resume` for the next batch
+  - Run `invoke session.wrap` when you want to close out the session
+```
+
 ## Failure Modes to Avoid
 
 | ❌ Failure Mode | Description | ✅ Instead |
@@ -450,5 +470,5 @@ Next:
 - **Manual verification**: Required for UI-visible changes
 - **Small commits**: One task per commit
 - **Return, don't chain (sub-agent mode)**: When invoked as sub-agent by session.start --auto, return results after postflight — do NOT invoke validate/publish yourself
-- **Phase 2 orchestration (direct mode)**: When invoked directly by the user, orchestrate validate → publish and then STOP for review/merge (development), wrap after execute (spike), or stop after execute and let the user decide when to wrap (maintenance/debug)
+- **Phase 2 orchestration (direct mode)**: When invoked directly by the user, orchestrate validate → publish and then STOP for review/merge (development), wrap after execute (spike), or stop after execute and let the user decide when to wrap (maintenance/debug/operational)
 - **⛔ Boundary reminder**: Do NOT merge PRs, close issues, or do finalize/wrap work during execution. Execution ONLY.

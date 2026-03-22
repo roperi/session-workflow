@@ -50,6 +50,8 @@ Agents live in `github/agents/session.*.agent.md` with corresponding `github/pro
 
 **Debug workflow** (minimal): `start → execute → STOP` by default; `--auto` adds `wrap`
 
+**Operational workflow** (iterative runtime work): `start → execute → STOP` by default; `--auto` adds `wrap`
+
 ### Workflow State Machine
 
 Transitions are defined in `lib/session-state.sh` via `WORKFLOW_TRANSITIONS` associative array and enforced by `session-preflight.sh`. Each step transitions through `in_progress → completed|failed`. Step history is append-only in `state.json`.
@@ -58,7 +60,7 @@ Transitions are defined in `lib/session-state.sh` via `WORKFLOW_TRANSITIONS` ass
 
 Two mutable JSON files per session in `.session/sessions/{id}/`:
 
-- **`session-info.json`** (v2.2) — Immutable metadata: session type (`github_issue|speckit|unstructured`), workflow (`development|spike|maintenance|debug`), stage (`poc|mvp|production`)
+- **`session-info.json`** (v2.2) — Immutable metadata: session type (`github_issue|speckit|unstructured`), workflow (`development|spike|maintenance|debug|operational`), stage (`poc|mvp|production`)
 - **`state.json`** (v1.2) — Mutable state: `current_step`, `step_status`, append-only `step_history[]`, `pause`
 
 Session artifacts also include `notes.md` plus `next.md`, where `next.md` is the structured follow-up artifact surfaced by `session.start` as previous-session continuity context when available.
@@ -99,6 +101,7 @@ This project uses session workflow for AI context continuity.
 - `invoke session.start "description"` — Development session (positional description)
 - `invoke session.start --spike "description"` — Spike/research (no PR)
 - `invoke session.start --debug "description"` — Debug/troubleshooting session (no PR by default)
+- `invoke session.start --operational "description"` — Operational batch/pipeline session (feature branch, no PR by default)
 - `invoke session.start --resume` — Resume active session
 - `invoke session.review` — Run the default or overridden custom review agent after publish
 - `invoke session.finalize` — Post-merge cleanup (after PR merge)

@@ -137,7 +137,7 @@ The prompt passed to the task tool is the **only context** the sub-agent receive
 - **Issue number and title** — what we're working on
 - **Session ID and directory** — where session artifacts live
 - **Branch name** — the git branch for this session
-- **Workflow and stage** — development/spike/maintenance/debug, poc/mvp/production
+- **Workflow and stage** — development/spike/maintenance/debug/operational, poc/mvp/production
 - **Relevant artifact paths** — e.g., "Scope defined in {dir}/scope.md"
 - **"Do NOT ask clarifying questions"** — prevents the sub-agent from returning without completing its work
 

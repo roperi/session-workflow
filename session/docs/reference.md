@@ -54,6 +54,7 @@ This lets teams use Spec Kit's review and governance workflow while keeping sess
 | Team with formal spec review | Session-workflow + Spec Kit |
 | Enterprise governance requirements | Session-workflow + Spec Kit |
 | Research / spike | Session-workflow standalone (spike workflow) |
+| Iterative pipeline / batch execution | Session-workflow standalone (operational workflow) |
 
 ### SDD Alignment: Session-Workflow ↔ Spec Kit Commands
 
@@ -77,8 +78,8 @@ All chain agents can run either as sub-agents orchestrated by `session.start` or
 - Run `session-start.sh`
 - Load project context
 - Create feature branch
-- **Default mode**: Orchestrate Phase 1 (Planning) per workflow — development runs `scope → spec → plan → task`, spike runs `scope → plan → task` (no spec), and maintenance/debug skip planning and run `execute` then stop
-- **Auto mode** (`--auto`): Continue until the next human gate — development usually stops after `publish`, while spike/maintenance/debug continue through wrap when no pause is active
+- **Default mode**: Orchestrate Phase 1 (Planning) per workflow — development runs `scope → spec → plan → task`, spike runs `scope → plan → task` (no spec), and maintenance/debug/operational skip planning and run `execute` then stop
+- **Auto mode** (`--auto`): Continue until the next human gate — development usually stops after `publish`, while spike/maintenance/debug/operational continue through wrap when no pause is active
 - **Copilot review** (`--auto --copilot-review`): Full auto chain + dedicated `session.review` agent for Copilot PR review before merge
 
 ### session.scope
@@ -92,7 +93,7 @@ All chain agents can run either as sub-agents orchestrated by `session.start` or
 - Identifies edge cases, error scenarios, and non-functional requirements
 - Marks ambiguities with `[NEEDS CLARIFICATION]`
 - Writes `{session_dir}/spec.md` (or `specs/{feature}/spec.md` for speckit sessions)
-- **Only for**: development workflow (skipped in spike)
+- **Only for**: development workflow (skipped in spike and lightweight workflows)
 
 ### session.plan
 - Create implementation plan and approach
@@ -109,7 +110,7 @@ All chain agents can run either as sub-agents orchestrated by `session.start` or
 - Single-task focus
 - TDD: test → implement → verify
 - Commit after each task
-- **When invoked directly**: Orchestrates Phase 2 (validate → publish → STOP for development; wrap for spike; stop after execute for maintenance/debug)
+- **When invoked directly**: Orchestrates Phase 2 (validate → publish → STOP for development; wrap for spike; stop after execute for maintenance/debug/operational)
 
 ### session.validate
 - Run lint, tests
@@ -284,6 +285,7 @@ invoke session.start "Fix the bug"         # Unstructured (goal as positional ar
 invoke session.start --spike "Research"          # Spike workflow (explore, no PR)
 invoke session.start --maintenance "Reorder docs/" # Maintenance workflow (small tasks, no branch/PR; stops after execute by default)
 invoke session.start --debug "Trace flaky tests"   # Debug workflow (troubleshoot/investigate, no PR by default)
+invoke session.start --operational "Run batch import" # Operational workflow (iterative runtime loop on a feature branch)
 
 # Orchestration
 invoke session.start --auto --issue 123                       # Auto through publish, then stop for manual/custom review
@@ -388,7 +390,20 @@ invoke session.wrap
 # → wrap → END
 ```
 
-### Example 6: Read-only Audit
+### Example 6: Operational Batch Loop
+
+```bash
+invoke session.start --operational "Process webpage mp3 files in batches"
+# → execute → STOP (feature branch, no PR by default)
+
+invoke session.execute --resume
+# → execute → STOP (repeat run/inspect/patch cycle)
+
+invoke session.wrap
+# → wrap → END
+```
+
+### Example 7: Read-only Audit
 
 ```bash
 invoke session.start --maintenance --read-only "Find files not referenced by any import"
@@ -398,7 +413,7 @@ invoke session.wrap
 # → wrap → END
 ```
 
-### Example 7: Resuming After Interruption
+### Example 8: Resuming After Interruption
 
 ```bash
 invoke session.start --resume
