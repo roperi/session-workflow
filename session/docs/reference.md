@@ -6,7 +6,7 @@ Detailed documentation for session-workflow. For getting started, see the [READM
 
 1. [SDD Positioning](#sdd-positioning)
 2. [Agent Responsibilities](#agent-responsibilities)
-3. [Optional Quality Agents](#optional-quality-agents)
+3. [Optional Support Agents](#optional-support-agents)
 4. [Project Stages](#project-stages)
 5. [Arguments](#arguments)
 6. [Workflow Examples](#workflow-examples)
@@ -149,7 +149,7 @@ All chain agents can run either as sub-agents orchestrated by `session.start` or
 
 ---
 
-## Optional Quality Agents
+## Optional Support Agents
 
 These agents are **not part of the main workflow chain**. Some insert optional planning work, some capture reusable knowledge, and some perform quality checks between phases.
 
