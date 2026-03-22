@@ -19,11 +19,11 @@ When AI context windows reset, work continuity is lost. Session workflow solves 
 
 **Agent Chain**: `start → [brainstorm] → scope → spec → plan → task → execute → validate → publish → [review] → finalize → wrap`
 
-**Lightweight chains**: `maintenance` and `debug` start at `execute`; `spike` skips spec/review/publish.
+**Lightweight chains**: `maintenance`, `debug`, and `operational` start at `execute`; `spike` skips spec/review/publish.
 
 **Orchestration modes**:
-- **Default**: `session.start` runs Phase 1 (Planning) then stops for development/spike. Maintenance runs `execute` and then stops; debug does the same, so you can wrap only if you actually want closeout.
-- **Auto** (`--auto`): Continue until the next human gate. Development normally auto-chains through `publish`, but scope dialogue and manual-test checkpoints can pause earlier. Maintenance and debug auto-chain through `wrap` once no human checkpoint is active.
+- **Default**: `session.start` runs Phase 1 (Planning) then stops for development/spike. Maintenance runs `execute` and then stops; debug and operational do the same, so you can wrap only if you actually want closeout.
+- **Auto** (`--auto`): Continue until the next human gate. Development normally auto-chains through `publish`, but scope dialogue and manual-test checkpoints can pause earlier. Maintenance, debug, and operational auto-chain through `wrap` once no human checkpoint is active.
 - **Copilot review** (`--auto --copilot-review`): Full end-to-end auto chain with dedicated `session.review` agent before merge
 
 > **Human gates still apply in auto mode**: scope can ask focused clarifying questions, and manual-test checkpoints are recorded in `state.json.pause`. Resume with `invoke session.start --resume`.
@@ -170,6 +170,11 @@ invoke session.wrap  # close out when you're ready
 invoke session.start --debug "Trace why batch jobs hang after deploy"
 invoke session.wrap  # close out when you're ready
 
+# Operational (iterative batch/pipeline work on a branch)
+invoke session.start --operational "Process webpage mp3 files in batches"
+invoke session.execute --resume  # continue the next monitored run after patching
+invoke session.wrap  # close out when you're done
+
 # Audit (read-only, no commits — stops after execute by default)
 invoke session.start --maintenance --read-only "Find stale files"
 invoke session.wrap  # close out when you're ready
@@ -224,6 +229,20 @@ Use for troubleshooting, reproducing failures, tracing behavior, and validating 
 ```bash
 invoke session.start --debug "Investigate why workers stop consuming jobs"
 invoke session.start --debug --auto "Trace why the cache warmup stalls"  # execute + wrap
+```
+
+### 5. Operational
+
+**Chain**: `start → execute → STOP` by default; `--auto` adds `wrap`
+
+Use for iterative runtime-driven work: batch processing, pipelines, backfills, scraping, reindexing, or any `run → inspect → patch → run again` loop. It uses a feature branch by default, but does not own validation/PR publishing.
+
+If the resulting code should land long-term, hand off into the development review/publish path once the operational loop has stabilized the change.
+
+```bash
+invoke session.start --operational "Process webpage mp3 files in batches"
+invoke session.execute --resume  # next monitored pass after patching
+invoke session.start --operational --auto "Run one guarded backfill pass"  # execute + wrap
 ```
 
 ---

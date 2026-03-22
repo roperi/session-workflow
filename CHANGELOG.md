@@ -4,6 +4,7 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+- **NEW**: Added an `operational` workflow for iterative runtime work — `session.start --operational` now supports monitored batch/pipeline loops that run `execute` and stop by default, use a feature branch, and rely on repeated `session.execute --resume` passes before optional wrap; docs and tests now distinguish this from development, maintenance, and debug
 - **NEW**: `session.start` now accepts `--brainstorm` as the clear entrypoint for the optional brainstorm step — the flag is surfaced in `orchestration.brainstorm`, limited to development/spike planning sessions, and docs now consistently describe brainstorm as a session-scoped `{session_dir}/brainstorm.md` artifact that still requires `session.start` first
 - **NEW**: Installed repos now get a stable `.session/update.sh` wrapper plus `.session/install-manifest.json` managed-file tracking — updates can use the committed wrapper directly, support local-source syncing, and safely prune deprecated managed files only when they still match the last recorded checksum
 - **NEW (#56)**: Added `next.md` as a first-class session handoff artifact — new sessions create a dedicated follow-up template, continuation flow prefers structured `next.md` content over legacy `notes.md` handoff text, and install/update/docs now surface the artifact explicitly
