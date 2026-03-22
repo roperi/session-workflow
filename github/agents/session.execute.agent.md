@@ -276,12 +276,12 @@ Completed: {count} tasks
 Remaining: {count} tasks
 
 Recommend pausing now.
-You can resume with session.execute in next session.
+You can resume with invoke session.execute in next session.
 
 Options:
-- session.execute --resume → Continue the next batch / patch cycle
-- session.validate → Run quality checks then proceed to publish
-- session.wrap → Skip validation and wrap directly
+- invoke session.execute --resume → Continue the next batch / patch cycle
+- invoke session.validate → Run quality checks then proceed to publish
+- invoke session.wrap → Skip validation and wrap directly
 ```
 
 ### 7. Phase Completion (Speckit Sessions Only)

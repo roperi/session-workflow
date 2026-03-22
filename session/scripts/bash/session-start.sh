@@ -1043,7 +1043,7 @@ main() {
         exit 1
     fi
 
-    if [[ "$BRAINSTORM_MODE" == "true" && ( "$WORKFLOW" == "maintenance" || "$WORKFLOW" == "debug" ) ]]; then
+    if [[ "$BRAINSTORM_MODE" == "true" && "$WORKFLOW" != "development" && "$WORKFLOW" != "spike" ]]; then
         echo "ERROR: --brainstorm is only supported for development or spike workflows" >&2
         exit 1
     fi

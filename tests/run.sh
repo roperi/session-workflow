@@ -926,7 +926,7 @@ SPECMD
   grep -q "\`debug\`, \`troubleshoot\`, \`diagnose\`, \`trace\`, \`reproduce\`, \`investigate\`, \`why is\`" "$ROOT_DIR/github/agents/session.start.agent.md" \
     || fail "session.start agent should include debug smart-routing signals"
   grep -q "check_workflow_allowed \"\$SESSION_ID\" \"development\" \"spike\" \"maintenance\" \"debug\" \"operational\"" "$ROOT_DIR/github/agents/session.execute.agent.md" \
-    || fail "session.execute agent should allow debug workflow"
+    || fail "session.execute agent should allow debug and operational workflows"
   grep -q "Debug Workflow: → STOP" "$ROOT_DIR/github/agents/session.execute.agent.md" \
     || fail "session.execute agent should document debug stop-after-execute direct mode"
   grep -q "invoke session.start --debug" "$ROOT_DIR/README.md" \
@@ -938,13 +938,13 @@ SPECMD
   grep -q "Debug (lightweight investigation)" "$ROOT_DIR/session/docs/shared-workflow.md" \
     || fail "shared workflow docs should describe the debug workflow"
   grep -Fq "\`development\` \| \`spike\` \| \`maintenance\` \| \`debug\` \| \`operational\`" "$ROOT_DIR/session/docs/schema-versioning.md" \
-    || fail "schema docs should include debug as a workflow value"
+    || fail "schema docs should include debug and operational as workflow values"
   grep -q "Debug workflow" "$ROOT_DIR/.github/copilot-instructions.md" \
     || fail "copilot instructions should mention the debug workflow"
   grep -q "invoke session.start --debug" "$ROOT_DIR/stubs/copilot_instructions.md" \
     || fail "copilot instructions stub should include the debug workflow"
   grep -q "development/spike/maintenance/debug/operational" "$ROOT_DIR/session/docs/copilot-cli-mechanics.md" \
-    || fail "Copilot CLI mechanics docs should mention the debug workflow"
+    || fail "Copilot CLI mechanics docs should mention the debug and operational workflows"
   grep -q "dedicated \`debug\` workflow" "$ROOT_DIR/CHANGELOG.md" \
     || fail "CHANGELOG should record the new debug workflow"
 
@@ -1132,7 +1132,7 @@ EOF
 
   # 55) brainstorm workflow contract and docs are explicit
   log "55) brainstorm workflow is explicitly documented"
-  local invalid_brainstorm_output invalid_brainstorm_status brainstorm_help_output
+  local invalid_brainstorm_output invalid_brainstorm_status invalid_brainstorm_operational_output invalid_brainstorm_operational_status brainstorm_help_output
   set +e
   invalid_brainstorm_output=$(./.session/scripts/bash/session-start.sh --json --maintenance --brainstorm "Bad combo" 2>&1)
   invalid_brainstorm_status=$?
@@ -1141,6 +1141,15 @@ EOF
     || fail "session-start should reject --brainstorm for maintenance workflow"
   echo "$invalid_brainstorm_output" | grep -q -- "--brainstorm is only supported for development or spike workflows" \
     || fail "session-start should explain that brainstorm is limited to planning workflows"
+
+  set +e
+  invalid_brainstorm_operational_output=$(./.session/scripts/bash/session-start.sh --json --operational --brainstorm "Bad operational combo" 2>&1)
+  invalid_brainstorm_operational_status=$?
+  set -e
+  [[ $invalid_brainstorm_operational_status -ne 0 ]] \
+    || fail "session-start should reject --brainstorm for operational workflow"
+  echo "$invalid_brainstorm_operational_output" | grep -q -- "--brainstorm is only supported for development or spike workflows" \
+    || fail "session-start should explain that brainstorm is limited to development or spike workflows"
 
   brainstorm_help_output=$(./.session/scripts/bash/session-start.sh --help)
   echo "$brainstorm_help_output" | grep -q -- "--brainstorm" \
