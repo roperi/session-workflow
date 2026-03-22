@@ -1118,6 +1118,51 @@ EOF
     || fail "reference docs should mention the stable updater wrapper"
   grep -q "install-manifest.json" "$ROOT_DIR/session/docs/reference.md" \
     || fail "reference docs should mention the managed-file manifest"
+
+  # 54) session-start accepts --brainstorm and records the orchestration flag
+  log "54) session-start accepts --brainstorm"
+  local start_brainstorm_json brainstorm_session_id
+  start_brainstorm_json=$(./.session/scripts/bash/session-start.sh --json --brainstorm "Brainstorm compatibility test")
+  assert_eq "ok" "$(echo "$start_brainstorm_json" | jq -r '.status')" "session-start should accept --brainstorm"
+  assert_eq "true" "$(echo "$start_brainstorm_json" | jq -r '.orchestration.brainstorm')" "orchestration.brainstorm should be true"
+  assert_eq "development" "$(echo "$start_brainstorm_json" | jq -r '.session.workflow')" "brainstorm should keep the default development workflow"
+  brainstorm_session_id=$(echo "$start_brainstorm_json" | jq -r '.session.id')
+  set_workflow_step "$brainstorm_session_id" "execute" "completed" >/dev/null
+  ./.session/scripts/bash/session-wrap.sh --json >/dev/null
+
+  # 55) brainstorm workflow contract and docs are explicit
+  log "55) brainstorm workflow is explicitly documented"
+  local invalid_brainstorm_output invalid_brainstorm_status brainstorm_help_output
+  set +e
+  invalid_brainstorm_output=$(./.session/scripts/bash/session-start.sh --json --maintenance --brainstorm "Bad combo" 2>&1)
+  invalid_brainstorm_status=$?
+  set -e
+  [[ $invalid_brainstorm_status -ne 0 ]] \
+    || fail "session-start should reject --brainstorm for maintenance workflow"
+  echo "$invalid_brainstorm_output" | grep -q -- "--brainstorm is only supported for development or spike workflows" \
+    || fail "session-start should explain that brainstorm is limited to planning workflows"
+
+  brainstorm_help_output=$(./.session/scripts/bash/session-start.sh --help)
+  echo "$brainstorm_help_output" | grep -q -- "--brainstorm" \
+    || fail "session-start help should mention the --brainstorm flag"
+  echo "$brainstorm_help_output" | grep -q "Insert optional brainstorm step before planning" \
+    || fail "session-start help should explain what --brainstorm does"
+  grep -q "invoke session.start --brainstorm" "$ROOT_DIR/README.md" \
+    || fail "README should document the recommended brainstorm entrypoint"
+  grep -q "orchestration.brainstorm" "$ROOT_DIR/github/agents/session.start.agent.md" \
+    || fail "session.start agent should inspect the brainstorm orchestration flag"
+  grep -q "requires an active session already created by \`session.start\`" "$ROOT_DIR/github/agents/session.brainstorm.agent.md" \
+    || fail "session.brainstorm agent should say that session.start must run first"
+  grep -q "Recommended entrypoint: \`invoke session.start --brainstorm" "$ROOT_DIR/session/docs/reference.md" \
+    || fail "reference docs should recommend session.start --brainstorm"
+  grep -q "session.start --brainstorm" "$ROOT_DIR/session/docs/shared-workflow.md" \
+    || fail "shared workflow docs should mention the brainstorm entrypoint"
+  grep -q "session.start --brainstorm" "$ROOT_DIR/.github/copilot-instructions.md" \
+    || fail "copilot instructions should mention the brainstorm entrypoint"
+  grep -q "session.start --brainstorm" "$ROOT_DIR/stubs/copilot_instructions.md" \
+    || fail "copilot instructions stub should mention the brainstorm entrypoint"
+  grep -q "session.start.*--brainstorm" "$ROOT_DIR/CHANGELOG.md" \
+    || fail "CHANGELOG should record the brainstorm entrypoint change"
 }
 
 main "$@"

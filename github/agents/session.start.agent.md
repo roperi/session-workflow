@@ -55,6 +55,7 @@ If no arguments provided, the script will resume an active session or prompt for
 - `.session/scripts/bash/session-start.sh --json --spec 001-feature` - Work on Speckit feature  
 - `.session/scripts/bash/session-start.sh --json "Fix the bug"` - Unstructured work (goal as positional arg)
 - `.session/scripts/bash/session-start.sh --json --spike "Explore caching"` - Spike/research session
+- `.session/scripts/bash/session-start.sh --json --brainstorm "Compare caching approaches"` - Development/spike session with an upfront brainstorm before normal planning
 - `.session/scripts/bash/session-start.sh --json --maintenance "Reorder docs/"` - Maintenance (no branch/PR)
 - `.session/scripts/bash/session-start.sh --json --debug "Trace why the jobs stall"` - Debug/troubleshooting session
 - `.session/scripts/bash/session-start.sh --json --maintenance --read-only "Audit stale files"` - Audit (no commits)
@@ -78,6 +79,7 @@ Extract from the script output:
 - `session.id` - Session identifier (YYYY-MM-DD-N)
 - `session.type` - Type: speckit, github_issue, or unstructured
 - `session.dir` - Directory containing session files (relative to repo_root)
+- `orchestration.brainstorm` - Boolean: true if `--brainstorm` was requested
 - `resume_mode` - Boolean: true if --resume flag was used
 - `user_comment` - String: additional instructions from --comment flag
 - `previous_session` - Context from prior session (if any)
@@ -245,6 +247,7 @@ After session-start.sh completes, the `start` step is already recorded as comple
 ### Mode Detection
 
 Check `$ARGUMENTS` for these flags:
+- **`--brainstorm`**: Insert `session.brainstorm` before the normal planning chain for `development` and `spike`. This is the supported way to start a brainstormed session.
 - **`--auto`**: Continue automatically until the next human gate. Development usually stops after `session.publish` unless automated review was explicitly requested; spike/maintenance/debug continue through `wrap` when no pause is active
 - **`--copilot-review`**: Request GitHub Copilot code review before merge (only with `--auto`, development workflow only)
 
@@ -263,6 +266,7 @@ Why this matters:
 
 - For **most** sub-agents, include: "Do NOT ask clarifying questions. Make reasonable decisions and proceed."
 - **Exception: `session.scope` remains interactive**. Its prompt should allow concise clarifying questions because scoping is itself a human gate, even during `--auto`.
+- `session.brainstorm` may also ask concise clarifying questions when needed because it shapes the WHAT/WHY before planning.
 
 ---
 
@@ -270,7 +274,22 @@ Why this matters:
 
 For development/spike, orchestrate the planning phase only. For maintenance/debug, invoke execute immediately, then stop and guide the user.
 
-#### Development Workflow: scope → spec → plan → task → STOP
+#### Optional Brainstorm Insert (`--brainstorm`)
+
+If `orchestration.brainstorm` is `true`, invoke `session.brainstorm` immediately after initialization for `development` or `spike`, then continue with the normal planning chain. This is the preferred way to use brainstorm because `session.start` still establishes the required active session first.
+
+**brainstorm** - Invoke `session.brainstorm` agent:
+```
+agent_type: "session.brainstorm"
+prompt: "Brainstorm this session goal. Session: {session_id}, dir: {session_dir}, workflow: {workflow}, stage: {stage}. Clarify the WHAT/WHY in {session_dir}/brainstorm.md. Ask concise clarifying questions only when truly needed."
+```
+
+After brainstorm completes:
+- development -> continue with `scope`, `spec`, `plan`, `task`
+- spike -> continue with `scope`, `plan`, `task`
+- do not stop after brainstorm unless it surfaces an unresolved human checkpoint
+
+#### Development Workflow: [brainstorm →] scope → spec → plan → task → STOP
 
 **scope** — Invoke `session.scope` agent:
 ```
@@ -319,7 +338,7 @@ Optional quality agents before execution:
   invoke session.checklist  — Generate quality checklist
 ```
 
-#### Spike Workflow: scope → plan → task → STOP
+#### Spike Workflow: [brainstorm →] scope → plan → task → STOP
 
 Same as development but skip spec. After task completes:
 ```
@@ -397,9 +416,9 @@ After each sub-agent returns, check whether the session context or `state.json` 
 - Surface the pending action and resume command to the user
 - Do **not** invoke the next workflow step until the paused step clears the checkpoint
 
-#### Development Workflow (Auto): scope → spec → plan → task → execute → validate → publish → [review] → [merge] → [finalize] → [wrap]
+#### Development Workflow (Auto): [brainstorm →] scope → spec → plan → task → execute → validate → publish → [review] → [merge] → [finalize] → [wrap]
 
-**Phase 1: Planning** — Invoke scope, spec, plan, task (same invocation patterns as Default Mode above).
+**Phase 1: Planning** — If `orchestration.brainstorm` is true, invoke brainstorm first. Then invoke scope, spec, plan, task (same invocation patterns as Default Mode above).
 
 **Phase 2: Implementation**
 
@@ -484,9 +503,9 @@ Workflow chain: start → scope → spec → plan → task → execute → valid
 
 In this mode, `--auto` means "auto-chain until an external review decision is required." It does **not** bypass manual/custom review and merge gates.
 
-#### Spike Workflow (Auto): scope → plan → task → execute → wrap
+#### Spike Workflow (Auto): [brainstorm →] scope → plan → task → execute → wrap
 
-Same as development but skip spec, validate, publish (no PR). After execute, invoke wrap directly:
+Same as development but skip spec, validate, publish (no PR). If `orchestration.brainstorm` is true, invoke brainstorm first. After execute, invoke wrap directly:
 
 ```
 agent_type: "session.wrap"
@@ -515,6 +534,7 @@ When resuming (`--resume`), check `state.json` to determine what step the sessio
 ## Notes
 
 - **Mode-aware orchestration**: Default runs Phase 1 (Planning) only for development/spike; maintenance/debug run execute and then stop. `--auto` continues until the next human gate — review decisions, scope dialogue, or recorded pause checkpoints
+- **Brainstorm entrypoint**: Prefer `session.start --brainstorm` when the WHAT/WHY is fuzzy. Direct `invoke session.brainstorm` only applies once an active planning session already exists
 - **No code changes**: Never write application code directly — that's session.execute's job
 - **Invoke, don't impersonate**: Use the task tool to invoke each agent — never `cat` their files and do their work
 - **Four workflows**: development (full), spike (no PR), maintenance (housekeeping), debug (investigation)
