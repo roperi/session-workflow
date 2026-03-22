@@ -24,6 +24,7 @@ COMMENT=""
 CONTINUES_FROM=""
 GIT_CONTEXT=false
 READ_ONLY=false
+BRAINSTORM_MODE=false
 AUTO_MODE=false
 COPILOT_REVIEW=false
 
@@ -44,6 +45,7 @@ OPTIONS:
     --maintenance     Maintenance workflow: small tasks, docs, housekeeping (no branch/PR)
     --debug           Debug workflow: troubleshooting/investigation, no PR by default
     --read-only       Audit/read-only mode: no commits or file changes (use with --maintenance)
+    --brainstorm      Insert optional brainstorm step before planning (development/spike only)
     --stage STAGE     Project stage: poc, mvp, or production (default: production)
     --resume                   Resume an active session (including interrupted)
     --comment "TEXT"           Additional instructions for the session
@@ -59,8 +61,8 @@ GOAL:
     Not needed if --issue or --spec is provided.
 
 WORKFLOWS:
-    development (default) - Full chain: start → scope → spec → plan → task → execute → validate → publish → [review] → finalize → wrap
-    spike (--spike)       - Light chain: start → scope → plan → task → execute → wrap (no PR)
+    development (default) - Full chain: start → [brainstorm] → scope → spec → plan → task → execute → validate → publish → [review] → finalize → wrap
+    spike (--spike)       - Light chain: start → [brainstorm] → scope → plan → task → execute → wrap (no PR)
     maintenance           - Lightweight chain: start → execute → STOP by default; --auto adds wrap (no branch, no PR)
     debug (--debug)       - Investigation chain: start → execute → STOP by default; --auto adds wrap (no PR required)
 
@@ -81,6 +83,9 @@ EXAMPLES:
 
     # Unstructured work (development workflow)
     session-start.sh "Fix performance bug in API"
+
+    # Development with optional brainstorm before scoping/planning
+    session-start.sh --brainstorm "Compare caching approaches"
 
     # Spike/research (no PR expected)
     session-start.sh --spike "Explore Redis caching options"
@@ -109,6 +114,7 @@ EXAMPLES:
     # Agent/orchestrator compatibility flags (accepted during initialization)
     session-start.sh --auto --issue 123                  # auto through publish, then stop for manual/custom review
     session-start.sh --auto --copilot-review --issue 123 # full auto with Copilot review
+    session-start.sh --brainstorm --issue 123            # insert brainstorm before normal planning
 EOF
 }
 
@@ -145,6 +151,10 @@ parse_args() {
                 ;;
             --read-only)
                 READ_ONLY=true
+                shift
+                ;;
+            --brainstorm)
+                BRAINSTORM_MODE=true
                 shift
                 ;;
             --stage)
@@ -661,6 +671,7 @@ EOF
     [[ -n "$prev_context_instruction" ]] && instructions+=("\"${prev_context_instruction}\"")
     [[ "$RESUME_MODE" == "true" ]] && instructions+=("\"RESUME MODE: Continue from where agent left off, do not restart from beginning\"")
     [[ -n "$COMMENT" ]] && instructions+=("\"USER INSTRUCTION: $(json_escape "${COMMENT}")\"")
+    [[ "$BRAINSTORM_MODE" == "true" ]] && instructions+=("\"BRAINSTORM REQUESTED: Insert session.brainstorm before the normal planning chain for this session.\"")
     if [[ "$pause_active" == "true" ]]; then
         instructions+=("\"ACTIVE HUMAN CHECKPOINT: $(json_escape "${pause_summary}. Required action: ${pause_required_action}. Resume with ${pause_resume_command}.")\"")
     fi
@@ -676,6 +687,7 @@ EOF
   "resume_mode": $(if [[ "$RESUME_MODE" == "true" ]]; then echo "true"; else echo "false"; fi),
   "user_comment": "$(json_escape "$COMMENT")",
   "orchestration": {
+    "brainstorm": $(if [[ "$BRAINSTORM_MODE" == "true" ]]; then echo "true"; else echo "false"; fi),
     "auto": $(if [[ "$AUTO_MODE" == "true" ]]; then echo "true"; else echo "false"; fi),
     "copilot_review": $(if [[ "$COPILOT_REVIEW" == "true" ]]; then echo "true"; else echo "false"; fi)
   },
@@ -829,6 +841,19 @@ main() {
                 echo "To fix:"
                 echo "  1. Clear:  rm .session/ACTIVE_SESSION"
                 echo "  2. Start:  .session/scripts/bash/session-start.sh --issue XXX"
+                echo ""
+            fi
+            exit 1
+        fi
+
+        if [[ "$BRAINSTORM_MODE" == "true" ]]; then
+            if $JSON_OUTPUT; then
+                echo '{"status":"error","message":"Cannot use --brainstorm with an already active session","hint":"Use invoke session.brainstorm on the active session if it is still at the beginning of planning, or resume/wrap the active session without --brainstorm"}'
+            else
+                print_error "Cannot use --brainstorm with an already active session"
+                echo ""
+                echo "Use invoke session.brainstorm on the active session if it is still at the"
+                echo "beginning of planning, or resume/wrap the active session without --brainstorm."
                 echo ""
             fi
             exit 1
@@ -998,6 +1023,16 @@ main() {
     # --read-only is only meaningful with --maintenance
     if [[ "$READ_ONLY" == "true" && "$WORKFLOW" != "maintenance" ]]; then
         echo "ERROR: --read-only requires --maintenance workflow" >&2
+        exit 1
+    fi
+
+    if [[ "$BRAINSTORM_MODE" == "true" && ( "$WORKFLOW" == "maintenance" || "$WORKFLOW" == "debug" ) ]]; then
+        echo "ERROR: --brainstorm is only supported for development or spike workflows" >&2
+        exit 1
+    fi
+
+    if [[ "$BRAINSTORM_MODE" == "true" && "$RESUME_MODE" == "true" ]]; then
+        echo "ERROR: --brainstorm cannot be combined with --resume; use invoke session.brainstorm on the active session instead" >&2
         exit 1
     fi
     

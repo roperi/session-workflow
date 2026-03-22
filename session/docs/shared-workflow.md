@@ -208,6 +208,12 @@ START → EXECUTE → WRAP
 | `finalize` | `wrap` |
 | `wrap` | (terminal - session complete) |
 
+## Optional Planning Agent
+
+`session.brainstorm` is a session-scoped pre-planning step for `development` and `spike` workflows. It requires an active session created by `session.start`; the recommended entrypoint is `invoke session.start --brainstorm ...`.
+
+It writes `{session_dir}/brainstorm.md`, then the normal chain continues to `scope` (recommended) or `plan`.
+
 ## Optional Quality Agents
 
 These agents are **not part of the main workflow chain**. They can be invoked at any time for quality checks:

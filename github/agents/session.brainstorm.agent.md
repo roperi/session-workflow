@@ -1,5 +1,5 @@
 ---
-description: Clarify WHAT to build and capture decisions as a version-controlled brainstorm doc.
+description: Clarify WHAT to build and capture decisions in a session-scoped brainstorm doc.
 tools: ["read", "edit", "search"]
 ---
 
@@ -9,8 +9,10 @@ Produce a concise brainstorm that clarifies **WHAT/WHY** (not detailed HOW), exp
 
 ## ⚠️ IMPORTANT
 
-- This is an **optional** agent (not part of the main 8-agent chain).
-- **Write output under version control**: `docs/brainstorms/`.
+- This is an **optional** planning agent. It is not part of the default chain unless `session.start --brainstorm` explicitly inserts it.
+- It requires an active session already created by `session.start`.
+- Recommended entrypoint: `invoke session.start --brainstorm ...`
+- Write the output to the session artifact `{session_dir}/brainstorm.md` (not `docs/brainstorms/`).
 - Keep it tight: no novel-length docs, no implementation task lists.
 
 ## User Input
@@ -35,6 +37,15 @@ Run preflight:
 Notes:
 - `--step brainstorm` marks this optional step without advancing to `plan` prematurely.
 - Use `repo_root` from JSON as the source of truth.
+
+Immediately verify workflow compatibility:
+```bash
+source .session/scripts/bash/session-common.sh
+SESSION_ID=$(get_active_session)
+check_workflow_allowed "$SESSION_ID" "development" "spike"
+```
+
+If the workflow check fails, stop and explain that `session.brainstorm` is only for development or spike planning sessions.
 
 ### 2) Read current context
 
@@ -106,12 +117,13 @@ Rationale:
 
 ## Next Step
 
-invoke session.plan and reference this brainstorm.
+Recommended: invoke session.scope and use this brainstorm as input.
+If you intentionally want to skip scope/spec, invoke session.plan directly.
 ```
 
 ### 5) Record reference in session notes
 
-Append to `{session_dir}/notes.md`:
+If the notes do not already contain a Brainstorm section, append:
 ```markdown
 ## Brainstorm
 - {session_dir}/brainstorm.md
@@ -119,6 +131,9 @@ Append to `{session_dir}/notes.md`:
 
 ### 6) Handoff
 
-Suggest next step:
-- invoke session.plan (most common)
+If invoked directly by the user, suggest the next step:
+- `invoke session.scope` (recommended) to turn the brainstorm into explicit boundaries
+- or `invoke session.plan` if the user intentionally wants to skip scope/spec and accept the preflight warning
 - or `session.clarify` if unresolved questions remain
+
+If invoked by `session.start --brainstorm`, return the brainstorm path and let `session.start` continue the planning chain.

@@ -151,20 +151,23 @@ All chain agents can run either as sub-agents orchestrated by `session.start` or
 
 ## Optional Quality Agents
 
-These agents are **not part of the main workflow chain**. Invoke them between phases as needed.
+These agents are **not part of the main workflow chain**. Some insert optional planning work, some capture reusable knowledge, and some perform quality checks between phases.
 
 ### Knowledge Capture Agents
 
-These create **version-controlled** artifacts under `docs/`.
+These optional agents write either session-scoped planning artifacts or version-controlled docs, depending on the agent.
 
 #### session.brainstorm
 - Clarify **WHAT/WHY** and explore 2-3 approaches
-- Captures decisions + open questions in `{session_dir}/brainstorm.md`
-- **Best used**: After `session.start`, before `session.plan` — when you're unsure what to build
-- **Skip if**: you already know what you want to do; just `session.plan` directly
+- Requires an active `development` or `spike` session already created by `session.start`
+- Recommended entrypoint: `invoke session.start --brainstorm ...`
+- Writes a session-scoped artifact to `{session_dir}/brainstorm.md`
+- **Best used**: At the very start of planning, when you're unsure what to build or want to compare options before scoping
+- **Next**: `session.scope` (recommended), or `session.plan` if you intentionally want to skip scope/spec and accept the preflight warning
+- **Skip if**: you already know what you want to do; just run the normal planning chain directly
 
 #### session.compound
-- Capture solved problems as reusable solution docs in `docs/solutions/`
+- Capture solved problems as reusable, version-controlled solution docs in `docs/solutions/`
 - Focus: symptoms → root cause → fix → prevention
 - **Best used**: After a meaningful solution/decision, often near the end of a session
 
@@ -199,11 +202,13 @@ start → [scope?] → [spec?] → plan → [clarify?] → task → [analyze?] �
         boundaries  acceptance    Optional quality checks (reduce downstream rework)
 ```
 
-Knowledge capture (compounding docs):
+Planning with optional brainstorm and downstream compounding docs:
 ```
-start → [brainstorm?] → [scope?] → [spec?] → plan → task → execute → ... → wrap → [compound?]
-             ↑              ↑           ↑                                              ↑
-       clarify WHAT/WHY  boundaries  acceptance                                 capture learnings
+invoke session.start --brainstorm ...
+             ↓
+start → brainstorm → [scope?] → [spec?] → plan → task → execute → ... → wrap → [compound?]
+                         ↑           ↑                                              ↑
+                    boundaries  acceptance                                 capture learnings
 ```
 
 ---

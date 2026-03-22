@@ -14,6 +14,7 @@ Use `next.md` as the structured follow-up artifact for the next session. Keep `n
 
 **Agents:**
 - `invoke session.start --issue N` — Development session from GitHub issue (planning phase by default)
+- `invoke session.start --brainstorm "description"` — Start a development/spike session with an upfront brainstorm before scope/plan
 - `invoke session.start --auto --issue N` — Auto until the next human gate; otherwise through `publish`, then stop for manual/custom review
 - `invoke session.start --auto --copilot-review --issue N` — Full auto with Copilot review before merge
 - `invoke session.start --spec 001-feature` — Spec Kit session

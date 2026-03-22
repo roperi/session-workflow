@@ -17,7 +17,7 @@ When AI context windows reset, work continuity is lost. Session workflow solves 
 3. **Agent chain** — Structured workflow from scoping to delivery
 4. **Git hygiene** — Ensures clean state before session ends
 
-**Agent Chain**: `start → scope → spec → plan → task → execute → validate → publish → [review] → finalize → wrap`
+**Agent Chain**: `start → [brainstorm] → scope → spec → plan → task → execute → validate → publish → [review] → finalize → wrap`
 
 **Lightweight chains**: `maintenance` and `debug` start at `execute`; `spike` skips spec/review/publish.
 
@@ -129,6 +129,16 @@ invoke session.execute
 invoke session.finalize
 ```
 
+**Optional brainstorm first (when the WHAT/WHY is fuzzy):**
+
+```bash
+invoke session.start --brainstorm --issue 123
+# or
+invoke session.start --brainstorm "Explore caching approaches"
+```
+
+`session.start` is still the required entrypoint. The `--brainstorm` flag tells `session.start` to insert `session.brainstorm` before the normal planning steps. Use it with development or spike sessions when you need help deciding what to build; it writes a session-scoped `brainstorm.md` that later planning agents reuse.
+
 **Auto mode (through publish by default, or full with Copilot review):**
 
 ```bash
@@ -174,7 +184,7 @@ invoke session.start --resume
 
 ### 1. Development (default)
 
-**Chain**: `start → scope → spec → plan → task → execute → validate → publish → [review] → merge → finalize → wrap`
+**Chain**: `start → [brainstorm] → scope → spec → plan → task → execute → validate → publish → [review] → merge → finalize → wrap`
 
 Use for feature development, bug fixes, and work that needs PR review.
 
@@ -185,7 +195,7 @@ invoke session.start "Add caching layer"
 
 ### 2. Spike
 
-**Chain**: `start → scope → plan → task → execute → wrap`
+**Chain**: `start → [brainstorm] → scope → plan → task → execute → wrap`
 
 Use for research, prototypes, and exploratory work. Includes planning but skips PR steps.
 
@@ -249,7 +259,9 @@ Each step is invoked as a sub-agent with its own context and instructions. State
 
 **Optional quality agents** (invoke between phases): `session.clarify`, `session.analyze`, `session.checklist`
 
-**Knowledge capture agents**: `session.brainstorm`, `session.compound`
+**Optional planning agent**: `session.brainstorm` — recommended entrypoint is `invoke session.start --brainstorm ...`
+
+**Knowledge capture agent**: `session.compound`
 
 ---
 
