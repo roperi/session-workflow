@@ -1085,6 +1085,18 @@ EOF
   "managed_sections": []
 }
 EOF
+  cat > .gitignore <<'EOF'
+# Session workflow
+.session/sessions/
+.session/ACTIVE_SESSION
+.session/validation-results.json
+EOF
+  mkdir -p ".session/sessions/2026-03/2026-03-01-1"
+  cat > ".session/sessions/2026-03/2026-03-01-1/notes.md" <<'EOF'
+tracked session artifact
+EOF
+  echo "active" > .session/ACTIVE_SESSION
+  echo '{"overall":"pass"}' > .session/validation-results.json
   SESSION_WORKFLOW_SOURCE_DIR="$ROOT_DIR" bash ./.session/update.sh >/dev/null
   [[ -x ".session/scripts/bash/session-start.sh" ]] \
     || fail "updater should restore executable bits for managed scripts"
@@ -1099,6 +1111,46 @@ EOF
   assert_eq "false" "$(jq -r 'any(.managed_files[]?; .path == ".session/templates/preserved-obsolete-template.md")' .session/install-manifest.json)" "new manifest should omit deprecated files that were left in place"
   assert_eq "false" "$(jq -r 'any(.managed_files[]?; .path == ".session/templates/../../do-not-delete.txt")' .session/install-manifest.json)" "new manifest should omit unsafe deprecated paths"
   assert_eq "false" "$(jq -r 'any(.managed_files[]?; .path == ".session/templates/obsolete-dir")' .session/install-manifest.json)" "new manifest should omit deprecated directory entries"
+  ! grep -qxF ".session/sessions/" .gitignore \
+    || fail "updater should remove the legacy .session/sessions/ ignore rule"
+  grep -qxF ".session/ACTIVE_SESSION" .gitignore \
+    || fail "updater should keep ACTIVE_SESSION ignored"
+  grep -qxF ".session/validation-results.json" .gitignore \
+    || fail "updater should keep validation-results.json ignored"
+  git check-ignore -q ".session/sessions/2026-03/2026-03-01-1/notes.md" \
+    && fail "session artifacts should not be gitignored after updater migration"
+  git check-ignore -q ".session/ACTIVE_SESSION" \
+    || fail "ACTIVE_SESSION should remain gitignored after updater migration"
+  git check-ignore -q ".session/validation-results.json" \
+    || fail "validation-results.json should remain gitignored after updater migration"
+  rm -f .session/ACTIVE_SESSION .session/validation-results.json
+
+  # 52b) fresh install keeps session history trackable while ignoring ephemeral files
+  log "52b) fresh install keeps session history trackable"
+  mkdir -p fresh-install-repo
+  (
+    cd fresh-install-repo
+    git init -q
+    SESSION_WORKFLOW_SOURCE_DIR="$ROOT_DIR" bash "$ROOT_DIR/install.sh" >/dev/null
+    grep -qxF ".session/ACTIVE_SESSION" .gitignore \
+      || fail "install should ignore ACTIVE_SESSION"
+    grep -qxF ".session/validation-results.json" .gitignore \
+      || fail "install should ignore validation-results.json"
+    ! grep -qxF ".session/sessions/" .gitignore \
+      || fail "install should not ignore .session/sessions/"
+    mkdir -p ".session/sessions/2026-03/2026-03-02-1"
+    cat > ".session/sessions/2026-03/2026-03-02-1/notes.md" <<'EOF'
+fresh install session artifact
+EOF
+    echo "active" > .session/ACTIVE_SESSION
+    echo '{"overall":"pass"}' > .session/validation-results.json
+    git check-ignore -q ".session/sessions/2026-03/2026-03-02-1/notes.md" \
+      && fail "fresh installs should not ignore session artifacts"
+    git check-ignore -q ".session/ACTIVE_SESSION" \
+      || fail "fresh installs should ignore ACTIVE_SESSION"
+    git check-ignore -q ".session/validation-results.json" \
+      || fail "fresh installs should ignore validation-results.json"
+  )
 
   # 53) install/update/docs reflect the stable updater wrapper and manifest
   log "53) stable updater wrapper and manifest are documented"
@@ -1114,10 +1166,18 @@ EOF
     || fail "update.sh should refresh the stable updater wrapper"
   grep -q "install-manifest.json" "$ROOT_DIR/update.sh" \
     || fail "update.sh should manage the install manifest"
+  grep -q "\.session/sessions/" "$ROOT_DIR/README.md" \
+    || fail "README should describe the session-history policy"
+  grep -q "durable repository history" "$ROOT_DIR/README.md" \
+    || fail "README should say that session artifacts are durable repository history"
   grep -q "\.session/update\.sh" "$ROOT_DIR/session/docs/reference.md" \
     || fail "reference docs should mention the stable updater wrapper"
   grep -q "install-manifest.json" "$ROOT_DIR/session/docs/reference.md" \
     || fail "reference docs should mention the managed-file manifest"
+  grep -q "durable repository history" "$ROOT_DIR/session/docs/reference.md" \
+    || fail "reference docs should document the versioned session-history policy"
+  grep -q "FIX (#68)" "$ROOT_DIR/CHANGELOG.md" \
+    || fail "CHANGELOG should record the session-history policy fix"
 
   # 54) session-start accepts --brainstorm and records the orchestration flag
   log "54) session-start accepts --brainstorm"

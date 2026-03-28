@@ -30,7 +30,7 @@ Session-workflow on its own gives you a structured development loop:
 - `session.execute` → TDD implementation
 - `session.validate` → automated quality gates
 
-All artifacts live in `.session/sessions/` — no external tooling required.
+All durable session artifacts live in `.session/sessions/` — no external tooling required.
 
 ### With Spec Kit (Teams / Enterprise)
 
@@ -456,9 +456,19 @@ Updates:
 
 ### Wrap
 - Updates CHANGELOG.md
-- Commits documentation
+- Commits documentation and session-history updates
 - Cleans merged branches
 - Clears ACTIVE_SESSION
+
+### Session Artifact Tracking
+
+Artifacts under `.session/sessions/` are durable repository history and are intended to be committed so session scope/spec/plan/tasks/notes remain available across future work.
+
+Only ephemeral runtime files are ignored by default:
+- `.session/ACTIVE_SESSION` - Active-session sentinel
+- `.session/validation-results.json` - Latest local validation summary
+
+If you're updating an older installation that still ignores `.session/sessions/`, run `bash .session/update.sh`, then `git add .session/sessions/` to begin tracking any new or previously ignored session artifacts.
 
 ---
 
@@ -466,8 +476,9 @@ Updates:
 
 ```
 .session/
-├── ACTIVE_SESSION              # Current session ID
+├── ACTIVE_SESSION              # Current session ID (ignored runtime sentinel)
 ├── install-manifest.json       # Managed-file manifest for safe updates
+├── validation-results.json     # Latest local validation summary (ignored)
 ├── project-context/
 │   ├── constitution-summary.md # Quality standards
 │   └── technical-context.md    # Stack, commands
@@ -481,7 +492,7 @@ Updates:
 ├── templates/
 │   ├── next-template.md
 │   └── session-notes.md
-├── sessions/
+├── sessions/                   # Versioned session history
 │   └── YYYY-MM/
 │       └── YYYY-MM-DD-N/
 │           ├── session-info.json
