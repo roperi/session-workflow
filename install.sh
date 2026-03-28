@@ -758,21 +758,38 @@ install_prompts() {
     success "Prompts installed"
 }
 
+remove_exact_line() {
+    local file="$1"
+    local pattern="$2"
+
+    [[ -f "$file" ]] || return 0
+
+    local tmp
+    tmp=$(mktemp)
+    grep -vxF "$pattern" "$file" > "$tmp" || true
+    cat "$tmp" > "$file"
+    rm -f "$tmp"
+}
+
 update_gitignore() {
     info "Updating .gitignore..."
     
     local patterns=(
         "# Session workflow"
-        ".session/sessions/"
         ".session/ACTIVE_SESSION"
         ".session/validation-results.json"
     )
     
     # Create .gitignore if it doesn't exist
     touch .gitignore
+
+    # Legacy installs ignored the full session history tree. Remove that rule so
+    # fresh session artifacts can be tracked while keeping ephemeral state ignored.
+    remove_exact_line ".gitignore" ".session/sessions/"
+    remove_exact_line ".gitignore" ".session/sessions"
     
     for pattern in "${patterns[@]}"; do
-        if ! grep -qF "$pattern" .gitignore 2>/dev/null; then
+        if ! grep -qxF "$pattern" .gitignore 2>/dev/null; then
             echo "$pattern" >> .gitignore
         fi
     done

@@ -377,6 +377,63 @@ update_prompts() {
     success "Prompts updated"
 }
 
+remove_exact_line() {
+    local file="$1"
+    local pattern="$2"
+
+    [[ -f "$file" ]] || return 0
+
+    if ! grep -qxF "$pattern" "$file" 2>/dev/null; then
+        return 0
+    fi
+
+    if $DRY_RUN; then
+        dry_note "Would remove '${pattern}' from ${file}"
+        return 0
+    fi
+
+    local tmp
+    tmp=$(mktemp)
+    grep -vxF "$pattern" "$file" > "$tmp" || true
+    cat "$tmp" > "$file"
+    rm -f "$tmp"
+}
+
+update_gitignore() {
+    info "Updating .gitignore..."
+
+    if $DRY_RUN; then
+        if [[ ! -f ".gitignore" ]]; then
+            dry_note "Would create .gitignore"
+        fi
+    else
+        touch .gitignore
+    fi
+
+    # Older installs ignored .session/sessions/, which made new session
+    # artifacts branch-local unless users force-added them.
+    remove_exact_line ".gitignore" ".session/sessions/"
+    remove_exact_line ".gitignore" ".session/sessions"
+
+    local patterns=(
+        "# Session workflow"
+        ".session/ACTIVE_SESSION"
+        ".session/validation-results.json"
+    )
+
+    for pattern in "${patterns[@]}"; do
+        if ! grep -qxF "$pattern" .gitignore 2>/dev/null; then
+            if $DRY_RUN; then
+                dry_note "Would add '${pattern}' to .gitignore"
+            else
+                echo "$pattern" >> .gitignore
+            fi
+        fi
+    done
+
+    success ".gitignore updated"
+}
+
 update_bootstrap_sections() {
     info "Updating Session Workflow section in .github/copilot-instructions.md..."
 
@@ -503,6 +560,7 @@ main() {
     update_docs
     update_agents
     update_prompts
+    update_gitignore
     update_bootstrap_sections
     prune_removed_managed_files
     if ! $DRY_RUN; then

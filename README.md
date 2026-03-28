@@ -63,7 +63,7 @@ cd your-project
 **What gets installed:**
 - `.github/agents/session.*.agent.md` - AI agent definitions
 - `.github/prompts/session.*.prompt.md` - Prompt link files (IDE integration, e.g. VS Code)
-- `.session/` - Scripts, templates, project context
+- `.session/` - Scripts, templates, project context, and versioned session history
 - `AGENTS.md` - AI bootstrap file (created if missing)
 - `.github/copilot-instructions.md` - Copilot config (created if missing)
 
@@ -105,6 +105,12 @@ curl -sSL https://raw.githubusercontent.com/roperi/session-workflow/main/update.
 - Any content in `AGENTS.md` or `.github/copilot-instructions.md` outside the `## Session Workflow` block
 
 Managed files are tracked in `.session/install-manifest.json`. On update, files that session-workflow used to manage but no longer ships are removed only if their contents still match the last recorded managed checksum; locally modified files are left in place with a warning.
+
+**Session history policy:**
+- `.session/sessions/` is durable repository history by design and should be committed.
+- Only ephemeral runtime files are ignored by default: `.session/ACTIVE_SESSION` and `.session/validation-results.json`.
+
+If you're updating an older installation that still ignores `.session/sessions/`, run `bash .session/update.sh`, then `git add .session/sessions/` to begin tracking any new or previously ignored session artifacts.
 
 ---
 
