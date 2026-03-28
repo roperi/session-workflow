@@ -767,7 +767,8 @@ remove_exact_line() {
     local tmp
     tmp=$(mktemp)
     grep -vxF "$pattern" "$file" > "$tmp" || true
-    mv "$tmp" "$file"
+    cat "$tmp" > "$file"
+    rm -f "$tmp"
 }
 
 update_gitignore() {
