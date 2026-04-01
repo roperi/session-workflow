@@ -62,6 +62,17 @@ install_session_workflow_into_repo() {
   chmod +x "$repo_root/.session/update.sh"
 }
 
+seed_fixture_repo() {
+  local repo_root="$1"
+  (
+    cd "$repo_root"
+    git config user.name "Session Workflow Tests"
+    git config user.email "session-workflow-tests@example.com"
+    git add .
+    git commit -qm "test: seed session workflow fixture"
+  )
+}
+
 sha256_file() {
   local path="$1"
   if command -v sha256sum >/dev/null 2>&1; then
@@ -97,6 +108,7 @@ main() {
   fi
 
   install_session_workflow_into_repo "$repo_root"
+  seed_fixture_repo "$repo_root"
 
   cd "$repo_root"
 
@@ -183,7 +195,67 @@ main() {
   local wrap_json
   wrap_json=$(././.session/scripts/bash/session-wrap.sh --json)
   vlog "wrap_json: $wrap_json"
+  assert_eq "ok" "$(echo "$wrap_json" | jq -r '.status')" "wrap status"
   [[ ! -f ".session/ACTIVE_SESSION" ]] || fail "ACTIVE_SESSION should be cleared after wrap"
+  assert_eq "docs: Session ${session_id} wrap-up [skip ci]" "$(git log -1 --pretty=%s)" "wrap should create the archival commit"
+  [[ -z "$(git status --porcelain)" ]] || fail "git should be clean after wrap archival commit"
+
+  # 7b) Wrap should block on unrelated dirty paths and keep session active
+  log "7b) wrap blocks on unrelated dirty paths"
+  local dirty_wrap_start_json dirty_wrap_id dirty_wrap_ym dirty_wrap_dir dirty_wrap_json dirty_wrap_exit head_before_block dirty_wrap_recover_json
+  dirty_wrap_start_json=$(./.session/scripts/bash/session-start.sh --json "Dirty wrap block")
+  dirty_wrap_id=$(echo "$dirty_wrap_start_json" | jq -r '.session.id')
+  dirty_wrap_ym=$(echo "$dirty_wrap_id" | cut -d'-' -f1,2)
+  dirty_wrap_dir=".session/sessions/${dirty_wrap_ym}/${dirty_wrap_id}"
+  set_workflow_step "$dirty_wrap_id" "execute" "completed" >/dev/null
+  head_before_block=$(git rev-parse HEAD)
+  echo "scratch" > unrelated.txt
+  set +e
+  dirty_wrap_json=$(./.session/scripts/bash/session-wrap.sh --json)
+  dirty_wrap_exit=$?
+  set -e
+  [[ "$dirty_wrap_exit" != "0" ]] || fail "wrap should fail when unrelated dirty changes are present"
+  assert_eq "error" "$(echo "$dirty_wrap_json" | jq -r '.status')" "blocked wrap should return error JSON"
+  echo "$dirty_wrap_json" | jq -e '.dirty_paths[] | select(. == "unrelated.txt")' >/dev/null \
+    || fail "blocked wrap should report unrelated dirty paths"
+  assert_eq "$head_before_block" "$(git rev-parse HEAD)" "wrap should not create a commit when blocked"
+  [[ -f ".session/ACTIVE_SESSION" ]] || fail "ACTIVE_SESSION should remain while wrap is blocked"
+  assert_eq "completed" "$(jq -r '.step_status' "$dirty_wrap_dir/state.json")" "blocked wrap should not rewrite state after execute completion"
+  rm -f unrelated.txt
+  dirty_wrap_recover_json=$(./.session/scripts/bash/session-wrap.sh --json)
+  assert_eq "ok" "$(echo "$dirty_wrap_recover_json" | jq -r '.status')" "wrap should succeed after unrelated dirty changes are removed"
+  [[ ! -f ".session/ACTIVE_SESSION" ]] || fail "ACTIVE_SESSION should be cleared after recovered wrap"
+  [[ -z "$(git status --porcelain)" ]] || fail "git should be clean after recovered wrap"
+
+  # 7c) Wrap should restore session state if the archival commit fails
+  log "7c) wrap restores state when archival commit fails"
+  local hook_wrap_start_json hook_wrap_id hook_wrap_ym hook_wrap_dir hook_wrap_json hook_wrap_exit hook_wrap_recover_json
+  hook_wrap_start_json=$(./.session/scripts/bash/session-start.sh --json "Hook blocked wrap")
+  hook_wrap_id=$(echo "$hook_wrap_start_json" | jq -r '.session.id')
+  hook_wrap_ym=$(echo "$hook_wrap_id" | cut -d'-' -f1,2)
+  hook_wrap_dir=".session/sessions/${hook_wrap_ym}/${hook_wrap_id}"
+  set_workflow_step "$hook_wrap_id" "execute" "completed" >/dev/null
+  cat > .git/hooks/pre-commit <<'EOF'
+#!/usr/bin/env bash
+exit 1
+EOF
+  chmod +x .git/hooks/pre-commit
+  set +e
+  hook_wrap_json=$(./.session/scripts/bash/session-wrap.sh --json)
+  hook_wrap_exit=$?
+  set -e
+  [[ "$hook_wrap_exit" != "0" ]] || fail "wrap should fail when the archival commit itself fails"
+  assert_eq "error" "$(echo "$hook_wrap_json" | jq -r '.status')" "commit-failure wrap should return error JSON"
+  [[ -f ".session/ACTIVE_SESSION" ]] || fail "ACTIVE_SESSION should remain after archival commit failure"
+  assert_eq "active" "$(jq -r '.status' "$hook_wrap_dir/state.json")" "session status should remain active after archival commit failure"
+  assert_eq "execute" "$(jq -r '.current_step' "$hook_wrap_dir/state.json")" "current_step should be restored after archival commit failure"
+  assert_eq "completed" "$(jq -r '.step_status' "$hook_wrap_dir/state.json")" "step_status should be restored after archival commit failure"
+  git diff --cached --quiet --exit-code || fail "archival commit failure should leave no staged wrap artifacts"
+  rm -f .git/hooks/pre-commit
+  hook_wrap_recover_json=$(./.session/scripts/bash/session-wrap.sh --json)
+  assert_eq "ok" "$(echo "$hook_wrap_recover_json" | jq -r '.status')" "wrap should succeed after archival commit failure is resolved"
+  [[ ! -f ".session/ACTIVE_SESSION" ]] || fail "ACTIVE_SESSION should be cleared after recovered archival commit"
+  [[ -z "$(git status --porcelain)" ]] || fail "git should be clean after recovered archival commit"
 
   # 8) Start a chained session with git context scaffold
   log "8) session-start --continues-from + --git-context"
@@ -1151,6 +1223,7 @@ EOF
     git check-ignore -q ".session/validation-results.json" \
       || fail "fresh installs should ignore validation-results.json"
   )
+  rm -rf fresh-install-repo
 
   # 53) install/update/docs reflect the stable updater wrapper and manifest
   log "53) stable updater wrapper and manifest are documented"
@@ -1178,6 +1251,14 @@ EOF
     || fail "reference docs should document the versioned session-history policy"
   grep -q "FIX (#68)" "$ROOT_DIR/CHANGELOG.md" \
     || fail "CHANGELOG should record the session-history policy fix"
+
+  # The updater/install coverage above intentionally dirties the temp repo.
+  # Checkpoint those changes so later wrap tests only need to archive
+  # wrap-managed session artifacts.
+  if [[ -n "$(git status --porcelain)" ]]; then
+    git add -A
+    git commit -qm "test: checkpoint updater coverage"
+  fi
 
   # 54) session-start accepts --brainstorm and records the orchestration flag
   log "54) session-start accepts --brainstorm"

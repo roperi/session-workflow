@@ -50,13 +50,13 @@ You **MUST** consider the user input before proceeding (if not empty).
 
 ## ⚠️ CRITICAL: All Steps Are Mandatory
 
-Complete ALL steps IN ORDER before running the wrap script. The script only marks the session complete - it does not validate.
+Complete ALL steps IN ORDER before running the wrap script. The script enforces the archival wrap commit and blocks unsafe dirty-git states, but it still does not validate checklist compliance for you.
 
 **Pre-flight Checklist** (verify before proceeding):
 - [ ] All tasks in `tasks.md` are marked complete or have [SKIP] reason
 - [ ] Tests pass (check project-specific test commands)
-- [ ] Code is committed and pushed
-- [ ] On correct branch for wrap commits (typically `main` for docs-only, feature branch otherwise)
+- [ ] Feature/work changes are already committed and pushed
+- [ ] On the correct branch for the archival wrap commit (typically `main` for docs-only, feature branch otherwise)
 
 ## Outline
 
@@ -164,12 +164,17 @@ Create `{session_dir}/final-summary.md`:
 - All tests passing / Notes about test changes
 ```
 
-### 5. Commit and Push
+### 5. Leave Only Wrap-Managed Changes Pending
 
 ```bash
-git add -A
-git commit -m "docs: Session {SESSION_ID} wrap-up [skip ci]"
-git push
+# Before running the wrap script, the remaining dirty paths should be limited to:
+# - {session_dir}/** durable session artifacts
+# - CHANGELOG.md
+# - the resolved tasks.md path for Speckit sessions
+#
+# Commit or stash anything else first. session-wrap.sh creates the archival
+# wrap commit itself and fails before clearing ACTIVE_SESSION if unrelated dirty
+# paths would be swept into that commit.
 ```
 
 ### 6. Clean Up Branches
@@ -231,13 +236,20 @@ Report the cleanup result (what was removed/moved, if anything) in the final-sum
 ```
 
 This marks the session complete by:
+- Creating the archival wrap commit for `CHANGELOG.md`, durable session-history artifacts, and the resolved `tasks.md` path when needed
 - Updating `state.json` with completion timestamp
 - Clearing `ACTIVE_SESSION` sentinel
+
+After the script succeeds, push the wrap commit:
+
+```bash
+git push
+```
 
 ## Notes
 
 - Complete ALL documentation steps before running the wrap script
-- The wrap script is purely mechanical - it doesn't validate your work
+- The wrap script is mechanical - it doesn't validate your work, but it does create the archival wrap commit
 - Good handoff notes make the next session efficient
 - **⛔ Boundary reminder**: Do NOT close issues, merge PRs, or do any work outside documentation. Documentation ONLY.
 - Session data is preserved in `.session/sessions/{id}/`

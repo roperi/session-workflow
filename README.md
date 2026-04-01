@@ -320,6 +320,8 @@ invoke session.start --issue 123
 ### "Git has uncommitted changes (BLOCKING)"
 
 ```bash
+# session-wrap.sh creates the archival commit for durable session artifacts
+# and CHANGELOG.md. If other files are still dirty, clean them up first.
 git add -A && git commit -m "wip"
 invoke session.wrap
 ```

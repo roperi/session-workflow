@@ -27,19 +27,22 @@ Manual test cases for the session workflow system.
 
 ---
 
-### Test 2: Wrap with Dirty Git (Soft Warning)
+### Test 2: Wrap Blocks on Unrelated Dirty Git
+
+**Precondition:** Git identity is configured (`git user.name` / `git user.email`, or equivalent `GIT_*` identity env vars)
 
 **Command:**
 ```bash
-echo "test" >> README.md
+echo "test" > unrelated.txt
 .session/scripts/bash/session-wrap.sh --json
-git checkout README.md  # cleanup
+rm -f unrelated.txt  # cleanup after the expected failure
 ```
 
 **Expected:**
-- `status: "ok"` (wrap completes, not blocked)
-- `warnings` array contains uncommitted-changes message
-- Exit code 0
+- `status: "error"` (wrap does not complete)
+- `dirty_paths` includes `unrelated.txt`
+- `ACTIVE_SESSION` remains present so wrap can be retried after cleanup
+- Exit code 1
 
 **Result:** ✅ Pass
 
@@ -206,7 +209,7 @@ cat .session/sessions/{session_id}/tasks.md
 | No active session on wrap | Error with helpful message |
 | No previous session on start | `previous_session: null` |
 | Non-existent GitHub issue | Graceful - session created, no body |
-| Git dirty on wrap | Soft warning (exit 0, warnings array populated) |
+| Unrelated dirty git on wrap | Blocking error (exit 1, `dirty_paths` returned) |
 | Empty notes on wrap | Soft warning (still completes) |
 | Missing "For Next Session" | Soft warning |
 | Incomplete tasks | Soft warning + included in previous session context |
@@ -226,10 +229,10 @@ rm -f .session/ACTIVE_SESSION
 .session/scripts/bash/session-start.sh --issue 1 --json
 .session/scripts/bash/session-start.sh --json  # should resume
 
-# Test 2: Git dirty
-echo "test" >> README.md
-.session/scripts/bash/session-wrap.sh --json
-git checkout README.md
+# Test 2: unrelated dirty path blocks wrap
+echo "test" > unrelated.txt
+.session/scripts/bash/session-wrap.sh --json || true
+rm -f unrelated.txt
 
 # Test 3-11: See individual test commands above
 ```

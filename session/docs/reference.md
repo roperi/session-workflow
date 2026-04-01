@@ -456,7 +456,8 @@ Updates:
 
 ### Wrap
 - Updates CHANGELOG.md
-- Commits documentation and session-history updates
+- Creates the archival wrap commit for durable session-history artifacts (and the resolved `tasks.md` path when needed)
+- Blocks before completion if unrelated dirty git changes would be swept into that archival commit
 - Cleans merged branches
 - Clears ACTIVE_SESSION
 
