@@ -227,6 +227,36 @@ main() {
   [[ ! -f ".session/ACTIVE_SESSION" ]] || fail "ACTIVE_SESSION should be cleared after recovered wrap"
   [[ -z "$(git status --porcelain)" ]] || fail "git should be clean after recovered wrap"
 
+  # 7c) Wrap should restore session state if the archival commit fails
+  log "7c) wrap restores state when archival commit fails"
+  local hook_wrap_start_json hook_wrap_id hook_wrap_ym hook_wrap_dir hook_wrap_json hook_wrap_exit hook_wrap_recover_json
+  hook_wrap_start_json=$(./.session/scripts/bash/session-start.sh --json "Hook blocked wrap")
+  hook_wrap_id=$(echo "$hook_wrap_start_json" | jq -r '.session.id')
+  hook_wrap_ym=$(echo "$hook_wrap_id" | cut -d'-' -f1,2)
+  hook_wrap_dir=".session/sessions/${hook_wrap_ym}/${hook_wrap_id}"
+  set_workflow_step "$hook_wrap_id" "execute" "completed" >/dev/null
+  cat > .git/hooks/pre-commit <<'EOF'
+#!/usr/bin/env bash
+exit 1
+EOF
+  chmod +x .git/hooks/pre-commit
+  set +e
+  hook_wrap_json=$(./.session/scripts/bash/session-wrap.sh --json)
+  hook_wrap_exit=$?
+  set -e
+  [[ "$hook_wrap_exit" != "0" ]] || fail "wrap should fail when the archival commit itself fails"
+  assert_eq "error" "$(echo "$hook_wrap_json" | jq -r '.status')" "commit-failure wrap should return error JSON"
+  [[ -f ".session/ACTIVE_SESSION" ]] || fail "ACTIVE_SESSION should remain after archival commit failure"
+  assert_eq "active" "$(jq -r '.status' "$hook_wrap_dir/state.json")" "session status should remain active after archival commit failure"
+  assert_eq "execute" "$(jq -r '.current_step' "$hook_wrap_dir/state.json")" "current_step should be restored after archival commit failure"
+  assert_eq "completed" "$(jq -r '.step_status' "$hook_wrap_dir/state.json")" "step_status should be restored after archival commit failure"
+  git diff --cached --quiet --exit-code || fail "archival commit failure should leave no staged wrap artifacts"
+  rm -f .git/hooks/pre-commit
+  hook_wrap_recover_json=$(./.session/scripts/bash/session-wrap.sh --json)
+  assert_eq "ok" "$(echo "$hook_wrap_recover_json" | jq -r '.status')" "wrap should succeed after archival commit failure is resolved"
+  [[ ! -f ".session/ACTIVE_SESSION" ]] || fail "ACTIVE_SESSION should be cleared after recovered archival commit"
+  [[ -z "$(git status --porcelain)" ]] || fail "git should be clean after recovered archival commit"
+
   # 8) Start a chained session with git context scaffold
   log "8) session-start --continues-from + --git-context"
   local start2_json session_id2 year_month2 session_dir2

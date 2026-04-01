@@ -247,6 +247,48 @@ commit_wrap_artifacts() {
     fi
 }
 
+reset_wrap_artifacts_index() {
+    local session_id="$1"
+    local session_dir
+    session_dir=$(get_session_dir "$session_id")
+    local tasks_file
+    tasks_file=$(get_wrap_tasks_file "$session_id")
+    local reset_paths=()
+
+    if [[ -e "$SESSIONS_DIR" ]]; then
+        reset_paths+=("$SESSIONS_DIR")
+    elif [[ -e "$session_dir" ]]; then
+        reset_paths+=("$session_dir")
+    fi
+
+    if [[ -n "$tasks_file" && "$tasks_file" != "${session_dir}/tasks.md" ]]; then
+        if [[ -e "$tasks_file" ]] || git ls-files --error-unmatch "$tasks_file" >/dev/null 2>&1; then
+            reset_paths+=("$tasks_file")
+        fi
+    fi
+
+    if [[ -e "CHANGELOG.md" ]] || git ls-files --error-unmatch "CHANGELOG.md" >/dev/null 2>&1; then
+        reset_paths+=("CHANGELOG.md")
+    fi
+
+    if [[ "${#reset_paths[@]}" -gt 0 ]]; then
+        git reset --quiet -- "${reset_paths[@]}" >/dev/null 2>&1 || true
+    fi
+}
+
+restore_wrap_state_on_failure() {
+    local session_id="$1"
+    local state_file="$2"
+    local backup_file="$3"
+
+    if [[ -f "$backup_file" ]]; then
+        cp "$backup_file" "$state_file"
+        rm -f "$backup_file"
+    fi
+
+    reset_wrap_artifacts_index "$session_id"
+}
+
 # ============================================================================
 # Update Functions
 # ============================================================================
@@ -483,16 +525,21 @@ main() {
     # Ensure wrap is tracked in step_history (handles direct calls without preflight)
     local session_dir
     session_dir=$(get_session_dir "$active_session")
+    local state_file="${session_dir}/state.json"
+    local state_backup
+    state_backup=$(mktemp)
+    cp "$state_file" "$state_backup"
     local current_step_status
-    current_step_status=$(jq -r '.step_status // "none"' "${session_dir}/state.json" 2>/dev/null || echo "none")
+    current_step_status=$(jq -r '.step_status // "none"' "$state_file" 2>/dev/null || echo "none")
     local current_step
-    current_step=$(jq -r '.current_step // "none"' "${session_dir}/state.json" 2>/dev/null || echo "none")
+    current_step=$(jq -r '.current_step // "none"' "$state_file" 2>/dev/null || echo "none")
     if [[ "$current_step" != "wrap" || "$current_step_status" != "in_progress" ]]; then
         set_workflow_step "$active_session" "wrap" "in_progress" >/dev/null
     fi
     set_workflow_step "$active_session" "wrap" "completed" >/dev/null
     update_session_state "$active_session"
     if ! commit_wrap_artifacts "$active_session"; then
+        restore_wrap_state_on_failure "$active_session" "$state_file" "$state_backup"
         if $JSON_OUTPUT; then
             json_error_msg \
                 "Failed to create archival wrap commit" \
@@ -503,6 +550,7 @@ main() {
         fi
         exit 1
     fi
+    rm -f "$state_backup"
     clear_active_session
     
     # Output results
