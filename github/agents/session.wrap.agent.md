@@ -50,7 +50,7 @@ You **MUST** consider the user input before proceeding (if not empty).
 
 ## ⚠️ CRITICAL: All Steps Are Mandatory
 
-Complete ALL steps IN ORDER before running the wrap script. The script only marks the session complete - it does not validate.
+Complete ALL steps IN ORDER before running the wrap script. The script enforces the archival wrap commit and blocks unsafe dirty-git states, but it still does not validate checklist compliance for you.
 
 **Pre-flight Checklist** (verify before proceeding):
 - [ ] All tasks in `tasks.md` are marked complete or have [SKIP] reason

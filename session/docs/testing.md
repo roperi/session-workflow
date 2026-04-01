@@ -29,6 +29,8 @@ Manual test cases for the session workflow system.
 
 ### Test 2: Wrap Blocks on Unrelated Dirty Git
 
+**Precondition:** Git identity is configured (`git user.name` / `git user.email`, or equivalent `GIT_*` identity env vars)
+
 **Command:**
 ```bash
 echo "test" > unrelated.txt
