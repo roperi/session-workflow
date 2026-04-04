@@ -305,7 +305,9 @@ fi
 
 ## State Storage
 
-Workflow state is stored in `state.json`:
+Workflow state is stored in local `state.json` bookkeeping (it is intentionally
+gitignored so durable session history can be committed without volatile
+step/pause churn):
 
 ```json
 {

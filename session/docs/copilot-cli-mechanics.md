@@ -430,7 +430,7 @@ Every step should show `completed` (or `failed`) with both `started_at` and `end
 | `.github/prompts/session.*.prompt.md` | IDE prompt integration (symlinks) |
 | `.session/scripts/bash/session-preflight.sh` | Step entry guard (marks `in_progress`) |
 | `.session/scripts/bash/session-postflight.sh` | Step exit guard (marks `completed`/`failed`) |
-| `.session/sessions/{month}/{id}/state.json` | Workflow state with `step_history` |
+| `.session/sessions/{month}/{id}/state.json` | Local workflow bookkeeping with `step_history` (gitignored) |
 | `.session/sessions/{month}/{id}/session-info.json` | Immutable session metadata |
 | `~/.copilot/session-state/{uuid}/events.jsonl` | Copilot CLI event log |
 | `session/docs/shared-workflow.md` | Universal workflow reference for all agents |
