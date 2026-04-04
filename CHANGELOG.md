@@ -4,6 +4,7 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+- **FIX (#72)**: `state.json` is now treated consistently as volatile workflow bookkeeping — install/update add a dedicated ignore rule, validation excludes bookkeeping-only dirtiness, wrap strips `state.json` from archival commits, and docs/agent guidance now distinguish it from durable session artifacts
 - **FIX (#70)**: `session-wrap.sh` now creates the archival wrap commit for durable session-history artifacts, `CHANGELOG.md`, and the resolved Speckit `tasks.md` path when needed; it force-adds session-history paths if older repos still ignore them, blocks before clearing `ACTIVE_SESSION` when unrelated dirty paths would be swept into that commit, and aligns wrap docs/tests/agent guidance with the new behavior
 - **FIX (#68)**: `.session/sessions/` is now treated consistently as versioned session history — fresh installs stop ignoring it, `.session/update.sh` removes the legacy ignore rule for existing repos, docs now distinguish durable session artifacts from ephemeral `.session/ACTIVE_SESSION` / `.session/validation-results.json`, and tests cover both install and update behavior
 - **NEW**: Added an `operational` workflow for iterative runtime work — `session.start --operational` now supports monitored batch/pipeline loops that run `execute` and stop by default, use a feature branch, and rely on repeated `session.execute --resume` passes before optional wrap; docs and tests now distinguish this from development, maintenance, and debug

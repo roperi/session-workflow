@@ -419,6 +419,7 @@ update_gitignore() {
         "# Session workflow"
         ".session/ACTIVE_SESSION"
         ".session/validation-results.json"
+        ".session/sessions/**/state.json"
     )
 
     for pattern in "${patterns[@]}"; do

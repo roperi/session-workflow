@@ -168,13 +168,14 @@ Create `{session_dir}/final-summary.md`:
 
 ```bash
 # Before running the wrap script, the remaining dirty paths should be limited to:
-# - {session_dir}/** durable session artifacts
+# - {session_dir}/** durable session artifacts (not state.json)
 # - CHANGELOG.md
 # - the resolved tasks.md path for Speckit sessions
 #
 # Commit or stash anything else first. session-wrap.sh creates the archival
-# wrap commit itself and fails before clearing ACTIVE_SESSION if unrelated dirty
-# paths would be swept into that commit.
+# wrap commit itself, strips `.session/sessions/**/state.json` from that commit,
+# and fails before clearing ACTIVE_SESSION if unrelated dirty paths would be
+# swept into it.
 ```
 
 ### 6. Clean Up Branches
@@ -237,7 +238,7 @@ Report the cleanup result (what was removed/moved, if anything) in the final-sum
 
 This marks the session complete by:
 - Creating the archival wrap commit for `CHANGELOG.md`, durable session-history artifacts, and the resolved `tasks.md` path when needed
-- Updating `state.json` with completion timestamp
+- Updating local `state.json` with completion timestamp (without archiving it in git)
 - Clearing `ACTIVE_SESSION` sentinel
 
 After the script succeeds, push the wrap commit:
@@ -252,7 +253,7 @@ git push
 - The wrap script is mechanical - it doesn't validate your work, but it does create the archival wrap commit
 - Good handoff notes make the next session efficient
 - **⛔ Boundary reminder**: Do NOT close issues, merge PRs, or do any work outside documentation. Documentation ONLY.
-- Session data is preserved in `.session/sessions/{id}/`
+- Durable session data is preserved in `.session/sessions/{id}/`; local `state.json` bookkeeping remains available but is not part of the archival commit
 
 **No Handoff After Wrap**: session.wrap is the terminal agent in the workflow. It documents and archives the session, then clears the ACTIVE_SESSION sentinel. The next session starts fresh with `session.start`.
 
@@ -271,7 +272,7 @@ The ONLY files you should create or modify are:
 - ❌ SESSION_COMPLETE.md
 - ❌ Any other summary/report files not listed above
 
-The session state is tracked in `state.json` by the wrap script - no additional files needed.
+The session state is tracked locally in `state.json` by the wrap script - no additional files needed.
 
 ## Session Type Considerations
 

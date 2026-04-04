@@ -463,10 +463,14 @@ main() {
     # -------------------------------------------------------------------------
     # Check 1: Git status
     # -------------------------------------------------------------------------
-    if git diff --quiet && git diff --cached --quiet; then
-        checks+=('{"check": "git_status", "status": "pass", "message": "Working tree clean"}')
+    local dirty_paths
+    dirty_paths=$(list_nonvolatile_tracked_dirty_paths)
+    if [[ -z "$dirty_paths" ]]; then
+        checks+=('{"check": "git_status", "status": "pass", "message": "Working tree clean (excluding volatile session bookkeeping)"}')
     else
-        checks+=('{"check": "git_status", "status": "fail", "message": "Uncommitted changes found"}')
+        local dirty_paths_json
+        dirty_paths_json=$(printf '%s\n' "$dirty_paths" | jq -R -s 'split("\n") | map(select(length > 0))')
+        checks+=("{\"check\": \"git_status\", \"status\": \"fail\", \"message\": \"Uncommitted tracked changes found\", \"paths\": ${dirty_paths_json}}")
         failures+=("git_status")
         status="error"
     fi

@@ -3,8 +3,8 @@
 # Part of Session Workflow Enhancement (#566, simplified in #584)
 #
 # This script is mechanical, but it also creates the archival wrap commit for
-# durable session artifacts. Validation and checklist compliance is handled by
-# the prompt, not this script.
+# durable session artifacts while leaving volatile state.json bookkeeping local.
+# Validation and checklist compliance is handled by the prompt, not this script.
 
 set -euo pipefail
 
@@ -31,15 +31,16 @@ Finalize the current session and archive its durable wrap artifacts.
 This script:
   1. Checks an active session exists
   2. Blocks if unrelated dirty git changes would be swept into the wrap commit
-  3. Updates state.json with completion timestamp
+  3. Updates local state.json with completion timestamp
   4. Creates the archival wrap commit for session-history artifacts
   5. Clears ACTIVE_SESSION sentinel
   6. Outputs session summary
 
 Validation (git clean, notes, tasks, changelog, etc.) is handled by the
 session.wrap prompt, not this script. The script only auto-commits wrap-managed
-paths such as the session directory, CHANGELOG.md, and the resolved tasks.md
-path for Speckit sessions.
+paths such as durable session artifacts, CHANGELOG.md, and the resolved tasks.md
+path for Speckit sessions. Volatile .session/sessions/**/state.json files are
+explicitly removed from the archival commit.
 
 OPTIONS:
     --json      Output JSON for AI consumption
@@ -205,6 +206,17 @@ check_git_commit_identity() {
     git var GIT_AUTHOR_IDENT >/dev/null 2>&1 && git var GIT_COMMITTER_IDENT >/dev/null 2>&1
 }
 
+remove_volatile_state_from_index() {
+    # state.json is mutable workflow bookkeeping and should remain local-only.
+    local state_file
+
+    [[ -d "$SESSIONS_DIR" ]] || return 0
+
+    while IFS= read -r -d '' state_file; do
+        git rm --cached --ignore-unmatch --quiet -- "$state_file" >/dev/null 2>&1 || true
+    done < <(find "$SESSIONS_DIR" -type f -name state.json -print0 2>/dev/null)
+}
+
 # ============================================================================
 # Update Functions
 # ============================================================================
@@ -231,6 +243,8 @@ stage_wrap_artifacts() {
     if [[ -e "CHANGELOG.md" ]] || git ls-files --error-unmatch "CHANGELOG.md" >/dev/null 2>&1; then
         git add -A -- "CHANGELOG.md"
     fi
+
+    remove_volatile_state_from_index
 }
 
 commit_wrap_artifacts() {

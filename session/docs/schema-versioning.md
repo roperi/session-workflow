@@ -47,6 +47,10 @@ constant before trusting field names.
 
 **Constant**: `STATE_SCHEMA_VERSION="1.2"` (in `session/scripts/bash/lib/session-paths.sh`)
 
+`state.json` is local workflow bookkeeping. It is intentionally ignored from git via
+`.session/sessions/**/state.json`; durable session history lives in sibling markdown
+artifacts plus `session-info.json`.
+
 **Fields written by `create_session_state()`**:
 
 | Field | Type | Description |
@@ -107,7 +111,7 @@ constant before trusting field names.
 
 | Version | Change |
 |---------|--------|
-| `1.2` | Added `pause` object for durable human checkpoints and resume guidance. |
+| `1.2` | Added `pause` object for local human checkpoints and resume guidance. |
 | `1.1` | Added `step_history` array for append-only workflow audit trail. |
 | `1.0` | Initial. All state.json fields. |
 

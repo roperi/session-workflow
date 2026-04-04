@@ -778,13 +778,14 @@ update_gitignore() {
         "# Session workflow"
         ".session/ACTIVE_SESSION"
         ".session/validation-results.json"
+        ".session/sessions/**/state.json"
     )
     
     # Create .gitignore if it doesn't exist
     touch .gitignore
 
     # Legacy installs ignored the full session history tree. Remove that rule so
-    # fresh session artifacts can be tracked while keeping ephemeral state ignored.
+    # fresh session artifacts can be tracked while keeping volatile state ignored.
     remove_exact_line ".gitignore" ".session/sessions/"
     remove_exact_line ".gitignore" ".session/sessions"
     

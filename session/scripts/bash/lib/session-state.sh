@@ -603,16 +603,20 @@ check_workflow_transition() {
 check_uncommitted_changes() {
     # Check for uncommitted changes that might be lost
     # Returns: 0 if clean, 1 if dirty with details
-    
-    if git diff --quiet && git diff --cached --quiet; then
+
+    local dirty_paths
+    dirty_paths=$(list_nonvolatile_tracked_dirty_paths)
+
+    if [[ -z "$dirty_paths" ]]; then
         return 0
     fi
-    
+
     echo -e "${YELLOW}⚠️ UNCOMMITTED CHANGES DETECTED${NC}"
     echo ""
-    git status --short
+    echo "$dirty_paths" | sed 's/^/  /'
     echo ""
-    echo "These changes are NOT in any commit/PR."
+    echo "These tracked changes are NOT in any commit/PR."
+    echo "Volatile workflow bookkeeping (for example state.json) is excluded."
     echo "They may be lost if you proceed."
     return 1
 }

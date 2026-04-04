@@ -107,8 +107,10 @@ curl -sSL https://raw.githubusercontent.com/roperi/session-workflow/main/update.
 Managed files are tracked in `.session/install-manifest.json`. On update, files that session-workflow used to manage but no longer ships are removed only if their contents still match the last recorded managed checksum; locally modified files are left in place with a warning.
 
 **Session history policy:**
-- `.session/sessions/` is durable repository history by design and should be committed.
-- Only ephemeral runtime files are ignored by default: `.session/ACTIVE_SESSION` and `.session/validation-results.json`.
+- Durable session artifacts under `.session/sessions/` are durable repository history and should be committed so scope/spec/plan/tasks/notes/handoffs remain available across future work.
+- Volatile workflow bookkeeping is ignored by default: `.session/ACTIVE_SESSION`, `.session/validation-results.json`, and `.session/sessions/**/state.json`.
+
+`state.json` is updated continuously by workflow bookkeeping (`preflight`, `postflight`, pause handling, wrap), so it is treated as local control state rather than archival session history.
 
 If you're updating an older installation that still ignores `.session/sessions/`, run `bash .session/update.sh`, then `git add .session/sessions/` to begin tracking any new or previously ignored session artifacts.
 
@@ -321,8 +323,10 @@ invoke session.start --issue 123
 
 ```bash
 # session-wrap.sh creates the archival commit for durable session artifacts
-# and CHANGELOG.md. If other files are still dirty, clean them up first.
-git add -A && git commit -m "wip"
+# and CHANGELOG.md. If other files are still dirty, commit or stash those
+# non-session changes first. Do not stage .session/sessions/**/state.json.
+git status --short
+git add <relevant-non-session-files> && git commit -m "wip"
 invoke session.wrap
 ```
 

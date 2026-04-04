@@ -61,7 +61,7 @@ Transitions are defined in `lib/session-state.sh` via `WORKFLOW_TRANSITIONS` ass
 Two mutable JSON files per session in `.session/sessions/{id}/`:
 
 - **`session-info.json`** (v2.2) — Immutable metadata: session type (`github_issue|speckit|unstructured`), workflow (`development|spike|maintenance|debug|operational`), stage (`poc|mvp|production`)
-- **`state.json`** (v1.2) — Mutable state: `current_step`, `step_status`, append-only `step_history[]`, `pause`
+- **`state.json`** (v1.2) — Mutable local workflow state: `current_step`, `step_status`, append-only `step_history[]`, `pause`
 
 Session artifacts also include `notes.md` plus `next.md`, where `next.md` is the structured follow-up artifact surfaced by `session.start` as previous-session continuity context when available.
 

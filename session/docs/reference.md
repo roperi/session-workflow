@@ -435,7 +435,7 @@ invoke session.start --resume
 ### Start
 Creates:
 - `session-info.json` - Metadata
-- `state.json` - Progress tracking (with `step_history[]`)
+- `state.json` - Local workflow bookkeeping (`step_history[]`, pause state, current step)
 - `notes.md` - Handoff notes
 - `next.md` - Structured follow-up / next-session artifact
 
@@ -463,11 +463,12 @@ Updates:
 
 ### Session Artifact Tracking
 
-Artifacts under `.session/sessions/` are durable repository history and are intended to be committed so session scope/spec/plan/tasks/notes remain available across future work.
+Durable artifacts under `.session/sessions/` are durable repository history and are intended to be committed so session scope/spec/plan/tasks/notes/handoffs remain available across future work.
 
-Only ephemeral runtime files are ignored by default:
+Volatile workflow bookkeeping is ignored by default:
 - `.session/ACTIVE_SESSION` - Active-session sentinel
 - `.session/validation-results.json` - Latest local validation summary
+- `.session/sessions/**/state.json` - Mutable step/pause bookkeeping updated by preflight/postflight/manual-test flows and wrap
 
 If you're updating an older installation that still ignores `.session/sessions/`, run `bash .session/update.sh`, then `git add .session/sessions/` to begin tracking any new or previously ignored session artifacts.
 
@@ -497,7 +498,7 @@ If you're updating an older installation that still ignores `.session/sessions/`
 │   └── YYYY-MM/
 │       └── YYYY-MM-DD-N/
 │           ├── session-info.json
-│           ├── state.json
+│           ├── state.json      # Volatile workflow bookkeeping (ignored)
 │           ├── notes.md
 │           ├── next.md
 │           └── tasks.md

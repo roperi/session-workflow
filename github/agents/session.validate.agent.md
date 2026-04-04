@@ -223,13 +223,14 @@ Only development workflow requires validation before PR.
 ### 5. Git Status
 
 ```bash
+# Inspect git state, but treat workflow bookkeeping files as local-only.
 git status
 git diff --stat
 git diff --cached --stat
 ```
 
-**Pass criteria**: "working tree clean"  
-**Fail**: List uncommitted files
+**Pass criteria**: Working tree clean after excluding volatile session bookkeeping (`.session/ACTIVE_SESSION`, `.session/validation-results.json`, `.session/sessions/**/state.json`)  
+**Fail**: List uncommitted nonvolatile files
 
 ### 6. Task Completion
 
