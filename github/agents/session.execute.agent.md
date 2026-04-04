@@ -169,8 +169,11 @@ Complete **one task fully** before moving to the next:
    - For Speckit: Edit `specs/{feature}/tasks.md`
    - For others: Edit session `tasks.md`
 6. **Commit** with descriptive message including task ID:
+   - Stage only the task-relevant source/test/docs files plus any intended durable session artifacts
+   - **Never stage `.session/sessions/**/state.json`**; it is volatile workflow bookkeeping
    ```bash
-   git add -A
+   git status --short
+   git add path/to/changed-file path/to/test-file
    git commit -m "feat: implement X (T042)"
    ```
 7. **THEN** move to next task

@@ -60,6 +60,12 @@ install_session_workflow_into_repo() {
   cp "$ROOT_DIR"/session/templates/*.md "$repo_root/.session/templates/" 2>/dev/null || true
   chmod +x "$repo_root/.session/scripts/bash"/*.sh
   chmod +x "$repo_root/.session/update.sh"
+
+  cat > "$repo_root/.gitignore" <<'EOF'
+.session/ACTIVE_SESSION
+.session/validation-results.json
+.session/sessions/**/state.json
+EOF
 }
 
 seed_fixture_repo() {
@@ -256,6 +262,44 @@ EOF
   assert_eq "ok" "$(echo "$hook_wrap_recover_json" | jq -r '.status')" "wrap should succeed after archival commit failure is resolved"
   [[ ! -f ".session/ACTIVE_SESSION" ]] || fail "ACTIVE_SESSION should be cleared after recovered archival commit"
   [[ -z "$(git status --porcelain)" ]] || fail "git should be clean after recovered archival commit"
+
+  # 7d) Wrap should drop tracked state.json from the archival commit
+  log "7d) wrap drops tracked state.json from the index"
+  local tracked_wrap_start_json tracked_wrap_id tracked_wrap_ym tracked_wrap_dir tracked_wrap_json
+  tracked_wrap_start_json=$(./.session/scripts/bash/session-start.sh --json "Tracked state wrap")
+  tracked_wrap_id=$(echo "$tracked_wrap_start_json" | jq -r '.session.id')
+  tracked_wrap_ym=$(echo "$tracked_wrap_id" | cut -d'-' -f1,2)
+  tracked_wrap_dir=".session/sessions/${tracked_wrap_ym}/${tracked_wrap_id}"
+  set_workflow_step "$tracked_wrap_id" "execute" "completed" >/dev/null
+  git add -f -- "$tracked_wrap_dir"
+  git commit -qm "test: simulate tracked state bookkeeping"
+  git ls-files --error-unmatch "$tracked_wrap_dir/state.json" >/dev/null 2>&1 \
+    || fail "state.json should be tracked before wrap regression test"
+  tracked_wrap_json=$(./.session/scripts/bash/session-wrap.sh --json)
+  assert_eq "ok" "$(echo "$tracked_wrap_json" | jq -r '.status')" "wrap should succeed with tracked state.json"
+  git ls-files --error-unmatch "$tracked_wrap_dir/state.json" >/dev/null 2>&1 \
+    && fail "wrap should remove state.json from the archival commit/index"
+  [[ -f "$tracked_wrap_dir/state.json" ]] || fail "wrap should preserve the local state.json file"
+  git check-ignore -q "$tracked_wrap_dir/state.json" \
+    || fail "state.json should remain ignored after wrap"
+  [[ -z "$(git status --porcelain)" ]] || fail "git should be clean after tracked state.json wrap"
+
+  # 7e) Validate should ignore tracked state.json bookkeeping dirtiness
+  log "7e) validate ignores tracked state.json bookkeeping"
+  local validate_state_start_json validate_state_id validate_state_ym validate_state_dir validate_state_json
+  validate_state_start_json=$(./.session/scripts/bash/session-start.sh --json "Tracked state validate")
+  validate_state_id=$(echo "$validate_state_start_json" | jq -r '.session.id')
+  validate_state_ym=$(echo "$validate_state_id" | cut -d'-' -f1,2)
+  validate_state_dir=".session/sessions/${validate_state_ym}/${validate_state_id}"
+  set_workflow_step "$validate_state_id" "execute" "completed" >/dev/null
+  git add -f -- "$validate_state_dir"
+  git commit -qm "test: track state for validate"
+  ./.session/scripts/bash/session-preflight.sh --step validate --json >/dev/null
+  assert_eq "$validate_state_dir/state.json" "$(git diff --name-only)" "validate preflight should only dirty state.json"
+  validate_state_json=$(./.session/scripts/bash/session-validate.sh --json --skip-lint --skip-tests --skip-spec)
+  assert_eq "pass" "$(echo "$validate_state_json" | jq -r '.validation_checks[] | select(.check == "git_status") | .status')" "validate should ignore volatile state.json changes"
+  ./.session/scripts/bash/session-postflight.sh --step validate --json >/dev/null
+  ./.session/scripts/bash/session-wrap.sh --json >/dev/null
 
   # 8) Start a chained session with git context scaffold
   log "8) session-start --continues-from + --git-context"
@@ -857,13 +901,13 @@ SPECMD
   log "40) maintenance help text documents lightweight default"
   local help_output
   help_output=$(./.session/scripts/bash/session-start.sh --help)
-  echo "$help_output" | grep -q "maintenance" \
+  grep -q "maintenance" <<< "$help_output" \
     || fail "session-start help should mention the maintenance workflow"
-  echo "$help_output" | grep -q "Lightweight chain" \
+  grep -q "Lightweight chain" <<< "$help_output" \
     || fail "session-start help should describe maintenance as a lightweight chain"
-  echo "$help_output" | grep -q "start → execute → STOP by default" \
+  grep -q "start → execute → STOP by default" <<< "$help_output" \
     || fail "session-start help should describe maintenance as stop-after-execute by default"
-  echo "$help_output" | grep -q -- "--auto adds wrap" \
+  grep -q -- "--auto adds wrap" <<< "$help_output" \
     || fail "session-start help should document that --auto adds wrap for maintenance"
 
   # 41) maintenance docs/agent contract reflect stop-after-execute default
@@ -984,11 +1028,11 @@ SPECMD
   # 47) debug help text documents lightweight default
   log "47) debug help text documents lightweight default"
   help_output=$(./.session/scripts/bash/session-start.sh --help)
-  echo "$help_output" | grep -q -- "--debug" \
+  grep -q -- "--debug" <<< "$help_output" \
     || fail "session-start help should mention the --debug flag"
-  echo "$help_output" | grep -q "Debug workflow: troubleshooting/investigation" \
+  grep -q "Debug workflow: troubleshooting/investigation" <<< "$help_output" \
     || fail "session-start help should describe the debug workflow"
-  echo "$help_output" | grep -q "debug (--debug)       - Investigation chain: start → execute → STOP by default; --auto adds wrap" \
+  grep -q "debug (--debug)       - Investigation chain: start → execute → STOP by default; --auto adds wrap" <<< "$help_output" \
     || fail "session-start help should describe debug as stop-after-execute by default with optional auto wrap"
 
   # 48) debug docs and agent contracts reflect lightweight investigation workflow
@@ -1189,8 +1233,12 @@ EOF
     || fail "updater should keep ACTIVE_SESSION ignored"
   grep -qxF ".session/validation-results.json" .gitignore \
     || fail "updater should keep validation-results.json ignored"
+  grep -qxF ".session/sessions/**/state.json" .gitignore \
+    || fail "updater should ignore volatile state.json bookkeeping"
   git check-ignore -q ".session/sessions/2026-03/2026-03-01-1/notes.md" \
     && fail "session artifacts should not be gitignored after updater migration"
+  git check-ignore -q ".session/sessions/2026-03/2026-03-01-1/state.json" \
+    || fail "state.json should be gitignored after updater migration"
   git check-ignore -q ".session/ACTIVE_SESSION" \
     || fail "ACTIVE_SESSION should remain gitignored after updater migration"
   git check-ignore -q ".session/validation-results.json" \
@@ -1208,16 +1256,21 @@ EOF
       || fail "install should ignore ACTIVE_SESSION"
     grep -qxF ".session/validation-results.json" .gitignore \
       || fail "install should ignore validation-results.json"
+    grep -qxF ".session/sessions/**/state.json" .gitignore \
+      || fail "install should ignore volatile state.json bookkeeping"
     ! grep -qxF ".session/sessions/" .gitignore \
       || fail "install should not ignore .session/sessions/"
     mkdir -p ".session/sessions/2026-03/2026-03-02-1"
     cat > ".session/sessions/2026-03/2026-03-02-1/notes.md" <<'EOF'
 fresh install session artifact
 EOF
+    echo '{}' > ".session/sessions/2026-03/2026-03-02-1/state.json"
     echo "active" > .session/ACTIVE_SESSION
     echo '{"overall":"pass"}' > .session/validation-results.json
     git check-ignore -q ".session/sessions/2026-03/2026-03-02-1/notes.md" \
       && fail "fresh installs should not ignore session artifacts"
+    git check-ignore -q ".session/sessions/2026-03/2026-03-02-1/state.json" \
+      || fail "fresh installs should ignore state.json"
     git check-ignore -q ".session/ACTIVE_SESSION" \
       || fail "fresh installs should ignore ACTIVE_SESSION"
     git check-ignore -q ".session/validation-results.json" \
@@ -1243,12 +1296,26 @@ EOF
     || fail "README should describe the session-history policy"
   grep -q "durable repository history" "$ROOT_DIR/README.md" \
     || fail "README should say that session artifacts are durable repository history"
+  grep -qi "volatile workflow bookkeeping" "$ROOT_DIR/README.md" \
+    || fail "README should distinguish volatile state.json bookkeeping"
   grep -q "\.session/update\.sh" "$ROOT_DIR/session/docs/reference.md" \
     || fail "reference docs should mention the stable updater wrapper"
   grep -q "install-manifest.json" "$ROOT_DIR/session/docs/reference.md" \
     || fail "reference docs should mention the managed-file manifest"
   grep -q "durable repository history" "$ROOT_DIR/session/docs/reference.md" \
     || fail "reference docs should document the versioned session-history policy"
+  grep -qi "volatile workflow bookkeeping" "$ROOT_DIR/session/docs/reference.md" \
+    || fail "reference docs should distinguish volatile state.json bookkeeping"
+  grep -q "intentionally ignored from git" "$ROOT_DIR/session/docs/schema-versioning.md" \
+    || fail "schema docs should classify state.json as local bookkeeping"
+  grep -q "Never stage \`.session/sessions.*/state.json\`" "$ROOT_DIR/github/agents/session.execute.agent.md" \
+    || fail "session.execute agent should forbid staging volatile state.json"
+  grep -q "excluding volatile session bookkeeping" "$ROOT_DIR/github/agents/session.validate.agent.md" \
+    || fail "session.validate agent should exclude volatile state.json bookkeeping"
+  grep -q "not state.json" "$ROOT_DIR/github/agents/session.wrap.agent.md" \
+    || fail "session.wrap agent should exclude state.json from archival artifacts"
+  grep -q "FIX (#72)" "$ROOT_DIR/CHANGELOG.md" \
+    || fail "CHANGELOG should record the state.json bookkeeping fix"
   grep -q "FIX (#68)" "$ROOT_DIR/CHANGELOG.md" \
     || fail "CHANGELOG should record the session-history policy fix"
 
@@ -1328,11 +1395,11 @@ EOF
   # 57) operational help text documents runtime-loop default
   log "57) operational help text documents runtime loop"
   help_output=$(./.session/scripts/bash/session-start.sh --help)
-  echo "$help_output" | grep -q -- "--operational" \
+  grep -q -- "--operational" <<< "$help_output" \
     || fail "session-start help should mention the --operational flag"
-  echo "$help_output" | grep -q "Operational workflow: iterative pipeline/batch runs" \
+  grep -q "Operational workflow: iterative pipeline/batch runs" <<< "$help_output" \
     || fail "session-start help should describe the operational workflow"
-  echo "$help_output" | grep -q "operational (--operational) - Runtime loop: start → execute → STOP by default; --auto adds wrap" \
+  grep -q "operational (--operational) - Runtime loop: start → execute → STOP by default; --auto adds wrap" <<< "$help_output" \
     || fail "session-start help should describe operational as a stop-after-execute runtime loop"
 
   # 58) operational docs and agent contracts reflect iterative runtime workflow

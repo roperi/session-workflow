@@ -82,6 +82,57 @@ get_commits_for_pr() {
 # Validation Functions (#665)
 # ============================================================================
 
+is_volatile_session_path() {
+    # Return success when a path is workflow bookkeeping that should remain local.
+    local path="${1#./}"
+
+    case "$path" in
+        .session/ACTIVE_SESSION|.session/validation-results.json|.session/sessions/*/state.json)
+            return 0
+            ;;
+    esac
+
+    return 1
+}
+
+list_tracked_dirty_paths() {
+    # List tracked staged/unstaged paths without reporting untracked files.
+    local -A seen=()
+    local entry status path other_path
+
+    while IFS= read -r -d '' entry; do
+        [[ -z "$entry" ]] && continue
+
+        status="${entry:0:2}"
+        path="${entry:3}"
+
+        if [[ -n "$path" && -z "${seen[$path]+x}" ]]; then
+            seen["$path"]=1
+            printf '%s\n' "$path"
+        fi
+
+        if [[ "${status:0:1}" == "R" || "${status:0:1}" == "C" || "${status:1:1}" == "R" || "${status:1:1}" == "C" ]]; then
+            IFS= read -r -d '' other_path || true
+            if [[ -n "$other_path" && -z "${seen[$other_path]+x}" ]]; then
+                seen["$other_path"]=1
+                printf '%s\n' "$other_path"
+            fi
+        fi
+    done < <(git status --porcelain=v1 -z --untracked-files=no)
+}
+
+list_nonvolatile_tracked_dirty_paths() {
+    # List tracked dirty paths excluding local workflow bookkeeping.
+    local path
+
+    while IFS= read -r path; do
+        [[ -z "$path" ]] && continue
+        if ! is_volatile_session_path "$path"; then
+            printf '%s\n' "$path"
+        fi
+    done < <(list_tracked_dirty_paths)
+}
+
 run_quality_checks() {
     # Run lint and format checks
     # Returns: 0 if passed, 1 if failed
@@ -133,12 +184,12 @@ check_git_state() {
     # Check git working tree is clean and pushed
     # Returns: 0 if clean, 1 if dirty or unpushed
     local errors=0
-    
-    # Check for uncommitted changes
-    if ! git diff-index --quiet HEAD --; then
+
+    # Check for uncommitted tracked changes, excluding volatile session bookkeeping.
+    if [[ -n "$(list_nonvolatile_tracked_dirty_paths)" ]]; then
         ((errors++))
     fi
-    
+
     # Check for unpushed commits
     local unpushed
     # shellcheck disable=SC1083  # @{u} is git upstream syntax, not shell braces
@@ -152,7 +203,7 @@ check_git_state() {
 
 check_git_clean() {
     # Returns 0 if clean, 1 if dirty
-    if git diff --quiet && git diff --cached --quiet; then
+    if [[ -z "$(list_nonvolatile_tracked_dirty_paths)" ]]; then
         return 0
     else
         return 1
@@ -216,7 +267,7 @@ get_validation_fixes() {
     for failure in "${failures[@]}"; do
         case "$failure" in
             "git_status")
-                fixes+=('{"fix": "commit_changes", "command": "git add -A && git commit -m \"chore: commit pending changes\"", "description": "Commit uncommitted changes"}')
+                fixes+=('{"fix": "commit_changes", "command": "git status --short && git add <relevant-files> && git commit -m \"chore: commit pending changes\"", "description": "Commit uncommitted non-session changes"}')
                 ;;
             "tests")
                 fixes+=('{"fix": "run_tests", "command": "Check technical-context.md for test command", "description": "Run tests"}')
