@@ -17,6 +17,7 @@ TEMPLATES_DIR="${SESSION_ROOT}/templates"
 # Schema version constants — keep in sync with session/docs/schema-versioning.md
 SESSION_INFO_SCHEMA_VERSION="2.2"
 STATE_SCHEMA_VERSION="1.2"
+VALIDATION_RESULTS_SCHEMA_VERSION="1.0"
 
 # ============================================================================
 # Directory & Structure Functions
@@ -102,6 +103,19 @@ clear_active_session() {
 }
 
 # ============================================================================
+# Session Listing Helpers
+# ============================================================================
+
+list_session_dirs() {
+    # List session directories (most recent first).
+    find "${SESSIONS_DIR}" -mindepth 2 -maxdepth 2 -type d -name "????-??-??-*" 2>/dev/null | while IFS= read -r d; do
+        if [[ -f "${d}/session-info.json" || -f "${d}/state.json" ]]; then
+            printf '%s\n' "$d"
+        fi
+    done | sort -r
+}
+
+# ============================================================================
 # Previous Session Functions
 # ============================================================================
 
@@ -112,22 +126,15 @@ get_previous_session() {
     local active_session
     active_session=$(get_active_session)
     
-    # Find all session directories, sorted by name (date order)
-    local sessions=()
     local session_dir
     while IFS= read -r session_dir; do
         local session_id
         session_id=$(basename "$session_dir")
-        # Skip the current active session
         if [[ "$session_id" != "$active_session" ]]; then
-            sessions+=("$session_id")
+            echo "$session_id"
+            return 0
         fi
-    done < <(find "${SESSIONS_DIR}" -mindepth 2 -maxdepth 2 -type d 2>/dev/null | sort)
-    
-    # Return the most recent one (last in sorted order)
-    if [[ "${#sessions[@]}" -gt 0 ]]; then
-        echo "${sessions[-1]}"
-    else
-        echo ""
-    fi
+    done < <(list_session_dirs)
+
+    echo ""
 }

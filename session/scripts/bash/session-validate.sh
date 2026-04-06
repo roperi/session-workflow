@@ -414,11 +414,8 @@ output_json() {
     shift 3
     local checks=("$@")
     
-    # Build JSON using jq for proper escaping
-    local checks_json="[]"
-    for check in "${checks[@]}"; do
-        checks_json=$(echo "$checks_json" | jq --argjson c "$check" '. + [$c]')
-    done
+    local checks_json
+    checks_json=$(build_checks_json "${checks[@]}")
     
     jq -n \
         --arg status "$status" \
@@ -431,6 +428,81 @@ output_json() {
             project_type: $project_type,
             validation_checks: $checks
         }'
+}
+
+build_checks_json() {
+    local checks=("$@")
+    local checks_json="[]"
+    local check
+
+    for check in "${checks[@]}"; do
+        checks_json=$(echo "$checks_json" | jq --argjson c "$check" '. + [$c]')
+    done
+
+    echo "$checks_json"
+}
+
+build_validation_results_object() {
+    local checks_json="$1"
+    echo "$checks_json" | jq 'reduce .[] as $check ({}; .[$check.check] = ($check | del(.check)))'
+}
+
+persist_validation_results() {
+    local status="$1"
+    local message="$2"
+    local project_type="$3"
+    local session_id="$4"
+    local checks_json="$5"
+
+    local overall="pass"
+    local can_publish=true
+    if [[ "$status" != "success" ]]; then
+        overall="fail"
+        can_publish=false
+    fi
+
+    local results_json
+    results_json=$(build_validation_results_object "$checks_json")
+
+    local timestamp
+    timestamp=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
+
+    local tmp_file
+    tmp_file=$(mktemp)
+    jq -n \
+        --arg schema_version "$VALIDATION_RESULTS_SCHEMA_VERSION" \
+        --arg timestamp "$timestamp" \
+        --arg session_id "$session_id" \
+        --arg project_type "$project_type" \
+        --arg overall "$overall" \
+        --arg summary "$message" \
+        --arg status "$status" \
+        --argjson can_publish "$can_publish" \
+        --argjson validation_checks "$checks_json" \
+        --argjson results "$results_json" \
+        '{
+            schema_version: $schema_version,
+            timestamp: $timestamp,
+            session_id: (if $session_id == "" then null else $session_id end),
+            project_type: $project_type,
+            overall: $overall,
+            can_publish: $can_publish,
+            summary: $summary,
+            status: $status,
+            validation_checks: $validation_checks,
+            results: $results
+        }' > "$tmp_file"
+
+    local local_results_file="${SESSION_ROOT}/validation-results.json"
+    cp "$tmp_file" "$local_results_file"
+
+    if [[ -n "$session_id" ]]; then
+        local session_results_file
+        session_results_file="$(get_session_dir "$session_id")/validation-results.json"
+        cp "$tmp_file" "$session_results_file"
+    fi
+
+    rm -f "$tmp_file"
 }
 
 output_text() {
@@ -635,6 +707,10 @@ main() {
     else
         message="Session validation passed"
     fi
+
+    local checks_json
+    checks_json=$(build_checks_json "${checks[@]}")
+    persist_validation_results "$status" "$message" "$project_type" "$session_id" "$checks_json"
     
     # -------------------------------------------------------------------------
     # Output

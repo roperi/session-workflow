@@ -298,8 +298,24 @@ EOF
   assert_eq "$validate_state_dir/state.json" "$(git diff --name-only)" "validate preflight should only dirty state.json"
   validate_state_json=$(./.session/scripts/bash/session-validate.sh --json --skip-lint --skip-tests --skip-spec)
   assert_eq "pass" "$(echo "$validate_state_json" | jq -r '.validation_checks[] | select(.check == "git_status") | .status')" "validate should ignore volatile state.json changes"
+  assert_file_exists ".session/validation-results.json"
+  assert_file_exists "$validate_state_dir/validation-results.json"
+  assert_eq "1.0" "$(jq -r '.schema_version' ".session/validation-results.json")" "local validation summary should carry schema version"
+  assert_eq "$validate_state_id" "$(jq -r '.session_id' ".session/validation-results.json")" "local validation summary should record the session id"
+  assert_eq "$validate_state_id" "$(jq -r '.session_id' "$validate_state_dir/validation-results.json")" "session-scoped validation summary should record the session id"
+  assert_eq "pass" "$(jq -r '.overall' "$validate_state_dir/validation-results.json")" "session-scoped validation summary should persist the overall pass/fail state"
   ./.session/scripts/bash/session-postflight.sh --step validate --json >/dev/null
   ./.session/scripts/bash/session-wrap.sh --json >/dev/null
+
+  # 7f) session-audit reads the persisted session-scoped validation summary
+  log "7f) session-audit consumes persisted validation results"
+  local validate_audit_json
+  validate_audit_json=$(./.session/scripts/bash/session-audit.sh --json --session "$validate_state_id")
+  assert_eq "ok" "$(echo "$validate_audit_json" | jq -r '.status')" "session-audit should return ok JSON status"
+  assert_eq "1" "$(echo "$validate_audit_json" | jq -r '.summary.total_sessions')" "session-audit should report one audited session"
+  assert_eq "$validate_state_id" "$(echo "$validate_audit_json" | jq -r '.sessions[0].id')" "session-audit should return the requested session"
+  assert_eq "session" "$(echo "$validate_audit_json" | jq -r '.sessions[0].checks[] | select(.check == "validation") | .details.source')" "session-audit should prefer the session-scoped validation summary"
+  assert_eq "pass" "$(echo "$validate_audit_json" | jq -r '.sessions[0].checks[] | select(.check == "validation") | .status')" "session-audit should report persisted passing validation results"
 
   # 8) Start a chained session with git context scaffold
   log "8) session-start --continues-from + --git-context"
@@ -637,6 +653,31 @@ SPECMD
   vlog "validate_json (skip-spec): $validate_json"
   spec_status=$(echo "$validate_json" | jq -r '.validation_checks[] | select(.check == "spec_verification") | .status')
   assert_eq "skipped" "$spec_status" "spec verification should be skipped with --skip-spec"
+
+  # 22b) task helpers exclude [SKIP] items from completion counts
+  log "22b) task helpers exclude [SKIP] items from completion counts"
+  local skip_tasks_file skip_task_metrics skip_incomplete
+  skip_tasks_file=$(mktemp)
+  cat > "$skip_tasks_file" <<'EOF'
+# Session Tasks: skip-metrics
+
+## Tasks
+- [x] T001 Completed task
+- [ ] T002 Remaining task
+- [ ] T003 [SKIP] Obsolete after refactor
+EOF
+  skip_task_metrics=$(get_task_completion "$skip_tasks_file")
+  assert_eq "2" "$(echo "$skip_task_metrics" | jq -r '.total')" "effective task total should exclude [SKIP] items"
+  assert_eq "1" "$(echo "$skip_task_metrics" | jq -r '.completed')" "completed count should include only non-[SKIP] items"
+  assert_eq "1" "$(echo "$skip_task_metrics" | jq -r '.incomplete')" "incomplete count should exclude [SKIP] items"
+  assert_eq "1" "$(echo "$skip_task_metrics" | jq -r '.skipped')" "skipped count should be tracked separately"
+  assert_eq "2:1" "$(count_tasks "$skip_tasks_file")" "count_tasks should exclude [SKIP] items from its denominator"
+  skip_incomplete=$(get_incomplete_tasks "$skip_tasks_file")
+  grep -q "T002" <<< "$skip_incomplete" \
+    || fail "get_incomplete_tasks should include real incomplete tasks"
+  ! grep -q "T003" <<< "$skip_incomplete" \
+    || fail "get_incomplete_tasks should exclude [SKIP] items"
+  rm -f "$skip_tasks_file"
 
   # Wrap spec verification test session
   set_workflow_step "$sv_id" "execute" "completed" >/dev/null
@@ -1432,6 +1473,31 @@ EOF
     || fail "Copilot CLI mechanics docs should mention the operational workflow"
   grep -q "Added an \`operational\` workflow" "$ROOT_DIR/CHANGELOG.md" \
     || fail "CHANGELOG should record the new operational workflow"
+
+  # 59) session.audit and validation-summary surfaces are wired into docs and installers
+  log "59) session.audit and validation summary surfaces are documented"
+  assert_file_exists "$ROOT_DIR/github/agents/session.audit.agent.md"
+  assert_file_exists "$ROOT_DIR/github/prompts/session.audit.prompt.md"
+  grep -q "session-audit.sh" "$ROOT_DIR/install.sh" \
+    || fail "install.sh should install the session-audit script"
+  grep -q "session-audit.sh" "$ROOT_DIR/update.sh" \
+    || fail "update.sh should update the session-audit script"
+  grep -q "session.audit.agent.md" "$ROOT_DIR/install.sh" \
+    || fail "install.sh should install the session.audit agent"
+  grep -q "session.audit.prompt.md" "$ROOT_DIR/update.sh" \
+    || fail "update.sh should update the session.audit prompt"
+  grep -q "invoke session.audit" "$ROOT_DIR/README.md" \
+    || fail "README should document session.audit"
+  grep -q "#### session.audit" "$ROOT_DIR/session/docs/reference.md" \
+    || fail "reference docs should document session.audit"
+  grep -q "VALIDATION_RESULTS_SCHEMA_VERSION" "$ROOT_DIR/session/docs/schema-versioning.md" \
+    || fail "schema docs should document validation-results.json schema version"
+  grep -q "invoke session.audit" "$ROOT_DIR/.github/copilot-instructions.md" \
+    || fail "copilot instructions should mention session.audit"
+  grep -q "invoke session.audit" "$ROOT_DIR/stubs/copilot_instructions.md" \
+    || fail "copilot instructions stub should mention session.audit"
+  grep -q "NEW (#50)" "$ROOT_DIR/CHANGELOG.md" \
+    || fail "CHANGELOG should record the session.audit feature"
 }
 
 main "$@"

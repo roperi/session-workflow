@@ -271,6 +271,7 @@ update_scripts() {
         "session-preflight.sh"
         "session-postflight.sh"
         "session-handoff-list.sh"
+        "session-audit.sh"
         "session-cleanup.sh"
     )
 
@@ -339,6 +340,7 @@ update_agents() {
         "session.scope.agent.md"
         "session.spec.agent.md"
         "session.review.agent.md"
+        "session.audit.agent.md"
     )
 
     for agent in "${agents[@]}"; do
@@ -368,6 +370,7 @@ update_prompts() {
         "session.scope.prompt.md"
         "session.spec.prompt.md"
         "session.review.prompt.md"
+        "session.audit.prompt.md"
     )
 
     for prompt in "${prompts[@]}"; do
@@ -454,6 +457,7 @@ See `.session/docs/README.md` for quick reference.
 - `invoke session.start "description"` — Development session (positional description)
 - `invoke session.start --spike "description"` — Spike/research (no PR)
 - `invoke session.start --resume` — Resume active session
+- `invoke session.audit --all` — Audit recorded sessions deterministically
 - `invoke session.review` — Run the default or overridden custom review agent after publish
 - `invoke session.finalize` — Post-merge cleanup (after PR merge)
 - `invoke session.wrap` — End session

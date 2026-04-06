@@ -2,9 +2,10 @@
 
 ## Overview
 
-Two JSON files are written per session. Each carries a `schema_version` field.
-Scripts that read these files must validate the version matches the expected
-constant before trusting field names.
+Session start writes two core JSON files per session, and validation writes a
+third session-scoped summary when it runs. Each structured JSON file carries a
+`schema_version` field. Scripts that read these files must validate the version
+matches the expected constant before trusting field names.
 
 ---
 
@@ -114,6 +115,36 @@ artifacts plus `session-info.json`.
 | `1.2` | Added `pause` object for local human checkpoints and resume guidance. |
 | `1.1` | Added `step_history` array for append-only workflow audit trail. |
 | `1.0` | Initial. All state.json fields. |
+
+---
+
+## `validation-results.json` — current version `1.0`
+
+**Constant**: `VALIDATION_RESULTS_SCHEMA_VERSION="1.0"` (in `session/scripts/bash/lib/session-paths.sh`)
+
+Validation writes the same JSON payload to two locations:
+
+- `{session_dir}/validation-results.json` — durable session-scoped audit artifact
+- `.session/validation-results.json` — latest local validation summary used by publish/review flows
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `schema_version` | string | Always `"1.0"` |
+| `timestamp` | ISO 8601 string | UTC timestamp for the validation run |
+| `session_id` | string \| null | Related session when one is active |
+| `project_type` | string | Detected project type (`node`, `python`, `go`, etc.) |
+| `overall` | string | `pass` \| `fail` |
+| `can_publish` | boolean | Whether publish can proceed without known validation blockers |
+| `summary` | string | Top-level validation summary |
+| `status` | string | Script result status (`success` \| `error`) |
+| `validation_checks` | array | Detailed per-check records emitted by `session-validate.sh` |
+| `results` | object | Per-check map keyed by `check` name for easier downstream consumption |
+
+### Version history
+
+| Version | Change |
+|---------|--------|
+| `1.0` | Initial durable + local validation summary schema. |
 
 ---
 
