@@ -308,7 +308,7 @@ select_session_dirs() {
     local dirs
     dirs=$(list_session_dirs)
 
-    if [[ "$ALL" == "true" || "$SUMMARY_ONLY" == "true" || -n "$WORKFLOW_FILTER" || -n "$SINCE_FILTER" ]]; then
+    if [[ "$ALL" == "true" || -n "$WORKFLOW_FILTER" || -n "$SINCE_FILTER" ]]; then
         if [[ -n "$WORKFLOW_FILTER" || -n "$SINCE_FILTER" ]]; then
             SELECTION_MODE="query"
         else

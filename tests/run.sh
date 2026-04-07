@@ -437,8 +437,17 @@ EOF
   echo "$validate_audit_json" | jq -e '.summary.follow_up' >/dev/null \
     || fail "session-audit JSON summary should expose follow_up counts"
 
-  # 7g) session-audit summary surfaces the key follow-up dimensions
-  log "7g) session-audit summary surfaces key follow-up dimensions"
+  # 7g) session-audit --summary keeps the default latest-session selection after wrap
+  log "7g) session-audit --summary preserves default latest-session selection"
+  local default_audit_summary_json
+  default_audit_summary_json=$(./.session/scripts/bash/session-audit.sh --summary --json)
+  assert_eq "latest" "$(echo "$default_audit_summary_json" | jq -r '.selection.mode')" \
+    "session-audit --summary should preserve the default latest-session selection when no active session exists"
+  assert_eq "1" "$(echo "$default_audit_summary_json" | jq -r '.summary.total_sessions')" \
+    "session-audit --summary should audit the default latest session only"
+
+  # 7h) session-audit summary surfaces the key follow-up dimensions
+  log "7h) session-audit summary surfaces key follow-up dimensions"
   local validate_audit_summary
   validate_audit_summary=$(./.session/scripts/bash/session-audit.sh --summary --session "$validate_state_id")
   echo "$validate_audit_summary" | grep -q "Missing/thin artifacts:" \
@@ -450,8 +459,8 @@ EOF
   echo "$validate_audit_summary" | grep -q "Weak/missing handoff content:" \
     || fail "session-audit summary should surface handoff follow-up counts"
 
-  # 7h) session-audit handles large --all JSON output and suppresses schema-warning floods
-  log "7h) session-audit handles large --all JSON output without schema-warning floods"
+  # 7i) session-audit handles large --all JSON output and suppresses schema-warning floods
+  log "7i) session-audit handles large --all JSON output without schema-warning floods"
   local fixture_dir fixture_id audit_all_err audit_all_json audit_all_exit expected_total
 
   cat > .session/validation-results.json <<'EOF'
@@ -1684,7 +1693,7 @@ EOF
     fail "copilot instructions stub should not advertise session.audit as an agent"
   fi
   grep -q "NEW (#50)" "$ROOT_DIR/CHANGELOG.md" \
-    || fail "CHANGELOG should record the session.audit feature"
+    || fail "CHANGELOG should record the direct session-audit.sh entrypoint"
 }
 
 main "$@"
