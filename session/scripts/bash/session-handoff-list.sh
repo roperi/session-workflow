@@ -52,14 +52,6 @@ parse_args() {
     done
 }
 
-list_session_dirs() {
-    find "${SESSIONS_DIR}" -mindepth 2 -maxdepth 2 -type d -name "????-??-??-*" 2>/dev/null | while IFS= read -r d; do
-        if [[ -f "${d}/session-info.json" || -f "${d}/state.json" ]]; then
-            printf '%s\n' "$d"
-        fi
-    done | sort -r
-}
-
 output_json() {
     if ! command -v jq >/dev/null 2>&1; then
         echo '{"status":"error","message":"jq is required for --json"}'

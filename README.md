@@ -107,10 +107,10 @@ curl -sSL https://raw.githubusercontent.com/roperi/session-workflow/main/update.
 Managed files are tracked in `.session/install-manifest.json`. On update, files that session-workflow used to manage but no longer ships are removed only if their contents still match the last recorded managed checksum; locally modified files are left in place with a warning.
 
 **Session history policy:**
-- Durable session artifacts under `.session/sessions/` are durable repository history and should be committed so scope/spec/plan/tasks/notes/handoffs remain available across future work.
+- Durable session artifacts under `.session/sessions/` are durable repository history and should be committed so scope/spec/plan/tasks/validation/notes/handoffs remain available across future work.
 - Volatile workflow bookkeeping is ignored by default: `.session/ACTIVE_SESSION`, `.session/validation-results.json`, and `.session/sessions/**/state.json`.
 
-`state.json` is updated continuously by workflow bookkeeping (`preflight`, `postflight`, pause handling, wrap), so it is treated as local control state rather than archival session history.
+`state.json` is updated continuously by workflow bookkeeping (`preflight`, `postflight`, pause handling, wrap), so it is treated as local control state rather than archival session history. `.session/validation-results.json` is the latest local validation summary; `{session_dir}/validation-results.json` is the durable session-scoped validation artifact used for historical audits.
 
 If you're updating an older installation that still ignores `.session/sessions/`, run `bash .session/update.sh`, then `git add .session/sessions/` to begin tracking any new or previously ignored session artifacts.
 
@@ -163,6 +163,16 @@ invoke session.review                     # runs whatever .github/agents/session
 invoke session.finalize
 ```
 
+**Post-session audit (read-only evaluation of recorded session history):**
+
+```bash
+./.session/scripts/bash/session-audit.sh
+./.session/scripts/bash/session-audit.sh --all --summary
+./.session/scripts/bash/session-audit.sh --workflow development --since 2026-01-01
+```
+
+Run the audit directly from your shell. It is a deterministic script, not a session agent. Use `--json` when you want a machine-readable report to inspect yourself or share with an AI assistant for interpretation.
+
 **Other workflows:**
 
 ```bash
@@ -183,7 +193,7 @@ invoke session.start --operational "Process webpage mp3 files in batches"
 invoke session.execute --resume  # continue the next monitored run after patching
 invoke session.wrap  # close out when you're done
 
-# Audit (read-only, no commits — stops after execute by default)
+# Live maintenance audit (read-only repo scan — stops after execute by default)
 invoke session.start --maintenance --read-only "Find stale files"
 invoke session.wrap  # close out when you're ready
 

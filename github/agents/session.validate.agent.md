@@ -17,7 +17,7 @@ tools: ["*"]
 - ❌ Merge PRs or close issues (that's `session.finalize`)
 - ❌ Write session documentation (that's `session.wrap`)
 
-**Output**: `{session_dir}/validation-results.json` — nothing else.
+**Output**: `{session_dir}/validation-results.json` plus the latest local `.session/validation-results.json` summary — nothing else.
 
 ## User Input
 
@@ -276,7 +276,12 @@ Check session tasks.md or Speckit tasks.md:
 
 ## Validation Results Storage
 
-**ALWAYS create** `.session/validation-results.json`:
+**ALWAYS create both**:
+
+- `{session_dir}/validation-results.json` — durable session-scoped audit artifact
+- `.session/validation-results.json` — latest local summary for publish/review flow
+
+Use this schema for the validation summary payload:
 
 ```json
 {
@@ -338,7 +343,7 @@ STAGE=$(jq -r '.stage // "production"' "$SESSION_DIR/session-info.json")
 ```
 
 ### IF stage is "poc":
-1. Create validation-results.json with all results
+1. Create both validation-results.json copies with all results
 2. Report warnings but proceed regardless
 3. Run postflight: `.session/scripts/bash/session-postflight.sh --step validate --json`
 4. **Return results** to orchestrating agent. Add note: "⚠️ PoC mode: Proceeding despite validation warnings"
@@ -346,7 +351,7 @@ STAGE=$(jq -r '.stage // "production"' "$SESSION_DIR/session-info.json")
 ⛔ Do NOT invoke session.publish or any other agent yourself.
 
 ### IF all checks PASS:
-1. Create validation-results.json with overall: "pass"
+1. Create both validation-results.json copies with overall: "pass"
 2. Report success clearly
 3. Run postflight: `.session/scripts/bash/session-postflight.sh --step validate --json`
 4. **Return results** to orchestrating agent.
@@ -354,7 +359,7 @@ STAGE=$(jq -r '.stage // "production"' "$SESSION_DIR/session-info.json")
 ⛔ Do NOT invoke session.publish or any other agent yourself.
 
 ### IF any checks FAIL:
-1. Create validation-results.json with overall: "fail"
+1. Create both validation-results.json copies with overall: "fail"
 2. Report failures in detail
 3. **DO NOT auto-chain** — failures block automatic handoff
 4. Present user with options:
@@ -381,11 +386,11 @@ If user chooses "Fix now":
 - Loop until pass or user chooses different option
 
 If user chooses "Publish anyway":
-- Note failures in validation-results.json
+- Note failures in both validation-results.json copies
 - Proceed to session.publish (which will include failures in PR description)
 
 If user chooses "Wrap session":
-- Save validation-results.json
+- Save both validation-results.json copies
 - Suggest using `session.wrap`
 
 ## What NOT to Do

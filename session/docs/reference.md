@@ -150,9 +150,9 @@ All chain agents can run either as sub-agents orchestrated by `session.start` or
 
 ---
 
-## Optional Support Agents
+## Optional Support Agents and Utilities
 
-These agents are **not part of the main workflow chain**. Some insert optional planning work, some capture reusable knowledge, and some perform quality checks between phases.
+These support surfaces are **not part of the main workflow chain**. Some are optional AI agents, and some are deterministic command-line utilities.
 
 ### Knowledge Capture Agents
 
@@ -193,6 +193,18 @@ Use these for requirements hygiene and consistency checks at any time.
 - Domain-specific: UX, API, security, performance
 - **Best used**: Before implementation or PR review
 - **Inspired by**: Speckit's `/speckit.checklist`
+
+### Deterministic Utilities
+
+These are shell entrypoints, not AI agents.
+
+#### session-audit.sh
+- Deterministic post-session evaluation across one session or many recorded sessions
+- **CLI script, not an agent** - run it directly from the shell
+- **STRICTLY READ-ONLY** - consumes durable session artifacts and any available local bookkeeping files
+- Use `--json` when you want a stable machine-readable report for downstream tooling or AI interpretation
+- **Best used**: After wrap, during repo health reviews, or before pruning/rewriting older session history
+- Distinct from `session.start --maintenance --read-only`, which is a live read-only repo workflow rather than a post-session artifact audit
 
 **Usage patterns:**
 
@@ -420,6 +432,19 @@ invoke session.start --resume
 # Resumes from the last completed step in the chain
 ```
 
+### Example 9: Auditing Recorded Sessions
+
+```bash
+./.session/scripts/bash/session-audit.sh
+# Audits the active session if present, otherwise the most recent session
+
+./.session/scripts/bash/session-audit.sh --all --summary
+# Aggregates health across every recorded session in the repo
+
+./.session/scripts/bash/session-audit.sh --workflow development --since 2026-01-01
+# Filters to development sessions created on or after 2026-01-01
+```
+
 ### Auto Mode and Human Checkpoints
 
 `invoke session.start --auto ...` means **continue until the next human gate**, not "never interact with the user."
@@ -451,7 +476,8 @@ Updates:
 - `tasks.md` - Mark completed: `[ ]` → `[x]`
 - `notes.md` - Key decisions, blockers
 - `next.md` - Suggested follow-up steps, workflow, blockers, and carry-forward context
-- `validation-results.json` - Quality gate results
+- `{session_dir}/validation-results.json` - Durable validation summary for the audited session history
+- `.session/validation-results.json` - Latest local validation summary used by publish/review flows
 - `pr-summary.md` - PR description
 
 ### Wrap
@@ -463,7 +489,7 @@ Updates:
 
 ### Session Artifact Tracking
 
-Durable artifacts under `.session/sessions/` are durable repository history and are intended to be committed so session scope/spec/plan/tasks/notes/handoffs remain available across future work.
+Durable artifacts under `.session/sessions/` are durable repository history and are intended to be committed so session scope/spec/plan/tasks/validation/notes/handoffs remain available across future work.
 
 Volatile workflow bookkeeping is ignored by default:
 - `.session/ACTIVE_SESSION` - Active-session sentinel
@@ -488,6 +514,7 @@ If you're updating an older installation that still ignores `.session/sessions/`
 ├── scripts/bash/
 │   ├── session-common.sh
 │   ├── session-start.sh
+│   ├── session-audit.sh
 │   ├── session-wrap.sh
 │   ├── session-cleanup.sh
 │   └── ...
@@ -499,6 +526,7 @@ If you're updating an older installation that still ignores `.session/sessions/`
 │       └── YYYY-MM-DD-N/
 │           ├── session-info.json
 │           ├── state.json      # Volatile workflow bookkeeping (ignored)
+│           ├── validation-results.json
 │           ├── notes.md
 │           ├── next.md
 │           └── tasks.md

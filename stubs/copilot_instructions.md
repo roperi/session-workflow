@@ -27,6 +27,9 @@ Use `next.md` as the structured follow-up artifact for the next session. Keep `n
 - `invoke session.finalize` — Post-merge cleanup (after PR merge)
 - `invoke session.wrap` — End session
 
+**Utilities:**
+- `./.session/scripts/bash/session-audit.sh --all --summary` — Deterministic post-session audit script; run it directly from the shell and share the report if you want AI help interpreting it
+
 **Project context:**
 - `.session/project-context/technical-context.md` - Stack, build/test commands
 - `.session/project-context/constitution-summary.md` - Quality standards

@@ -38,7 +38,7 @@ Tests are a single sequential harness in `tests/run.sh` — there is no single-t
 
 All scripts source `session-common.sh` which aggregates the libraries. Never source individual libs directly.
 
-### Agent System (15 agents)
+### Agent System (16 agents)
 
 Agents live in `github/agents/session.*.agent.md` with corresponding `github/prompts/session.*.prompt.md` link files for IDE integration.
 
@@ -58,14 +58,15 @@ Transitions are defined in `lib/session-state.sh` via `WORKFLOW_TRANSITIONS` ass
 
 ### JSON Schemas
 
-Two mutable JSON files per session in `.session/sessions/{id}/`:
+Session start creates two core JSON files per session, and validation adds a third session-scoped summary when it runs:
 
 - **`session-info.json`** (v2.2) — Immutable metadata: session type (`github_issue|speckit|unstructured`), workflow (`development|spike|maintenance|debug|operational`), stage (`poc|mvp|production`)
 - **`state.json`** (v1.2) — Mutable local workflow state: `current_step`, `step_status`, append-only `step_history[]`, `pause`
+- **`validation-results.json`** (v1.0) — Validation summary written to `.session/sessions/{id}/validation-results.json`; the latest local copy also lives at `.session/validation-results.json`
 
 Session artifacts also include `notes.md` plus `next.md`, where `next.md` is the structured follow-up artifact surfaced by `session.start` as previous-session continuity context when available.
 
-Schema version constants live in `lib/session-paths.sh` (`SESSION_INFO_SCHEMA_VERSION`, `STATE_SCHEMA_VERSION`).
+Schema version constants live in `lib/session-paths.sh` (`SESSION_INFO_SCHEMA_VERSION`, `STATE_SCHEMA_VERSION`, `VALIDATION_RESULTS_SCHEMA_VERSION`).
 
 For speckit sessions, `session-info.json` uses `spec_dir` (value: `"specs/{SPEC_DIR}"`), not `feature`.
 
@@ -106,6 +107,9 @@ This project uses session workflow for AI context continuity.
 - `invoke session.review` — Run the default or overridden custom review agent after publish
 - `invoke session.finalize` — Post-merge cleanup (after PR merge)
 - `invoke session.wrap` — End session
+
+**Utilities:**
+- `./.session/scripts/bash/session-audit.sh --all --summary` — Deterministic post-session audit script; run it directly from the shell and share the report if you want AI help interpreting it
 
 **Project context:**
 - `.session/project-context/technical-context.md` — Stack, build/test commands

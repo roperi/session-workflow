@@ -40,20 +40,43 @@ mark_tasks_complete() {
 get_task_completion() {
     # Get task completion stats
     # Args: $1 = task file path
-    # Returns: JSON with total, completed, incomplete counts
+    # Returns: JSON with total, completed, incomplete, skipped counts
     local task_file="$1"
     
     if [ ! -f "$task_file" ]; then
-        echo '{"total": 0, "completed": 0, "incomplete": 0}'
+        echo '{"total": 0, "completed": 0, "incomplete": 0, "skipped": 0}'
         return
     fi
-    
-    local total completed incomplete
-    total=$(grep -c "^- \[.\] T" "$task_file" || echo "0")
-    completed=$(grep -c "^- \[x\] T" "$task_file" || echo "0")
-    incomplete=$((total - completed))
-    
-    echo "{\"total\": $total, \"completed\": $completed, \"incomplete\": $incomplete}"
+
+    local task_lines
+    task_lines=$(extract_task_lines "$task_file")
+
+    local total=0
+    local completed=0
+    local skipped=0
+    local line
+    while IFS= read -r line; do
+        [[ -n "$line" ]] || continue
+
+        if [[ "$line" == *"[SKIP]"* ]]; then
+            skipped=$((skipped + 1))
+            continue
+        fi
+
+        total=$((total + 1))
+        if [[ "$line" =~ ^[[:space:]]*-[[:space:]]\[[xX]\] ]]; then
+            completed=$((completed + 1))
+        fi
+    done <<< "$task_lines"
+
+    local incomplete=$((total - completed))
+
+    jq -n \
+        --argjson total "$total" \
+        --argjson completed "$completed" \
+        --argjson incomplete "$incomplete" \
+        --argjson skipped "$skipped" \
+        '{total: $total, completed: $completed, incomplete: $incomplete, skipped: $skipped}'
 }
 
 # ============================================================================
@@ -111,10 +134,28 @@ resolve_tasks_file() {
     esac
 }
 
+extract_task_lines() {
+    # Get the task checkbox lines from the canonical task region.
+    # Args: task_file
+    local task_file="$1"
+
+    if [[ ! -f "$task_file" ]]; then
+        return
+    fi
+
+    local tasks_section
+    tasks_section=$(awk '/^## Tasks/,0' "$task_file" 2>/dev/null || true)
+
+    if [[ -n "$tasks_section" ]]; then
+        printf '%s\n' "$tasks_section" | grep '^[[:space:]]*- \[' 2>/dev/null || true
+    else
+        grep '^[[:space:]]*- \[.\] T' "$task_file" 2>/dev/null || true
+    fi
+}
+
 count_tasks() {
     # Count total and completed tasks in a tasks.md file.
-    # Prefers the "## Tasks" section if present; falls back to counting
-    # task-id-prefixed checkboxes (- [ ] T / - [x] T) across the full file.
+    # Excludes `[SKIP]` tasks from the completion denominator.
     local tasks_file="$1"
 
     if [[ ! -f "$tasks_file" ]]; then
@@ -122,41 +163,25 @@ count_tasks() {
         return
     fi
 
-    # Try the "## Tasks" section first (used by github_issue/unstructured templates)
-    local tasks_section
-    tasks_section=$(awk '/^## Tasks/,0' "$tasks_file" 2>/dev/null || true)
+    local metrics
+    metrics=$(get_task_completion "$tasks_file")
 
     local total completed
-    if [[ -n "$tasks_section" ]]; then
-        total=$(echo "$tasks_section" | grep -c '^[[:space:]]*- \[' 2>/dev/null || true)
-        completed=$(echo "$tasks_section" | grep -c '^[[:space:]]*- \[x\]' 2>/dev/null || true)
-    else
-        # Phase-based template (speckit): count T-prefixed checkboxes across full file
-        total=$(grep -c '^[[:space:]]*- \[.\] T' "$tasks_file" 2>/dev/null || true)
-        completed=$(grep -c '^[[:space:]]*- \[x\] T' "$tasks_file" 2>/dev/null || true)
-    fi
-
-    total=${total:-0}
-    completed=${completed:-0}
+    total=$(echo "$metrics" | jq -r '.total')
+    completed=$(echo "$metrics" | jq -r '.completed')
 
     echo "${total}:${completed}"
 }
 
 get_incomplete_tasks() {
-    # Get list of incomplete tasks.
-    # Prefers the "## Tasks" section if present; falls back to T-prefixed checkboxes.
+    # Get list of incomplete non-skipped tasks.
     local tasks_file="$1"
 
     if [[ ! -f "$tasks_file" ]]; then
         return
     fi
 
-    local tasks_section
-    tasks_section=$(awk '/^## Tasks/,0' "$tasks_file" 2>/dev/null || true)
-
-    if [[ -n "$tasks_section" ]]; then
-        echo "$tasks_section" | grep '^[[:space:]]*- \[ \]' 2>/dev/null || true
-    else
-        grep '^[[:space:]]*- \[ \] T' "$tasks_file" 2>/dev/null || true
-    fi
+    local task_lines
+    task_lines=$(extract_task_lines "$tasks_file")
+    printf '%s\n' "$task_lines" | grep '^[[:space:]]*- \[ \]' 2>/dev/null | grep -v '\[SKIP\]' || true
 }
