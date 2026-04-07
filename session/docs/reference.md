@@ -150,9 +150,9 @@ All chain agents can run either as sub-agents orchestrated by `session.start` or
 
 ---
 
-## Optional Support Agents
+## Optional Support Agents and Utilities
 
-These agents are **not part of the main workflow chain**. Some insert optional planning work, some capture reusable knowledge, and some perform quality checks between phases.
+These support surfaces are **not part of the main workflow chain**. Some are optional AI agents, and some are deterministic command-line utilities.
 
 ### Knowledge Capture Agents
 
@@ -194,9 +194,15 @@ Use these for requirements hygiene and consistency checks at any time.
 - **Best used**: Before implementation or PR review
 - **Inspired by**: Speckit's `/speckit.checklist`
 
-#### session.audit
+### Deterministic Utilities
+
+These are shell entrypoints, not AI agents.
+
+#### session-audit.sh
 - Deterministic post-session evaluation across one session or many recorded sessions
+- **CLI script, not an agent** - run it directly from the shell
 - **STRICTLY READ-ONLY** - consumes durable session artifacts and any available local bookkeeping files
+- Use `--json` when you want a stable machine-readable report for downstream tooling or AI interpretation
 - **Best used**: After wrap, during repo health reviews, or before pruning/rewriting older session history
 - Distinct from `session.start --maintenance --read-only`, which is a live read-only repo workflow rather than a post-session artifact audit
 
@@ -429,13 +435,13 @@ invoke session.start --resume
 ### Example 9: Auditing Recorded Sessions
 
 ```bash
-invoke session.audit
+./.session/scripts/bash/session-audit.sh
 # Audits the active session if present, otherwise the most recent session
 
-invoke session.audit --all --summary
+./.session/scripts/bash/session-audit.sh --all --summary
 # Aggregates health across every recorded session in the repo
 
-invoke session.audit --workflow development --since 2026-01-01
+./.session/scripts/bash/session-audit.sh --workflow development --since 2026-01-01
 # Filters to development sessions created on or after 2026-01-01
 ```
 

@@ -14,6 +14,14 @@ SESSION_FILTER=""
 WORKFLOW_FILTER=""
 SINCE_FILTER=""
 SELECTION_MODE="latest"
+SELECTED_SESSION_DIRS=""
+
+declare -Ag AUDIT_SCHEMA_VERSION_CACHE=()
+declare -Ag AUDIT_VALIDATION_RESOLUTION_CACHE=()
+declare -g AUDIT_LOCAL_VALIDATION_CACHE_READY=false
+declare -g AUDIT_LOCAL_VALIDATION_EXISTS=false
+declare -g AUDIT_LOCAL_VALIDATION_SESSION_ID=""
+declare -g AUDIT_LOCAL_VALIDATION_FILE=""
 
 usage() {
     cat << EOF
@@ -135,6 +143,46 @@ json_array_from_lines() {
     printf '%s\n' "$lines" | jq -R -s 'split("\n") | map(select(length > 0))'
 }
 
+append_line() {
+    local var_name="$1"
+    local value="${2:-}"
+
+    [[ -n "$value" ]] || return 0
+
+    if [[ -n "${!var_name:-}" ]]; then
+        printf -v "$var_name" '%s\n%s' "${!var_name}" "$value"
+    else
+        printf -v "$var_name" '%s' "$value"
+    fi
+}
+
+get_schema_version() {
+    local json_file="$1"
+
+    [[ -f "$json_file" ]] || return 0
+
+    if [[ -z "${AUDIT_SCHEMA_VERSION_CACHE[$json_file]+x}" ]]; then
+        AUDIT_SCHEMA_VERSION_CACHE["$json_file"]=$(jq -r '.schema_version // "missing"' "$json_file" 2>/dev/null || echo "unreadable")
+    fi
+
+    printf '%s\n' "${AUDIT_SCHEMA_VERSION_CACHE[$json_file]}"
+}
+
+load_local_validation_results_metadata() {
+    [[ "$AUDIT_LOCAL_VALIDATION_CACHE_READY" == "true" ]] && return
+
+    AUDIT_LOCAL_VALIDATION_CACHE_READY=true
+    AUDIT_LOCAL_VALIDATION_FILE="${SESSION_ROOT}/validation-results.json"
+
+    if [[ -f "$AUDIT_LOCAL_VALIDATION_FILE" ]]; then
+        AUDIT_LOCAL_VALIDATION_EXISTS=true
+        AUDIT_LOCAL_VALIDATION_SESSION_ID=$(jq -r '.session_id // ""' "$AUDIT_LOCAL_VALIDATION_FILE" 2>/dev/null || echo "")
+    else
+        AUDIT_LOCAL_VALIDATION_EXISTS=false
+        AUDIT_LOCAL_VALIDATION_SESSION_ID=""
+    fi
+}
+
 file_has_meaningful_content() {
     local path="$1"
     [[ -f "$path" ]] || return 1
@@ -245,13 +293,14 @@ session_matches_filters() {
 
 select_session_dirs() {
     ensure_session_structure
+    SELECTED_SESSION_DIRS=""
 
     if [[ -n "$SESSION_FILTER" ]]; then
         SELECTION_MODE="session"
         local session_dir
         session_dir=$(get_session_dir "$SESSION_FILTER")
         if [[ -d "$session_dir" ]]; then
-            printf '%s\n' "$session_dir"
+            SELECTED_SESSION_DIRS="$session_dir"
         fi
         return
     fi
@@ -260,11 +309,16 @@ select_session_dirs() {
     dirs=$(list_session_dirs)
 
     if [[ "$ALL" == "true" || "$SUMMARY_ONLY" == "true" || -n "$WORKFLOW_FILTER" || -n "$SINCE_FILTER" ]]; then
-        SELECTION_MODE="query"
+        if [[ -n "$WORKFLOW_FILTER" || -n "$SINCE_FILTER" ]]; then
+            SELECTION_MODE="query"
+        else
+            SELECTION_MODE="all"
+        fi
+
         while IFS= read -r session_dir; do
             [[ -n "$session_dir" ]] || continue
             if session_matches_filters "$session_dir"; then
-                printf '%s\n' "$session_dir"
+                append_line SELECTED_SESSION_DIRS "$session_dir"
             fi
         done <<< "$dirs"
         return
@@ -277,38 +331,46 @@ select_session_dirs() {
         active_dir=$(get_session_dir "$active_session")
         if [[ -d "$active_dir" ]]; then
             SELECTION_MODE="active"
-            printf '%s\n' "$active_dir"
+            SELECTED_SESSION_DIRS="$active_dir"
             return
         fi
     fi
 
     SELECTION_MODE="latest"
-    printf '%s\n' "$dirs" | head -n 1
+    SELECTED_SESSION_DIRS=$(printf '%s\n' "$dirs" | head -n 1)
 }
 
 resolve_validation_results_file() {
     local session_id="$1"
     local session_dir="$2"
-    local session_results_file="${session_dir}/validation-results.json"
-    local local_results_file="${SESSION_ROOT}/validation-results.json"
+    local cache_key="${session_id}|${session_dir}"
 
-    if [[ -f "$session_results_file" ]]; then
-        validate_schema_version "$session_results_file" "$VALIDATION_RESULTS_SCHEMA_VERSION"
-        printf '%s\t%s\n' "$session_results_file" "session"
+    if [[ -n "${AUDIT_VALIDATION_RESOLUTION_CACHE[$cache_key]+x}" ]]; then
+        printf '%s\n' "${AUDIT_VALIDATION_RESOLUTION_CACHE[$cache_key]}"
         return
     fi
 
-    if [[ -f "$local_results_file" ]]; then
-        validate_schema_version "$local_results_file" "$VALIDATION_RESULTS_SCHEMA_VERSION"
-        local local_session_id
-        local_session_id=$(jq -r '.session_id // ""' "$local_results_file" 2>/dev/null || echo "")
-        if [[ "$local_session_id" == "$session_id" ]]; then
-            printf '%s\t%s\n' "$local_results_file" "local"
-            return
-        fi
+    local session_results_file="${session_dir}/validation-results.json"
+    local resolution
+
+    if [[ -f "$session_results_file" ]]; then
+        resolution=$(printf '%s\t%s\n' "$session_results_file" "session")
+        AUDIT_VALIDATION_RESOLUTION_CACHE["$cache_key"]="$resolution"
+        printf '%s\n' "$resolution"
+        return
     fi
 
-    printf '\t%s\n' "missing"
+    load_local_validation_results_metadata
+    if [[ "$AUDIT_LOCAL_VALIDATION_EXISTS" == "true" && "$AUDIT_LOCAL_VALIDATION_SESSION_ID" == "$session_id" ]]; then
+        resolution=$(printf '%s\t%s\n' "$AUDIT_LOCAL_VALIDATION_FILE" "local")
+        AUDIT_VALIDATION_RESOLUTION_CACHE["$cache_key"]="$resolution"
+        printf '%s\n' "$resolution"
+        return
+    fi
+
+    resolution=$(printf '\t%s\n' "missing")
+    AUDIT_VALIDATION_RESOLUTION_CACHE["$cache_key"]="$resolution"
+    printf '%s\n' "$resolution"
 }
 
 audit_workflow_adherence() {
@@ -329,8 +391,6 @@ audit_workflow_adherence() {
             '{"state_file": null, "observed_steps": [], "required_steps": [], "missing_steps": [], "unexpected_steps": [], "forced_steps": 0}'
         return
     fi
-
-    validate_schema_version "$state_file" "$STATE_SCHEMA_VERSION"
 
     local observed_steps
     observed_steps=$(jq -r '.step_history[]?.step' "$state_file" 2>/dev/null || true)
@@ -371,11 +431,15 @@ audit_workflow_adherence() {
 
     local state_status
     state_status=$(jq -r '.status // "unknown"' "$state_file" 2>/dev/null || echo "unknown")
+    local state_schema_actual_version
+    state_schema_actual_version=$(get_schema_version "$state_file")
 
     local details_json
     details_json=$(jq -n \
         --arg state_file "$state_file" \
         --arg state_status "$state_status" \
+        --arg state_schema_version "$state_schema_actual_version" \
+        --arg expected_state_schema_version "$STATE_SCHEMA_VERSION" \
         --argjson session_completed "$session_completed" \
         --argjson observed_steps "$(json_array_from_lines "$observed_unique")" \
         --argjson required_steps "$(json_array_from_lines "$required_steps")" \
@@ -385,6 +449,8 @@ audit_workflow_adherence() {
         '{
             state_file: $state_file,
             state_status: $state_status,
+            state_schema_version: (if $state_schema_version == "" then null else $state_schema_version end),
+            expected_state_schema_version: $expected_state_schema_version,
             session_completed: $session_completed,
             observed_steps: $observed_steps,
             required_steps: $required_steps,
@@ -609,11 +675,15 @@ audit_validation_results() {
     overall=$(jq -r '.overall // "unknown"' "$validation_file" 2>/dev/null || echo "unknown")
     timestamp=$(jq -r '.timestamp // ""' "$validation_file" 2>/dev/null || echo "")
     can_publish=$(jq -r '.can_publish // false' "$validation_file" 2>/dev/null || echo "false")
+    local validation_schema_actual_version
+    validation_schema_actual_version=$(get_schema_version "$validation_file")
 
     local details_json
     details_json=$(jq -n \
         --arg source "$source" \
         --arg validation_file "$validation_file" \
+        --arg validation_schema_version "$validation_schema_actual_version" \
+        --arg expected_validation_schema_version "$VALIDATION_RESULTS_SCHEMA_VERSION" \
         --arg overall "$overall" \
         --arg timestamp "$timestamp" \
         --arg can_publish "$can_publish" \
@@ -621,6 +691,8 @@ audit_validation_results() {
         '{
             source: $source,
             validation_file: $validation_file,
+            schema_version: (if $validation_schema_version == "" then null else $validation_schema_version end),
+            expected_schema_version: $expected_validation_schema_version,
             overall: $overall,
             timestamp: (if $timestamp == "" then null else $timestamp end),
             can_publish: ($can_publish == "true"),
@@ -766,9 +838,10 @@ audit_session() {
     local stage="unknown"
     local read_only=false
     local created_at=""
+    local info_schema_actual_version=""
 
     if [[ -f "$info_file" ]]; then
-        validate_schema_version "$info_file" "$SESSION_INFO_SCHEMA_VERSION"
+        info_schema_actual_version=$(get_schema_version "$info_file")
         workflow=$(jq -r '.workflow // "unknown"' "$info_file" 2>/dev/null || echo "unknown")
         session_type=$(jq -r '.type // "unknown"' "$info_file" 2>/dev/null || echo "unknown")
         stage=$(jq -r '.stage // "unknown"' "$info_file" 2>/dev/null || echo "unknown")
@@ -790,8 +863,9 @@ audit_session() {
 
     local session_completed=false
     local observed_steps=""
+    local state_schema_actual_version=""
     if [[ -f "$state_file" ]]; then
-        validate_schema_version "$state_file" "$STATE_SCHEMA_VERSION"
+        state_schema_actual_version=$(get_schema_version "$state_file")
         observed_steps=$(jq -r '.step_history[]?.step' "$state_file" 2>/dev/null || true)
         local state_status state_ended_at
         state_status=$(jq -r '.status // "unknown"' "$state_file" 2>/dev/null || echo "unknown")
@@ -840,6 +914,10 @@ audit_session() {
     local validation_file validation_source
     validation_file=$(printf '%s' "$validation_resolution" | cut -f1)
     validation_source=$(printf '%s' "$validation_resolution" | cut -f2)
+    local validation_schema_actual_version=""
+    if [[ -n "$validation_file" ]]; then
+        validation_schema_actual_version=$(get_schema_version "$validation_file")
+    fi
 
     jq -n \
         --arg id "$session_id" \
@@ -853,10 +931,13 @@ audit_session() {
         --argjson session_completed "$session_completed" \
         --argjson checks "$checks_json" \
         --arg info_file "$info_file" \
+        --arg info_schema_version "$info_schema_actual_version" \
         --arg state_file "$state_file" \
+        --arg state_schema_version "$state_schema_actual_version" \
         --arg tasks_file "$tasks_file" \
         --arg spec_file "$spec_file" \
         --arg validation_file "$validation_file" \
+        --arg validation_schema_version "$validation_schema_actual_version" \
         --arg validation_source "$validation_source" \
         '{
             id: $id,
@@ -870,10 +951,13 @@ audit_session() {
             overall_status: $overall_status,
             inputs: {
                 info_file: (if ($info_file | length) == 0 or ($info_file | startswith("/")) then $info_file else $info_file end),
+                info_schema_version: (if $info_schema_version == "" then null else $info_schema_version end),
                 state_file: (if $state_file == "" or $state_file == "null" or ($state_file | startswith("/")) then (if $state_file == "" then null else $state_file end) else $state_file end),
+                state_schema_version: (if $state_schema_version == "" then null else $state_schema_version end),
                 tasks_file: (if $tasks_file == "" then null else $tasks_file end),
                 spec_file: (if $spec_file == "" then null else $spec_file end),
                 validation_file: (if $validation_file == "" then null else $validation_file end),
+                validation_schema_version: (if $validation_schema_version == "" then null else $validation_schema_version end),
                 validation_source: (if $validation_source == "" or $validation_source == "missing" then null else $validation_source end)
             },
             checks: $checks
@@ -881,57 +965,64 @@ audit_session() {
 }
 
 build_summary_json() {
-    local sessions_json="$1"
+    local sessions_file="$1"
 
     local overall_json
-    overall_json=$(echo "$sessions_json" | jq '{
+    overall_json=$(jq '{
         pass: (map(select(.overall_status == "pass")) | length),
         warning: (map(select(.overall_status == "warning")) | length),
         fail: (map(select(.overall_status == "fail")) | length)
-    }')
+    }' "$sessions_file")
 
     local workflows_json
-    workflows_json=$(echo "$sessions_json" | jq 'reduce .[] as $session ({}; .[$session.workflow] = (.[$session.workflow] // 0) + 1)')
+    workflows_json=$(jq 'reduce .[] as $session ({}; .[$session.workflow] = (.[$session.workflow] // 0) + 1)' "$sessions_file")
 
     local tasks_json
-    tasks_json=$(echo "$sessions_json" | jq '{
+    tasks_json=$(jq '{
         total: ([.[].checks[] | select(.check == "task_completion") | .details.total // 0] | add // 0),
         completed: ([.[].checks[] | select(.check == "task_completion") | .details.completed // 0] | add // 0),
         incomplete: ([.[].checks[] | select(.check == "task_completion") | .details.incomplete // 0] | add // 0),
         skipped: ([.[].checks[] | select(.check == "task_completion") | .details.skipped // 0] | add // 0)
-    }')
+    }' "$sessions_file")
 
-    local adherence_json validation_json artifacts_json handoff_json efficiency_json
-    adherence_json=$(echo "$sessions_json" | jq '{
+    local adherence_json validation_json artifacts_json handoff_json efficiency_json follow_up_json
+    adherence_json=$(jq '{
         pass: ([.[].checks[] | select(.check == "workflow_adherence" and .status == "pass")] | length),
         warning: ([.[].checks[] | select(.check == "workflow_adherence" and .status == "warning")] | length),
         fail: ([.[].checks[] | select(.check == "workflow_adherence" and .status == "fail")] | length),
         unavailable: ([.[].checks[] | select(.check == "workflow_adherence" and .status == "unavailable")] | length)
-    }')
-    validation_json=$(echo "$sessions_json" | jq '{
+    }' "$sessions_file")
+    validation_json=$(jq '{
         pass: ([.[].checks[] | select(.check == "validation" and .status == "pass")] | length),
         warning: ([.[].checks[] | select(.check == "validation" and .status == "warning")] | length),
         fail: ([.[].checks[] | select(.check == "validation" and .status == "fail")] | length),
         unavailable: ([.[].checks[] | select(.check == "validation" and .status == "unavailable")] | length),
         skipped: ([.[].checks[] | select(.check == "validation" and .status == "skipped")] | length)
-    }')
-    artifacts_json=$(echo "$sessions_json" | jq '{
+    }' "$sessions_file")
+    artifacts_json=$(jq '{
         pass: ([.[].checks[] | select(.check == "artifact_completeness" and .status == "pass")] | length),
         warning: ([.[].checks[] | select(.check == "artifact_completeness" and .status == "warning")] | length),
         fail: ([.[].checks[] | select(.check == "artifact_completeness" and .status == "fail")] | length)
-    }')
-    handoff_json=$(echo "$sessions_json" | jq '{
+    }' "$sessions_file")
+    handoff_json=$(jq '{
         pass: ([.[].checks[] | select(.check == "handoff" and .status == "pass")] | length),
         warning: ([.[].checks[] | select(.check == "handoff" and .status == "warning")] | length),
         fail: ([.[].checks[] | select(.check == "handoff" and .status == "fail")] | length)
-    }')
-    efficiency_json=$(echo "$sessions_json" | jq '{
+    }' "$sessions_file")
+    efficiency_json=$(jq '{
         info: ([.[].checks[] | select(.check == "efficiency" and .status == "info")] | length),
         unavailable: ([.[].checks[] | select(.check == "efficiency" and .status == "unavailable")] | length)
-    }')
+    }' "$sessions_file")
+    follow_up_json=$(jq '{
+        artifact_sessions: ([.[] | select(any(.checks[]; .check == "artifact_completeness" and .status != "pass"))] | length),
+        validation_sessions: ([.[] | select(any(.checks[]; .check == "validation" and (.status == "warning" or .status == "fail" or .status == "unavailable")))] | length),
+        incomplete_task_sessions: ([.[] | select(any(.checks[]; .check == "task_completion" and ((.details.incomplete // 0) > 0)))] | length),
+        incomplete_tasks: ([.[].checks[] | select(.check == "task_completion") | .details.incomplete // 0] | add // 0),
+        handoff_sessions: ([.[] | select(any(.checks[]; .check == "handoff" and .status != "pass"))] | length)
+    }' "$sessions_file")
 
     jq -n \
-        --argjson total_sessions "$(echo "$sessions_json" | jq 'length')" \
+        --argjson total_sessions "$(jq 'length' "$sessions_file")" \
         --argjson overall "$overall_json" \
         --argjson workflows "$workflows_json" \
         --argjson tasks "$tasks_json" \
@@ -940,6 +1031,7 @@ build_summary_json() {
         --argjson validation "$validation_json" \
         --argjson handoff "$handoff_json" \
         --argjson efficiency "$efficiency_json" \
+        --argjson follow_up "$follow_up_json" \
         '{
             total_sessions: $total_sessions,
             overall: $overall,
@@ -951,7 +1043,8 @@ build_summary_json() {
                 validation: $validation,
                 handoff: $handoff,
                 efficiency: $efficiency
-            }
+            },
+            follow_up: $follow_up
         }'
 }
 
@@ -970,8 +1063,8 @@ status_marker() {
 output_json_result() {
     local status="$1"
     local message="$2"
-    local sessions_json="$3"
-    local summary_json="$4"
+    local sessions_file="$3"
+    local summary_file="$4"
 
     jq -n \
         --arg status "$status" \
@@ -982,8 +1075,8 @@ output_json_result() {
         --arg since_filter "$SINCE_FILTER" \
         --argjson all "$ALL" \
         --argjson summary_only "$SUMMARY_ONLY" \
-        --argjson sessions "$sessions_json" \
-        --argjson summary "$summary_json" \
+        --slurpfile sessions "$sessions_file" \
+        --slurpfile summary "$summary_file" \
         '{
             status: $status,
             message: $message,
@@ -995,27 +1088,32 @@ output_json_result() {
                 since: (if $since_filter == "" then null else $since_filter end),
                 summary_only: $summary_only
             },
-            summary: $summary,
-            sessions: $sessions
+            summary: ($summary[0] // {}),
+            sessions: ($sessions[0] // [])
         }'
 }
 
 output_human_result() {
-    local sessions_json="$1"
-    local summary_json="$2"
+    local sessions_file="$1"
+    local summary_file="$2"
 
     echo ""
     echo "Session audit"
     echo "============================================"
     echo "Selection: ${SELECTION_MODE}"
-    echo "Sessions audited: $(echo "$summary_json" | jq -r '.total_sessions')"
-    echo "Overall: pass $(echo "$summary_json" | jq -r '.overall.pass'), warning $(echo "$summary_json" | jq -r '.overall.warning'), fail $(echo "$summary_json" | jq -r '.overall.fail')"
+    echo "Sessions audited: $(jq -r '.total_sessions' "$summary_file")"
+    echo "Overall: pass $(jq -r '.overall.pass' "$summary_file"), warning $(jq -r '.overall.warning' "$summary_file"), fail $(jq -r '.overall.fail' "$summary_file")"
 
     local workflows_line
-    workflows_line=$(echo "$summary_json" | jq -r '.workflows | to_entries | map("\(.key)=\(.value)") | join(", ")')
+    workflows_line=$(jq -r '.workflows | to_entries | map("\(.key)=\(.value)") | join(", ")' "$summary_file")
     if [[ -n "$workflows_line" ]]; then
         echo "Workflows: ${workflows_line}"
     fi
+
+    echo "Missing/thin artifacts: $(jq -r '.follow_up.artifact_sessions' "$summary_file") session(s)"
+    echo "Missing/unavailable validation evidence: $(jq -r '.follow_up.validation_sessions' "$summary_file") session(s)"
+    echo "Incomplete non-[SKIP] tasks: $(jq -r '.follow_up.incomplete_task_sessions' "$summary_file") session(s), $(jq -r '.follow_up.incomplete_tasks' "$summary_file") task(s)"
+    echo "Weak/missing handoff content: $(jq -r '.follow_up.handoff_sessions' "$summary_file") session(s)"
 
     if $SUMMARY_ONLY; then
         echo ""
@@ -1023,10 +1121,10 @@ output_human_result() {
     fi
 
     local session_count
-    session_count=$(echo "$sessions_json" | jq 'length')
+    session_count=$(jq 'length' "$sessions_file")
     if [[ "$session_count" -eq 1 ]]; then
         local session_json
-        session_json=$(echo "$sessions_json" | jq '.[0]')
+        session_json=$(jq '.[0]' "$sessions_file")
 
         echo ""
         echo "$(echo "$session_json" | jq -r '.id') [$(echo "$session_json" | jq -r '.workflow')] — $(echo "$session_json" | jq -r '.overall_status')"
@@ -1036,20 +1134,20 @@ output_human_result() {
         while IFS=$'\t' read -r check_status check_name check_message; do
             [[ -n "$check_name" ]] || continue
             printf "  %s %s: %s\n" "$(status_marker "$check_status")" "$check_name" "$check_message"
-        done < <(echo "$session_json" | jq -r '.checks[] | [.status, .check, .message] | @tsv')
+        done < <(jq -r '.checks[] | [.status, .check, .message] | @tsv' <<< "$session_json")
     else
         echo ""
         while IFS=$'\t' read -r session_id workflow overall_status check_summary; do
             [[ -n "$session_id" ]] || continue
             printf "  %s [%s] %s\n" "$session_id" "$workflow" "$overall_status"
             printf "    %s\n" "$check_summary"
-        done < <(echo "$sessions_json" | jq -r '
+        done < <(jq -r '
             .[] | [
                 .id,
                 .workflow,
                 .overall_status,
                 (.checks | map("\( .check )=\( .status )") | join(", "))
-            ] | @tsv')
+            ] | @tsv' "$sessions_file")
     fi
 
     echo ""
@@ -1059,13 +1157,15 @@ main() {
     parse_args "$@"
     validate_args
 
-    local selected_dirs
-    selected_dirs=$(select_session_dirs)
+    local selected_dirs sessions_file summary_file
+    select_session_dirs
+    selected_dirs="$SELECTED_SESSION_DIRS"
+    sessions_file=$(mktemp)
+    summary_file=$(mktemp)
 
     if [[ -z "$selected_dirs" ]]; then
-        local empty_sessions='[]'
-        local empty_summary
-        empty_summary=$(jq -n '{
+        printf '[]\n' > "$sessions_file"
+        jq -n '{
             total_sessions: 0,
             overall: {pass: 0, warning: 0, fail: 0},
             workflows: {},
@@ -1076,13 +1176,21 @@ main() {
                 validation: {pass: 0, warning: 0, fail: 0, unavailable: 0, skipped: 0},
                 handoff: {pass: 0, warning: 0, fail: 0},
                 efficiency: {info: 0, unavailable: 0}
+            },
+            follow_up: {
+                artifact_sessions: 0,
+                validation_sessions: 0,
+                incomplete_task_sessions: 0,
+                incomplete_tasks: 0,
+                handoff_sessions: 0
             }
-        }')
+        }' > "$summary_file"
         if $JSON_OUTPUT; then
-            output_json_result "warning" "No sessions matched the requested selection" "$empty_sessions" "$empty_summary"
+            output_json_result "warning" "No sessions matched the requested selection" "$sessions_file" "$summary_file"
         else
             print_warning "No sessions matched the requested selection"
         fi
+        rm -f "$sessions_file" "$summary_file"
         return
     fi
 
@@ -1094,18 +1202,18 @@ main() {
         audit_session "$session_dir" >> "$tmp_file"
     done <<< "$selected_dirs"
 
-    local sessions_json
-    sessions_json=$(jq -s '.' "$tmp_file")
+    jq -s '.' "$tmp_file" > "$sessions_file"
     rm -f "$tmp_file"
 
-    local summary_json
-    summary_json=$(build_summary_json "$sessions_json")
+    build_summary_json "$sessions_file" > "$summary_file"
 
     if $JSON_OUTPUT; then
-        output_json_result "ok" "Session audit complete" "$sessions_json" "$summary_json"
+        output_json_result "ok" "Session audit complete" "$sessions_file" "$summary_file"
     else
-        output_human_result "$sessions_json" "$summary_json"
+        output_human_result "$sessions_file" "$summary_file"
     fi
+
+    rm -f "$sessions_file" "$summary_file"
 }
 
 main "$@"

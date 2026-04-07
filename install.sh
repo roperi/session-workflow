@@ -426,16 +426,21 @@ install_bootstrap() {
             echo "" >> .github/copilot-instructions.md
             echo "**Agents:**" >> .github/copilot-instructions.md
             echo "- \`invoke session.start --issue N\` — Development session from GitHub issue (planning phase by default)" >> .github/copilot-instructions.md
-            echo "- \`invoke session.start --auto --issue N\` — Auto through \`publish\`, then stop for manual/custom review" >> .github/copilot-instructions.md
+            echo "- \`invoke session.start --brainstorm \"description\"\` — Start a development/spike session with an upfront brainstorm before scope/plan" >> .github/copilot-instructions.md
+            echo "- \`invoke session.start --auto --issue N\` — Auto until the next human gate; otherwise through \`publish\`, then stop for manual/custom review" >> .github/copilot-instructions.md
             echo "- \`invoke session.start --auto --copilot-review --issue N\` — Full auto with Copilot review before merge" >> .github/copilot-instructions.md
             echo "- \`invoke session.start --spec 001-feature\` — Spec Kit session" >> .github/copilot-instructions.md
             echo "- \`invoke session.start \"description\"\` — Development session (positional description)" >> .github/copilot-instructions.md
             echo "- \`invoke session.start --spike \"description\"\` — Spike/research (no PR)" >> .github/copilot-instructions.md
+            echo "- \`invoke session.start --debug \"description\"\` — Debug/troubleshooting session (no PR by default)" >> .github/copilot-instructions.md
+            echo "- \`invoke session.start --operational \"description\"\` — Operational batch/pipeline session (feature branch, no PR by default)" >> .github/copilot-instructions.md
             echo "- \`invoke session.start --resume\` — Resume active session" >> .github/copilot-instructions.md
-            echo "- \`invoke session.audit --all\` — Audit recorded sessions deterministically" >> .github/copilot-instructions.md
             echo "- \`invoke session.review\` — Run the default or overridden custom review agent after publish" >> .github/copilot-instructions.md
             echo "- \`invoke session.finalize\` — Post-merge cleanup (after PR merge)" >> .github/copilot-instructions.md
             echo "- \`invoke session.wrap\` — End session" >> .github/copilot-instructions.md
+            echo "" >> .github/copilot-instructions.md
+            echo "**Utilities:**" >> .github/copilot-instructions.md
+            echo "- \`./.session/scripts/bash/session-audit.sh --all --summary\` — Deterministic post-session audit script; run it directly from the shell and share the report if you want AI help interpreting it" >> .github/copilot-instructions.md
             echo "" >> .github/copilot-instructions.md
             echo "**Project context:**" >> .github/copilot-instructions.md
             echo "- \`.session/project-context/technical-context.md\` - Stack, build/test commands" >> .github/copilot-instructions.md
@@ -710,7 +715,6 @@ install_agents() {
         "session.scope.agent.md"
         "session.spec.agent.md"
         "session.review.agent.md"
-        "session.audit.agent.md"
     )
     
     mkdir -p .github/agents
@@ -746,7 +750,6 @@ install_prompts() {
         "session.scope.prompt.md"
         "session.spec.prompt.md"
         "session.review.prompt.md"
-        "session.audit.prompt.md"
     )
     
     mkdir -p .github/prompts

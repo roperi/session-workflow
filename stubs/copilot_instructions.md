@@ -23,10 +23,12 @@ Use `next.md` as the structured follow-up artifact for the next session. Keep `n
 - `invoke session.start --debug "description"` — Debug/troubleshooting session (no PR by default)
 - `invoke session.start --operational "description"` — Operational batch/pipeline session (feature branch, no PR by default)
 - `invoke session.start --resume` — Resume active session
-- `invoke session.audit --all` — Audit recorded sessions deterministically
 - `invoke session.review` — Run the default or overridden custom review agent after publish
 - `invoke session.finalize` — Post-merge cleanup (after PR merge)
 - `invoke session.wrap` — End session
+
+**Utilities:**
+- `./.session/scripts/bash/session-audit.sh --all --summary` — Deterministic post-session audit script; run it directly from the shell and share the report if you want AI help interpreting it
 
 **Project context:**
 - `.session/project-context/technical-context.md` - Stack, build/test commands

@@ -68,6 +68,124 @@ install_session_workflow_into_repo() {
 EOF
 }
 
+write_audit_fixture_session() {
+  local session_dir="$1"
+  local session_id="$2"
+  local workflow="${3:-development}"
+  local state_schema="${4:-1.2}"
+  local step_count="${5:-6}"
+
+  mkdir -p "$session_dir"
+
+  cat > "${session_dir}/session-info.json" <<EOF
+{
+  "schema_version": "2.2",
+  "session_id": "${session_id}",
+  "type": "unstructured",
+  "workflow": "${workflow}",
+  "stage": "production",
+  "created_at": "2026-03-01T00:00:00Z",
+  "goal": "Synthetic audit fixture"
+}
+EOF
+
+  cat > "${session_dir}/tasks.md" <<'EOF'
+# Tasks
+
+- [x] T001 Synthetic completed task
+EOF
+
+  cat > "${session_dir}/notes.md" <<'EOF'
+# Session Notes
+
+## Summary
+
+Synthetic audit fixture.
+
+## For Next Session
+- Nothing pending.
+EOF
+
+  cat > "${session_dir}/next.md" <<'EOF'
+# Next Session
+
+- Nothing pending.
+EOF
+
+  cat > "${session_dir}/plan.md" <<'EOF'
+# Plan
+
+- Synthetic audit fixture
+EOF
+
+  cat > "${session_dir}/scope.md" <<'EOF'
+# Scope
+
+- Synthetic audit fixture
+EOF
+
+  cat > "${session_dir}/spec.md" <<'EOF'
+# Spec
+
+- [x] Synthetic acceptance criterion
+EOF
+
+  jq -n \
+    --arg schema_version "$state_schema" \
+    --arg session_id "$session_id" \
+    --argjson step_count "$step_count" \
+    '{
+      schema_version: $schema_version,
+      session_id: $session_id,
+      status: "completed",
+      started_at: "2026-03-01T00:00:00Z",
+      ended_at: "2026-03-01T00:10:00Z",
+      tasks: {
+        total: 1,
+        completed: 1,
+        current: null
+      },
+      git: {
+        branch: "main",
+        last_commit: "abc1234"
+      },
+      notes_summary: "Synthetic audit fixture",
+      step_history: (
+        [{
+          step: "start",
+          status: "completed",
+          started_at: "2026-03-01T00:00:00Z",
+          ended_at: "2026-03-01T00:00:01Z",
+          forced: false
+        }] + [
+          range(0; $step_count) | {
+            step: ("synthetic-step-\(.)"),
+            status: "completed",
+            started_at: "2026-03-01T00:00:00Z",
+            ended_at: "2026-03-01T00:00:01Z",
+            forced: false
+          }
+        ]
+      ),
+      pause: {
+        active: false,
+        kind: null,
+        step: null,
+        task_id: null,
+        summary: null,
+        required_action: null,
+        resume_command: null,
+        created_at: null,
+        cleared_at: null,
+        notes: null
+      },
+      current_step: "wrap",
+      step_status: "completed",
+      step_started_at: "2026-03-01T00:00:00Z",
+      step_updated_at: "2026-03-01T00:10:00Z"
+    }' > "${session_dir}/state.json"
+}
+
 seed_fixture_repo() {
   local repo_root="$1"
   (
@@ -316,6 +434,65 @@ EOF
   assert_eq "$validate_state_id" "$(echo "$validate_audit_json" | jq -r '.sessions[0].id')" "session-audit should return the requested session"
   assert_eq "session" "$(echo "$validate_audit_json" | jq -r '.sessions[0].checks[] | select(.check == "validation") | .details.source')" "session-audit should prefer the session-scoped validation summary"
   assert_eq "pass" "$(echo "$validate_audit_json" | jq -r '.sessions[0].checks[] | select(.check == "validation") | .status')" "session-audit should report persisted passing validation results"
+  echo "$validate_audit_json" | jq -e '.summary.follow_up' >/dev/null \
+    || fail "session-audit JSON summary should expose follow_up counts"
+
+  # 7g) session-audit summary surfaces the key follow-up dimensions
+  log "7g) session-audit summary surfaces key follow-up dimensions"
+  local validate_audit_summary
+  validate_audit_summary=$(./.session/scripts/bash/session-audit.sh --summary --session "$validate_state_id")
+  echo "$validate_audit_summary" | grep -q "Missing/thin artifacts:" \
+    || fail "session-audit summary should surface artifact follow-up counts"
+  echo "$validate_audit_summary" | grep -q "Missing/unavailable validation evidence:" \
+    || fail "session-audit summary should surface validation follow-up counts"
+  echo "$validate_audit_summary" | grep -q "Incomplete non-\\[SKIP\\] tasks:" \
+    || fail "session-audit summary should surface incomplete task follow-up counts"
+  echo "$validate_audit_summary" | grep -q "Weak/missing handoff content:" \
+    || fail "session-audit summary should surface handoff follow-up counts"
+
+  # 7h) session-audit handles large --all JSON output and suppresses schema-warning floods
+  log "7h) session-audit handles large --all JSON output without schema-warning floods"
+  local fixture_dir fixture_id audit_all_err audit_all_json audit_all_exit expected_total
+
+  cat > .session/validation-results.json <<'EOF'
+{
+  "timestamp": "2026-03-01T00:00:00Z",
+  "session_id": "unrelated-session",
+  "overall": "pass",
+  "can_publish": true,
+  "validation_checks": []
+}
+EOF
+
+  for n in $(seq 1 2); do
+    fixture_id=$(printf '2026-02-%02d-1' "$n")
+    fixture_dir=".session/sessions/2026-02/${fixture_id}"
+    write_audit_fixture_session "$fixture_dir" "$fixture_id" "development" "1.1" 12
+  done
+
+  for n in $(seq 1 20); do
+    fixture_id=$(printf '2026-01-%02d-9' "$n")
+    fixture_dir=".session/sessions/2026-01/${fixture_id}"
+    write_audit_fixture_session "$fixture_dir" "$fixture_id" "development" "1.2" 500
+  done
+
+  expected_total=$(find .session/sessions -mindepth 2 -maxdepth 2 -type d | wc -l | tr -d ' ')
+  audit_all_err=$(mktemp)
+  set +e
+  audit_all_json=$(./.session/scripts/bash/session-audit.sh --all --json 2>"$audit_all_err")
+  audit_all_exit=$?
+  set -e
+  assert_eq "0" "$audit_all_exit" "session-audit --all --json should succeed for large histories"
+  assert_eq "ok" "$(echo "$audit_all_json" | jq -r '.status')" "session-audit should return ok status for large histories"
+  assert_eq "all" "$(echo "$audit_all_json" | jq -r '.selection.mode')" "session-audit should preserve all-selection mode"
+  assert_eq "$expected_total" "$(echo "$audit_all_json" | jq -r '.summary.total_sessions')" "session-audit should report every selected session"
+  if grep -q "Schema version mismatch" "$audit_all_err"; then
+    fail "session-audit should not flood stderr with schema mismatch warnings"
+  fi
+  if grep -q "Argument list too long" "$audit_all_err"; then
+    fail "session-audit should not overflow jq arguments on large histories"
+  fi
+  rm -f "$audit_all_err"
 
   # 8) Start a chained session with git context scaffold
   log "8) session-start --continues-from + --git-context"
@@ -1474,28 +1651,38 @@ EOF
   grep -q "Added an \`operational\` workflow" "$ROOT_DIR/CHANGELOG.md" \
     || fail "CHANGELOG should record the new operational workflow"
 
-  # 59) session.audit and validation-summary surfaces are wired into docs and installers
-  log "59) session.audit and validation summary surfaces are documented"
-  assert_file_exists "$ROOT_DIR/github/agents/session.audit.agent.md"
-  assert_file_exists "$ROOT_DIR/github/prompts/session.audit.prompt.md"
+  # 59) session-audit.sh and validation-summary surfaces are wired into docs and installers
+  log "59) session-audit.sh and validation summary surfaces are documented"
   grep -q "session-audit.sh" "$ROOT_DIR/install.sh" \
     || fail "install.sh should install the session-audit script"
   grep -q "session-audit.sh" "$ROOT_DIR/update.sh" \
     || fail "update.sh should update the session-audit script"
-  grep -q "session.audit.agent.md" "$ROOT_DIR/install.sh" \
-    || fail "install.sh should install the session.audit agent"
-  grep -q "session.audit.prompt.md" "$ROOT_DIR/update.sh" \
-    || fail "update.sh should update the session.audit prompt"
-  grep -q "invoke session.audit" "$ROOT_DIR/README.md" \
-    || fail "README should document session.audit"
-  grep -q "#### session.audit" "$ROOT_DIR/session/docs/reference.md" \
-    || fail "reference docs should document session.audit"
+  [[ ! -f "$ROOT_DIR/github/agents/session.audit.agent.md" ]] \
+    || fail "session.audit agent should no longer be shipped"
+  [[ ! -f "$ROOT_DIR/github/prompts/session.audit.prompt.md" ]] \
+    || fail "session.audit prompt should no longer be shipped"
+  if grep -q "session.audit.agent.md" "$ROOT_DIR/install.sh"; then
+    fail "install.sh should not install the removed session.audit agent"
+  fi
+  if grep -q "session.audit.prompt.md" "$ROOT_DIR/update.sh"; then
+    fail "update.sh should not update the removed session.audit prompt"
+  fi
+  grep -q "./.session/scripts/bash/session-audit.sh --all --summary" "$ROOT_DIR/README.md" \
+    || fail "README should document the direct session-audit.sh entrypoint"
+  grep -q "#### session-audit.sh" "$ROOT_DIR/session/docs/reference.md" \
+    || fail "reference docs should document session-audit.sh as a script"
   grep -q "VALIDATION_RESULTS_SCHEMA_VERSION" "$ROOT_DIR/session/docs/schema-versioning.md" \
     || fail "schema docs should document validation-results.json schema version"
-  grep -q "invoke session.audit" "$ROOT_DIR/.github/copilot-instructions.md" \
-    || fail "copilot instructions should mention session.audit"
-  grep -q "invoke session.audit" "$ROOT_DIR/stubs/copilot_instructions.md" \
-    || fail "copilot instructions stub should mention session.audit"
+  grep -q "./.session/scripts/bash/session-audit.sh --all --summary" "$ROOT_DIR/.github/copilot-instructions.md" \
+    || fail "copilot instructions should mention the direct session-audit.sh utility"
+  grep -q "./.session/scripts/bash/session-audit.sh --all --summary" "$ROOT_DIR/stubs/copilot_instructions.md" \
+    || fail "copilot instructions stub should mention the direct session-audit.sh utility"
+  if grep -q "invoke session.audit" "$ROOT_DIR/.github/copilot-instructions.md"; then
+    fail "copilot instructions should not advertise session.audit as an agent"
+  fi
+  if grep -q "invoke session.audit" "$ROOT_DIR/stubs/copilot_instructions.md"; then
+    fail "copilot instructions stub should not advertise session.audit as an agent"
+  fi
   grep -q "NEW (#50)" "$ROOT_DIR/CHANGELOG.md" \
     || fail "CHANGELOG should record the session.audit feature"
 }

@@ -166,10 +166,12 @@ invoke session.finalize
 **Post-session audit (read-only evaluation of recorded session history):**
 
 ```bash
-invoke session.audit
-invoke session.audit --all --summary
-invoke session.audit --workflow development --since 2026-01-01
+./.session/scripts/bash/session-audit.sh
+./.session/scripts/bash/session-audit.sh --all --summary
+./.session/scripts/bash/session-audit.sh --workflow development --since 2026-01-01
 ```
+
+Run the audit directly from your shell. It is a deterministic script, not a session agent. Use `--json` when you want a machine-readable report to inspect yourself or share with an AI assistant for interpretation.
 
 **Other workflows:**
 

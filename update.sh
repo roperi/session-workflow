@@ -340,7 +340,6 @@ update_agents() {
         "session.scope.agent.md"
         "session.spec.agent.md"
         "session.review.agent.md"
-        "session.audit.agent.md"
     )
 
     for agent in "${agents[@]}"; do
@@ -370,7 +369,6 @@ update_prompts() {
         "session.scope.prompt.md"
         "session.spec.prompt.md"
         "session.review.prompt.md"
-        "session.audit.prompt.md"
     )
 
     for prompt in "${prompts[@]}"; do
@@ -451,16 +449,21 @@ See `.session/docs/README.md` for quick reference.
 
 **Agents:**
 - `invoke session.start --issue N` — Development session from GitHub issue (planning phase by default)
-- `invoke session.start --auto --issue N` — Auto through `publish`, then stop for manual/custom review
+- `invoke session.start --brainstorm "description"` — Start a development/spike session with an upfront brainstorm before scope/plan
+- `invoke session.start --auto --issue N` — Auto until the next human gate; otherwise through `publish`, then stop for manual/custom review
 - `invoke session.start --auto --copilot-review --issue N` — Full auto with Copilot review before merge
 - `invoke session.start --spec 001-feature` — Spec Kit session
 - `invoke session.start "description"` — Development session (positional description)
 - `invoke session.start --spike "description"` — Spike/research (no PR)
+- `invoke session.start --debug "description"` — Debug/troubleshooting session (no PR by default)
+- `invoke session.start --operational "description"` — Operational batch/pipeline session (feature branch, no PR by default)
 - `invoke session.start --resume` — Resume active session
-- `invoke session.audit --all` — Audit recorded sessions deterministically
 - `invoke session.review` — Run the default or overridden custom review agent after publish
 - `invoke session.finalize` — Post-merge cleanup (after PR merge)
 - `invoke session.wrap` — End session
+
+**Utilities:**
+- `./.session/scripts/bash/session-audit.sh --all --summary` — Deterministic post-session audit script; run it directly from the shell and share the report if you want AI help interpreting it
 
 **Project context:**
 - `.session/project-context/technical-context.md` - Stack, build/test commands
