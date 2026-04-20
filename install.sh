@@ -20,6 +20,11 @@ YELLOW='\033[1;33m'
 BLUE='\033[0;34m'
 NC='\033[0m' # No Color
 
+warn() { echo -e "${YELLOW}[WARN]${NC} $1"; }
+error() { echo -e "${RED}[ERROR]${NC} $1" >&2; exit 1; }
+info() { echo -e "${BLUE}[INFO]${NC} $1"; }
+success() { echo -e "${GREEN}[SUCCESS]${NC} $1"; }
+
 # Detected environment (populated by detect_* functions)
 DETECTED_STAGE=""
 DETECTED_ENV=""
@@ -36,7 +41,6 @@ PROJECT_ROOT=""
 info() { echo -e "${BLUE}[INFO]${NC} $1"; }
 success() { echo -e "${GREEN}[OK]${NC} $1"; }
 warn() { echo -e "${YELLOW}[WARN]${NC} $1"; }
-error() { echo -e "${RED}[ERROR]${NC} $1"; exit 1; }
 
 check_prerequisites() {
     # Must be in a git repository
@@ -898,3 +902,12 @@ main() {
 }
 
 main "$@"
+
+# Install git hooks
+info "Installing git hooks..."
+REPO_ROOT="$(git rev-parse --show-toplevel)"
+HOOKS_DIR="$(git -C "$REPO_ROOT" rev-parse --path-format=absolute --git-path hooks)"
+mkdir -p "$HOOKS_DIR"
+cp "$REPO_ROOT/.git-hooks/pre-commit" "$HOOKS_DIR/pre-commit"
+chmod +x "$HOOKS_DIR/pre-commit"
+success "Git hooks installed to $HOOKS_DIR."
