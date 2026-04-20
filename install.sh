@@ -36,7 +36,6 @@ PROJECT_ROOT=""
 info() { echo -e "${BLUE}[INFO]${NC} $1"; }
 success() { echo -e "${GREEN}[OK]${NC} $1"; }
 warn() { echo -e "${YELLOW}[WARN]${NC} $1"; }
-error() { echo -e "${RED}[ERROR]${NC} $1"; exit 1; }
 
 check_prerequisites() {
     # Must be in a git repository
@@ -898,3 +897,10 @@ main() {
 }
 
 main "$@"
+
+# Install git hooks
+echo "Installing git hooks..."
+mkdir -p .git/hooks
+ln -sf "../../.git-hooks/pre-commit" ".git/hooks/pre-commit"
+chmod +x .git/hooks/pre-commit
+echo "Git hooks installed."
