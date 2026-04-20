@@ -1481,6 +1481,8 @@ EOF
   (
     cd fresh-install-repo
     git init -q
+    mkdir -p .git-hooks
+    cp "$ROOT_DIR/.git-hooks/pre-commit" .git-hooks/pre-commit
     SESSION_WORKFLOW_SOURCE_DIR="$ROOT_DIR" bash "$ROOT_DIR/install.sh" >/dev/null
     grep -qxF ".session/ACTIVE_SESSION" .gitignore \
       || fail "install should ignore ACTIVE_SESSION"
