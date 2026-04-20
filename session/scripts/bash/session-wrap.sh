@@ -157,7 +157,11 @@ list_dirty_paths() {
 
 is_wrap_managed_path() {
     local session_dir="${1#./}"
-    local path="${3#./}"
+    local path_arg="${2-}"
+    if [[ -z "$path_arg" && $# -ge 3 ]]; then
+        path_arg="${3-}"
+    fi
+    local path="${path_arg#./}"
 
     case "$path" in
         "${SESSIONS_DIR#./}"|"${SESSIONS_DIR#./}"/*)

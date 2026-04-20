@@ -82,8 +82,17 @@ rm -f unrelated.txt  # cleanup after the expected failure
 
 ### Test 5: Standardize Pathing
 
-- Ensure all artifacts are created in `{session_dir}`
-- Verify no Speckit path paths or directories are created
+**Command:**
+```bash
+# Verify artifact paths
+ls -R .session/sessions/
+```
+
+**Expected:**
+- Artifacts (scope.md, spec.md, tasks.md) appear in the correct `{session_dir}`
+- No `specs/` directory or paths are created
+
+**Result:** ✅ Pass
 
 ---
 
