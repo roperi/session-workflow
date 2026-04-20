@@ -2,7 +2,7 @@
 
 🤖 **Optimized for [GitHub Copilot CLI](https://docs.github.com/en/copilot)** — leverages Copilot's agent invocation, sub-agent orchestration, and code review tools. Works with all models available in Copilot CLI (GPT, Claude, Gemini).
 
-📝 **Changelog**: [CHANGELOG.md](CHANGELOG.md)
+📝 **Changelog**: [CHANGELOG.md](CHANGELOG.md) | ⚖️ **License**: [MIT](LICENSE) | 🤝 **Contributing**: [CONTRIBUTING.md](CONTRIBUTING.md)
 
 > ⚠️ Other CLIs (Claude Code, Gemini CLI standalone) are unverified and may require adjustments.
 
@@ -16,6 +16,22 @@ When AI context windows reset, work continuity is lost. Session workflow solves 
 2. **Handoff artifacts** — `notes.md` plus a dedicated `next.md` for the next AI session
 3. **Agent chain** — Structured workflow from scoping to delivery
 4. **Git hygiene** — Ensures clean state before session ends
+
+---
+
+## Prerequisites
+
+To use or contribute to this project, you need the following dependencies:
+
+- **Bash 4.4+**
+- **jq**: For processing JSON session state and manifests.
+- **shellcheck**: (Development) For linting bash scripts.
+- **git**: For session tracking and archival.
+
+Install on Debian/Ubuntu:
+```bash
+sudo apt-get update && sudo apt-get install -y jq shellcheck git
+```
 
 **Agent Chain**: `start → [brainstorm] → scope → spec → plan → task → execute → validate → publish → [review] → finalize → wrap`
 
