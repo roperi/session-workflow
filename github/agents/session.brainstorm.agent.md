@@ -53,7 +53,6 @@ Read (when present):
 - Session notes: `{session_dir}/notes.md`
 - Session info: `{session_dir}/session-info.json`
 - For GitHub issue sessions: issue title/body
-- For Speckit: `specs/<feature>/spec.md` and `specs/<feature>/plan.md`
 - Project context: `.session/project-context/technical-context.md` and `constitution-summary.md`
 
 ### 3) Ask missing critical questions (minimal)
@@ -71,7 +70,6 @@ session_id: {SESSION_ID}
 type: brainstorm
 related:
   issue: {#123 or null}
-  spec: {spec id or null}
 status: draft
 ---
 

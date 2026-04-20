@@ -61,9 +61,9 @@ This agent assumes **session.start** has already run. If not, you will not have 
 
 Expected session variables from session-info.json:
 - `session_id` - Session identifier (e.g., "2025-12-21-1")
-- `type` - "speckit" | "github_issue" | "unstructured"
+- `type` - "github_issue" | "unstructured"
 - `workflow` - "development" | "spike"
-- `issue_number` or `spec_id` (if applicable)
+- `issue_number` (if applicable)
 
 **⚠️ NEVER manually construct session directory paths.** Always read from `.session/ACTIVE_SESSION`.
 
@@ -171,65 +171,7 @@ If none exists, proceed normally (do NOT create one automatically).
 
 ### 3. Branch Based on Session Type
 
-#### A. Speckit Session Path
-
-For Speckit sessions, plan already exists in `specs/{feature}/plan.md`.
-
-1. **Run prerequisites check**:
-   ```bash
-   .specify/scripts/bash/check-prerequisites.sh --json --require-tasks --include-tasks
-   ```
-
-2. **Load Speckit artifacts**:
-   - **REQUIRED**: Read `{FEATURE_DIR}/plan.md` for tech stack and architecture
-   - **OPTIONAL**: Read `{FEATURE_DIR}/spec.md` for requirements
-   - **OPTIONAL**: Read `{FEATURE_DIR}/data-model.md` (if exists)
-   - **OPTIONAL**: Read `{FEATURE_DIR}/contracts/` API specs (if exists)
-   - **OPTIONAL**: Read `{FEATURE_DIR}/research.md` (if exists)
-
-3. **Validate checklists** (if FEATURE_DIR/checklists/ exists):
-   - Count complete vs incomplete items
-   - **If any checklist incomplete**: Ask user to proceed or wait
-
-4. **Write plan reference to `{session_dir}/plan.md`**:
-   ```bash
-   cat > "$SESSION_DIR/plan.md" << EOF
-# Implementation Plan
-
-Plan managed in Speckit: \`{FEATURE_DIR}/plan.md\`
-
-**Tech Stack**: {from plan.md}
-**Architecture**: {summary from plan.md}
-EOF
-   ```
-
-   Also add a cross-reference in session notes (idempotent — skip if already present):
-   ```bash
-   if ! grep -q "^## Plan" "$SESSION_DIR/notes.md" 2>/dev/null; then
-     cat >> "$SESSION_DIR/notes.md" << EOF
-
-## Plan
-See \`plan.md\` for implementation plan (references Speckit plan).
-EOF
-   fi
-   ```
-
-5. **Display summary**:
-   ```
-   ✅ Speckit plan loaded
-
-   Feature: {feature-name}
-   Plan: {FEATURE_DIR}/plan.md
-   
-   Plan complete. Returning results to orchestrating agent.
-
-   Incomplete tasks:
-   - [ ] T146 Create useProjectModels.ts
-   - [ ] T147 Implement hook to fetch project models
-   ...
-   ```
-
-#### B. GitHub Issue Session Path
+#### A. GitHub Issue Session Path
 
 **Create implementation plan from issue details.**
 
@@ -298,7 +240,7 @@ EOF
    Plan complete. Returning results to orchestrating agent.
    ```
 
-#### C. Unstructured Session Path
+#### B. Unstructured Session Path
 
 **Create implementation plan from goal description.**
 
@@ -366,7 +308,7 @@ Display final summary with handoff suggestion:
 ✅ Session planning complete
 
 Session: $SESSION_ID
-Type: {speckit|github_issue|unstructured}
+Type: {github_issue|unstructured}
 Plan: Written to plan.md
 
 Plan complete — proceeding to task generation.
@@ -417,7 +359,6 @@ Include:
 
 ## Notes
 
-- **Speckit sessions**: Reference existing plan, don't duplicate
 - **GitHub issues**: Create plan from issue content
 - **Unstructured**: Create plan from goal
 - **Auto-chain**: After plan completion, proceed directly to session.task

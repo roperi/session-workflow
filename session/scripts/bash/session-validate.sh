@@ -213,30 +213,12 @@ get_test_command() {
 # ============================================================================
 
 resolve_spec_file() {
-    # Find spec.md for the active session.
-    # For speckit sessions: specs/<feature>/spec.md
-    # For other sessions: <session_dir>/spec.md
+    # Find spec.md for the active session in the session directory.
     # Args: session_id
     # Returns: path to spec.md or empty string
     local session_id="$1"
     local session_dir
     session_dir=$(get_session_dir "$session_id")
-    local info_file="${session_dir}/session-info.json"
-
-    # Check for speckit session type
-    local session_type=""
-    if [[ -f "$info_file" ]]; then
-        session_type=$(jq -r '.type // ""' "$info_file" 2>/dev/null)
-    fi
-
-    if [[ "$session_type" == "speckit" ]]; then
-        local spec_dir
-        spec_dir=$(jq -r '.spec_dir // ""' "$info_file" 2>/dev/null)
-        if [[ -n "$spec_dir" && -f "${spec_dir}/spec.md" ]]; then
-            echo "${spec_dir}/spec.md"
-            return
-        fi
-    fi
 
     # Default: session directory spec.md
     if [[ -f "${session_dir}/spec.md" ]]; then

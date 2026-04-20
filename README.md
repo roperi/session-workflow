@@ -46,8 +46,6 @@ sudo apt-get update && sudo apt-get install -y jq shellcheck git
 
 > **GitHub ecosystem integration**: `session.start` uses Copilot CLI's task tool for sub-agent orchestration and optionally uses `request_copilot_review` for automated PR reviews. See [Copilot CLI Mechanics](session/docs/copilot-cli-mechanics.md) for internals.
 
-**Spec Kit support**: Integrates with [GitHub Spec Kit](https://github.com/github/spec-kit) — see [SDD Positioning](session/docs/reference.md#sdd-positioning) for details.
-
 ---
 
 ## Installation

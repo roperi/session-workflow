@@ -46,12 +46,8 @@ validate_schema_version "$SESSION_INFO" "$SESSION_INFO_SCHEMA_VERSION"
 # Parse session metadata
 SESSION_TYPE=$(jq -r '.type' "$SESSION_INFO")
 ISSUE_NUMBER=$(jq -r '.issue_number // empty' "$SESSION_INFO")
-PARENT_ISSUE=$(jq -r '.parent_issue // empty' "$SESSION_INFO")
-# Derive FEATURE_ID from spec_dir (session-start.sh writes spec_dir, not feature_id)
-SPEC_DIR_PATH=$(jq -r '.spec_dir // empty' "$SESSION_INFO")
-FEATURE_ID="${SPEC_DIR_PATH#specs/}"
 # Initialize to avoid unbound-variable under set -u if ISSUE_NUMBER is empty
-PHASE_CLOSED=false
+ISSUE_CLOSED=false
 
 # Detect PR number for current branch
 PR_NUMBER=$(gh pr view --json number -q .number 2>/dev/null || echo "")
@@ -116,88 +112,6 @@ EOF
             echo "✅ Session finalized"
             echo "Issue #$ISSUE_NUMBER: Closed"
             echo "PR #$PR_NUMBER: Merged"
-            echo "Tasks: $COMPLETED_TASKS/$TOTAL_TASKS complete"
-        fi
-        ;;
-        
-    "speckit")
-        # Close phase issue
-        if [ -n "$ISSUE_NUMBER" ]; then
-            ISSUE_STATE=$(gh issue view "$ISSUE_NUMBER" --json state -q .state)
-            if [ "$ISSUE_STATE" = "OPEN" ]; then
-                gh issue close "$ISSUE_NUMBER" --comment "✅ Phase complete. All tasks done." >/dev/null 2>&1
-                PHASE_CLOSED=true
-            else
-                PHASE_CLOSED=false
-            fi
-        fi
-        
-        # Update parent issue (if exists)
-        PARENT_UPDATED=false
-        PROGRESS=""
-        if [ -n "$PARENT_ISSUE" ]; then
-            # Note: Parent issue progress update would require parsing checklist
-            # For now, just post a completion comment
-            gh issue comment "$PARENT_ISSUE" --body "Phase #$ISSUE_NUMBER complete via PR #$PR_NUMBER" >/dev/null 2>&1 || true
-            PARENT_UPDATED=true
-            PROGRESS="Comment posted"
-        fi
-        
-        # Mark tasks complete in specs/XXX/tasks.md
-        TASK_FILE="specs/$FEATURE_ID/tasks.md"
-        if [ -f "$TASK_FILE" ]; then
-            TOTAL_TASKS=$(grep -c "^- \[.\] T" "$TASK_FILE" 2>/dev/null || echo "0")
-            COMPLETED_TASKS=$(grep -c "^- \[x\] T" "$TASK_FILE" 2>/dev/null || echo "0")
-        else
-            TOTAL_TASKS=0
-            COMPLETED_TASKS=0
-        fi
-        
-        # Update draft PR description (if multi-phase)
-        PR_DRAFT=$(gh pr view "$PR_NUMBER" --json isDraft -q .isDraft)
-        PR_UPDATED=false
-        # Note: Draft PR description update intentionally skipped
-        # Multi-phase PR description should be managed by the agent
-        
-        # Sync to GitHub Projects
-        SYNCED=false
-        # Note: Project sync would require scripts/sync-task-status.sh to exist
-        # and GitHub Projects to be configured
-        
-        if [ "$JSON_OUTPUT" = true ]; then
-            cat <<EOF
-{
-  "status": "success",
-  "pr_merged": true,
-  "session_type": "speckit",
-  "phase_issue": {
-    "number": ${ISSUE_NUMBER:-null},
-    "closed": $PHASE_CLOSED,
-    "comment_posted": true
-  },
-  "parent_issue": {
-    "number": ${PARENT_ISSUE:-null},
-    "updated": $PARENT_UPDATED,
-    "progress": "$PROGRESS"
-  },
-  "tasks": {
-    "file": "$TASK_FILE",
-    "total": $TOTAL_TASKS,
-    "completed": $COMPLETED_TASKS
-  },
-  "pr": {
-    "number": $PR_NUMBER,
-    "description_updated": $PR_UPDATED,
-    "still_draft": $PR_DRAFT
-  },
-  "synced_to_projects": $SYNCED,
-  "ready_for_wrap": true
-}
-EOF
-        else
-            echo "✅ Phase finalized"
-            echo "Phase issue #$ISSUE_NUMBER: Closed"
-            echo "Parent issue #$PARENT_ISSUE: Updated"
             echo "Tasks: $COMPLETED_TASKS/$TOTAL_TASKS complete"
         fi
         ;;

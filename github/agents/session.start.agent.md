@@ -52,7 +52,6 @@ If no arguments provided, the script will resume an active session or prompt for
 
 **Common invocations:**
 - `.session/scripts/bash/session-start.sh --json --issue 123` - Work on GitHub issue
-- `.session/scripts/bash/session-start.sh --json --spec 001-feature` - Work on Speckit feature  
 - `.session/scripts/bash/session-start.sh --json "Fix the bug"` - Unstructured work (goal as positional arg)
 - `.session/scripts/bash/session-start.sh --json --spike "Explore caching"` - Spike/research session
 - `.session/scripts/bash/session-start.sh --json --brainstorm "Compare caching approaches"` - Development/spike session with an upfront brainstorm before normal planning
@@ -78,7 +77,7 @@ The script creates session directories in the format: `.session/sessions/YYYY-MM
 Extract from the script output:
 - `repo_root` - **Absolute path to repository root. Use this for ALL file operations.**
 - `session.id` - Session identifier (YYYY-MM-DD-N)
-- `session.type` - Type: speckit, github_issue, or unstructured
+- `session.type` - Type: github_issue or unstructured
 - `session.dir` - Directory containing session files (relative to repo_root)
 - `orchestration.brainstorm` - Boolean: true if `--brainstorm` was requested
 - `resume_mode` - Boolean: true if --resume flag was used
@@ -173,9 +172,6 @@ git log --oneline -5
 # For GitHub issues
 git checkout -b fix/issue-{number}-short-description
 
-# For Speckit features
-git checkout -b feat/{feature-id}-short-description
-
 # For unstructured/spike work
 git checkout -b feat/{short-description}
 # or
@@ -226,7 +222,7 @@ Display session summary:
 ✅ Session initialized successfully
 
 Session ID: {session.id}
-Type: {speckit|github_issue|unstructured}
+Type: {github_issue|unstructured}
 Workflow: {development|spike|maintenance|debug|operational}
 Stage: {poc|mvp|production}
 Read-only: {yes|no}

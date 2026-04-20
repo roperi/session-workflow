@@ -38,9 +38,9 @@ This script:
 
 Validation (git clean, notes, tasks, changelog, etc.) is handled by the
 session.wrap prompt, not this script. The script only auto-commits wrap-managed
-paths such as durable session artifacts, CHANGELOG.md, and the resolved tasks.md
-path for Speckit sessions. Volatile .session/sessions/**/state.json files are
-explicitly removed from the archival commit.
+paths such as durable session artifacts and CHANGELOG.md.
+Volatile .session/sessions/**/state.json files are explicitly removed from the
+archival commit.
 
 OPTIONS:
     --json      Output JSON for AI consumption
@@ -157,8 +157,11 @@ list_dirty_paths() {
 
 is_wrap_managed_path() {
     local session_dir="${1#./}"
-    local tasks_file="${2#./}"
-    local path="${3#./}"
+    local path_arg="${2-}"
+    if [[ -z "$path_arg" && $# -ge 3 ]]; then
+        path_arg="${3-}"
+    fi
+    local path="${path_arg#./}"
 
     case "$path" in
         "${SESSIONS_DIR#./}"|"${SESSIONS_DIR#./}"/*)
@@ -175,14 +178,6 @@ is_wrap_managed_path() {
             ;;
     esac
 
-    if [[ -n "$tasks_file" ]]; then
-        case "$path" in
-            "$tasks_file")
-                return 0
-                ;;
-        esac
-    fi
-
     return 1
 }
 
@@ -190,13 +185,11 @@ find_non_wrap_dirty_paths() {
     local session_id="$1"
     local session_dir
     session_dir=$(get_session_dir "$session_id")
-    local tasks_file
-    tasks_file=$(get_wrap_tasks_file "$session_id")
     local path
 
     while IFS= read -r path; do
         [[ -z "$path" ]] && continue
-        if ! is_wrap_managed_path "$session_dir" "$tasks_file" "$path"; then
+        if ! is_wrap_managed_path "$session_dir" "" "$path"; then
             printf '%s\n' "$path"
         fi
     done < <(list_dirty_paths)
@@ -225,19 +218,11 @@ stage_wrap_artifacts() {
     local session_id="$1"
     local session_dir
     session_dir=$(get_session_dir "$session_id")
-    local tasks_file
-    tasks_file=$(get_wrap_tasks_file "$session_id")
 
     if [[ -d "$SESSIONS_DIR" ]]; then
         git add -A -f -- "$SESSIONS_DIR"
     elif [[ -d "$session_dir" ]]; then
         git add -A -f -- "$session_dir"
-    fi
-
-    if [[ -n "$tasks_file" && "$tasks_file" != "${session_dir}/tasks.md" ]]; then
-        if [[ -e "$tasks_file" ]] || git ls-files --error-unmatch "$tasks_file" >/dev/null 2>&1; then
-            git add -A -f -- "$tasks_file"
-        fi
     fi
 
     if [[ -e "CHANGELOG.md" ]] || git ls-files --error-unmatch "CHANGELOG.md" >/dev/null 2>&1; then

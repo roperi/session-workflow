@@ -17,11 +17,7 @@ Detailed documentation for session-workflow. For getting started, see the [READM
 
 ## SDD Positioning
 
-Session-workflow implements a lightweight **Specification-Driven Development (SDD)** process — inspired by [GitHub Spec Kit](https://github.com/github/spec-kit) but designed to work standalone.
-
-### Standalone (Personal / Small Projects)
-
-Session-workflow on its own gives you a structured development loop:
+Session-workflow implements a lightweight **Specification-Driven Development (SDD)** process designed to work standalone. It provides a structured development loop:
 
 - `session.scope` → define problem boundaries and success criteria
 - `session.spec` → write acceptance criteria and verification contracts
@@ -31,42 +27,6 @@ Session-workflow on its own gives you a structured development loop:
 - `session.validate` → automated quality gates
 
 All durable session artifacts live in `.session/sessions/` — no external tooling required.
-
-### With Spec Kit (Teams / Enterprise)
-
-When used with `--spec <feature>`, session-workflow maps its steps into Spec Kit's `specs/<feature>/` structure:
-
-| Artifact | Standalone path | Speckit path |
-|----------|----------------|--------------|
-| Scope | `{session_dir}/scope.md` | `specs/{feature}/scope.md` |
-| Spec | `{session_dir}/spec.md` | `specs/{feature}/spec.md` |
-| Plan | `{session_dir}/plan.md` | `specs/{feature}/plan.md` (reference) |
-| Tasks | `{session_dir}/tasks.md` | `specs/{feature}/tasks.md` |
-
-This lets teams use Spec Kit's review and governance workflow while keeping session-workflow's agent chain for implementation.
-
-### When to Use Which
-
-| Scenario | Recommendation |
-|----------|---------------|
-| Solo developer, quick iteration | Session-workflow standalone |
-| Small team, informal process | Session-workflow standalone |
-| Team with formal spec review | Session-workflow + Spec Kit |
-| Enterprise governance requirements | Session-workflow + Spec Kit |
-| Research / spike | Session-workflow standalone (spike workflow) |
-| Iterative pipeline / batch execution | Session-workflow standalone (operational workflow) |
-
-### SDD Alignment: Session-Workflow ↔ Spec Kit Commands
-
-| Spec Kit Command | Session-Workflow Equivalent | Notes |
-|---|---|---|
-| `/speckit.constitution` | `constitution-summary.md` (project-context) | Quality standards and conventions |
-| `/speckit.specify` | `session.scope` + `session.spec` | Split into boundary-setting and acceptance criteria |
-| `/speckit.clarify` | `session.clarify` (optional) | Requirements disambiguation |
-| `/speckit.plan` | `session.plan` | Implementation approach and architecture |
-| `/speckit.tasks` | `session.task` | Task breakdown with dependencies |
-| `/speckit.implement` | `session.execute` | TDD implementation loop |
-| `/speckit.analyze` | `session.analyze` (optional) | Cross-artifact consistency check |
 
 ---
 
@@ -85,20 +45,19 @@ All chain agents can run either as sub-agents orchestrated by `session.start` or
 ### session.scope
 - Define problem boundaries and success criteria
 - Interactive dialogue to clarify what's in/out of scope
-- Writes `{session_dir}/scope.md` (or `specs/{feature}/scope.md` for speckit sessions)
+- Writes `{session_dir}/scope.md`
 
 ### session.spec
 - Define detailed specification with acceptance criteria
 - Derives user stories from scope, defines Given/When/Then criteria
 - Identifies edge cases, error scenarios, and non-functional requirements
 - Marks ambiguities with `[NEEDS CLARIFICATION]`
-- Writes `{session_dir}/spec.md` (or `specs/{feature}/spec.md` for speckit sessions)
+- Writes `{session_dir}/spec.md`
 - **Only for**: development workflow (skipped in spike and lightweight workflows)
 
 ### session.plan
 - Create implementation plan and approach
 - Analyze requirements and identify components
-- Or reference existing Speckit plan
 
 ### session.task
 - Generate detailed task breakdown
@@ -180,19 +139,16 @@ Use these for requirements hygiene and consistency checks at any time.
 - Ask up to 5 targeted questions to reduce ambiguity
 - Records clarifications in session notes
 - **Best used**: Before `session.task` when requirements are vague
-- **Inspired by**: Speckit's `/speckit.clarify`
 
 #### session.analyze
 - Cross-artifact consistency and coverage analysis
 - **STRICTLY READ-ONLY** - produces report only
 - **Best used**: After `session.task`, before `session.execute`
-- **Inspired by**: Speckit's `/speckit.analyze`
 
 #### session.checklist
 - Generate requirements quality checklists ("unit tests for English")
 - Domain-specific: UX, API, security, performance
 - **Best used**: Before implementation or PR review
-- **Inspired by**: Speckit's `/speckit.checklist`
 
 ### Deterministic Utilities
 
@@ -290,9 +246,8 @@ invoke session.start --stage production --issue 456
 ```bash
 # Session types
 invoke session.start --issue 123           # GitHub issue
-invoke session.start --spec 001-feature    # Speckit feature
 invoke session.start "Fix the bug"         # Unstructured (goal as positional arg)
-
+```
 # Workflow selection
 invoke session.start --spike "Research"          # Spike workflow (explore, no PR)
 invoke session.start --maintenance "Reorder docs/" # Maintenance workflow (small tasks, no branch/PR; stops after execute by default)

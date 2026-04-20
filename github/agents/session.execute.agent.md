@@ -37,7 +37,7 @@ This agent assumes:
 Expected context:
 - Session info in `.session/ACTIVE_SESSION` pointing to active session ID
 - Session directory: `.session/sessions/YYYY-MM/{session-id}/`
-- Tasks defined in session `tasks.md` OR `specs/{feature}/tasks.md` (for Speckit)
+- Tasks defined in session `tasks.md`
 
 **⚠️ NEVER manually construct session directory paths.** Always read from `.session/ACTIVE_SESSION`.
 
@@ -96,7 +96,6 @@ echo "Session type: $SESSION_TYPE"
 ```
 
 Determine task file location:
-- **Speckit**: Tasks in `specs/{feature}/tasks.md`
 - **GitHub issue/unstructured**: Tasks in `$SESSION_DIR/tasks.md`
 
 
@@ -166,8 +165,7 @@ Complete **one task fully** before moving to the next:
    #   pytest             # Python projects
    ```
 5. **Mark complete**: Update task to [x] in tasks file:
-   - For Speckit: Edit `specs/{feature}/tasks.md`
-   - For others: Edit session `tasks.md`
+   - Edit session `tasks.md`
 6. **Commit** with descriptive message including task ID:
    - Stage only the task-relevant source/test/docs files plus any intended durable session artifacts
    - **Never stage `.session/sessions/**/state.json`**; it is volatile workflow bookkeeping
@@ -287,38 +285,7 @@ Options:
 - invoke session.wrap → Skip validation and wrap directly
 ```
 
-### 7. Phase Completion (Speckit Sessions Only)
-
-**When all tasks in a Speckit phase are [x]:**
-
-1. **Verify completion**:
-   - All required tasks marked [x] in `specs/{feature}/tasks.md`
-   - No [SKIP] tasks without justification
-
-2. **Run ALL test suites** (even if phase doesn't touch all areas):
-   ```bash
-   # Run comprehensive tests per project configuration
-   # Check .session/project-context/technical-context.md
-   ```
-
-3. **Validate coverage**:
-   - Check output for coverage percentage
-   - Ensure meets requirements (usually 70-80%+)
-   - Report any coverage drops
-
-4. **Report pre-existing failures** (but don't block):
-   - Note any unrelated test failures
-   - Distinguish from new failures
-
-5. **Verify features match specification**:
-   - Review acceptance criteria from spec.md
-   - Confirm implemented features work as specified
-
-6. **Prepare for validation**:
-   - Phase will be validated and published
-   - Parent issue will be updated in session.finalize
-
-### 8. Report Completion
+### 7. Execution Completion
 
 When all incomplete tasks are done (or pausing for context):
 
@@ -329,8 +296,6 @@ Session: $SESSION_ID
 Completed: {count} tasks
 Commits: {count} commits made
 
-{If Speckit phase complete}:
-Phase {N} complete - all tasks [x]
 Execution complete — ready for validation and publishing.
 
 {If more tasks remain}:

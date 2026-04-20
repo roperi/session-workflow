@@ -17,7 +17,7 @@ tools: ["*"]
 - ❌ Create PRs or publish work (that's `session.publish`)
 - ❌ Modify plan.md, scope.md, or spec.md
 
-**Output**: `{session_dir}/tasks.md` (or `specs/{feature}/tasks.md` for speckit) — nothing else.
+**Output**: `{session_dir}/tasks.md` — nothing else.
 
 ## ⚠️ CRITICAL: Workflow State Tracking
 
@@ -66,7 +66,7 @@ This agent assumes:
 Expected context:
 - Session info in `.session/ACTIVE_SESSION` pointing to active session ID
 - Session directory: `.session/sessions/YYYY-MM/{session-id}/`
-- Plan available (from session.plan output or Speckit)
+- Plan available (from session.plan output)
 
 **⚠️ NEVER manually construct session directory paths.** Always read from `.session/ACTIVE_SESSION`.
 
@@ -104,35 +104,7 @@ echo "Workflow: $WORKFLOW"
 
 ### 2. Branch Based on Session Type
 
-#### A. Speckit Session Path
-
-**DO NOT generate tasks!** For Speckit, tasks already exist in `specs/{feature}/tasks.md`.
-
-1. **Verify tasks exist**:
-   ```bash
-   .specify/scripts/bash/check-prerequisites.sh --json --require-tasks --include-tasks
-   ```
-
-2. **Load and display Speckit tasks**:
-   - Read `{FEATURE_DIR}/tasks.md`
-   - Count phases, tasks per phase
-   - Identify current phase from issue title
-
-3. **Write task reference to session notes**:
-   ```bash
-   cat >> "$SESSION_DIR/notes.md" << EOF
-
-## Task Reference
-
-Tasks managed in Speckit: \`{FEATURE_DIR}/tasks.md\`
-**DO NOT create duplicate tasks.** Edit spec file directly.
-
-EOF
-   ```
-
-4. **Display summary and handoff**
-
-#### B. GitHub Issue / Unstructured Session Path
+#### A. GitHub Issue / Unstructured Session Path
 
 **Generate structured tasks from the plan.**
 
@@ -393,7 +365,6 @@ If plan contains user stories or acceptance criteria:
 
 ## Notes
 
-- **Speckit sessions**: Reference existing tasks, don't generate
 - **GitHub issues**: Generate from issue + plan context
 - **Unstructured**: Generate from goal + plan context
 - **Auto-chain**: After task generation, proceed directly to session.execute

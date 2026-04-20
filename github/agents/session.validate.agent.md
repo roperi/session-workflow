@@ -234,7 +234,7 @@ git diff --cached --stat
 
 ### 6. Task Completion
 
-Check session tasks.md or Speckit tasks.md:
+Check session `tasks.md`:
 - Count [x] vs [ ] tasks
 - Verify all non-[SKIP] tasks complete
 
@@ -245,7 +245,7 @@ Check session tasks.md or Speckit tasks.md:
 **When to run**: Only for development workflow sessions that have a `spec.md` (produced by `session.spec`).
 
 **How it works**:
-1. Locate `spec.md`: session directory for standard sessions, `specs/<feature>/spec.md` for speckit sessions
+1. Locate `spec.md`: session directory `{session_dir}/spec.md`
 2. Parse the **Verification Checklist** section (checkbox items `- [x]` / `- [ ]`)
 3. Compare checked vs unchecked items
 4. Report which criteria are met/unmet

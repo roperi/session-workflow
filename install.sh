@@ -429,7 +429,6 @@ install_bootstrap() {
             echo "- \`invoke session.start --brainstorm \"description\"\` — Start a development/spike session with an upfront brainstorm before scope/plan" >> .github/copilot-instructions.md
             echo "- \`invoke session.start --auto --issue N\` — Auto until the next human gate; otherwise through \`publish\`, then stop for manual/custom review" >> .github/copilot-instructions.md
             echo "- \`invoke session.start --auto --copilot-review --issue N\` — Full auto with Copilot review before merge" >> .github/copilot-instructions.md
-            echo "- \`invoke session.start --spec 001-feature\` — Spec Kit session" >> .github/copilot-instructions.md
             echo "- \`invoke session.start \"description\"\` — Development session (positional description)" >> .github/copilot-instructions.md
             echo "- \`invoke session.start --spike \"description\"\` — Spike/research (no PR)" >> .github/copilot-instructions.md
             echo "- \`invoke session.start --debug \"description\"\` — Debug/troubleshooting session (no PR by default)" >> .github/copilot-instructions.md
