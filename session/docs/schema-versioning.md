@@ -19,7 +19,7 @@ matches the expected constant before trusting field names.
 |-------|------|-------------|
 | `schema_version` | string | Always `"2.2"` |
 | `session_id` | string | `YYYY-MM-DD-N` format |
-| `type` | string | `speckit` \| `github_issue` \| `unstructured` |
+| `type` | string | `github_issue` \| `unstructured` |
 | `workflow` | string | `development` \| `spike` \| `maintenance` \| `debug` \| `operational` |
 | `stage` | string | `poc` \| `mvp` \| `production` |
 | `read_only` | boolean \| absent | `true` only for maintenance audit sessions |
@@ -30,7 +30,6 @@ matches the expected constant before trusting field names.
 
 | Type | Extra fields |
 |------|-------------|
-| `speckit` | `spec_dir` (string) |
 | `github_issue` | `issue_number` (int), `issue_title` (string) |
 | `unstructured` | `goal` (string) |
 

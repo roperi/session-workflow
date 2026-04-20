@@ -14,7 +14,6 @@ source "${SCRIPT_DIR}/session-common.sh"
 
 SESSION_TYPE=""
 ISSUE_NUMBER=""
-SPEC_DIR=""
 GOAL=""
 JSON_OUTPUT=false
 WORKFLOW="development"  # Default workflow
@@ -40,7 +39,6 @@ Initialize a new session or resume an active session.
 
 OPTIONS:
     --issue NUMBER    GitHub issue number (starts github_issue session)
-    --spec DIR        Spec directory name (starts speckit session)
     --spike           Spike workflow: exploration/research, no PR expected
     --maintenance     Maintenance workflow: small tasks, docs, housekeeping (no branch/PR)
     --debug           Debug workflow: troubleshooting/investigation, no PR by default
@@ -59,7 +57,7 @@ OPTIONS:
 
 GOAL:
     Positional argument describing the work (for unstructured sessions).
-    Not needed if --issue or --spec is provided.
+    Not needed if --issue is provided.
 
 WORKFLOWS:
     development (default) - Full chain: start → [brainstorm] → scope → spec → plan → task → execute → validate → publish → [review] → finalize → wrap
@@ -79,9 +77,6 @@ STAGES:
 EXAMPLES:
     # GitHub issue (development workflow)
     session-start.sh --issue 123
-
-    # Speckit feature (development workflow)
-    session-start.sh --spec 001-feature
 
     # Unstructured work (development workflow)
     session-start.sh "Fix performance bug in API"
@@ -134,12 +129,6 @@ parse_args() {
                 [[ $# -lt 2 || "$2" == -* ]] && { echo "ERROR: Missing value for --issue" >&2; exit 1; }
                 ISSUE_NUMBER="$2"
                 SESSION_TYPE="github_issue"
-                shift 2
-                ;;
-            --spec)
-                [[ $# -lt 2 || "$2" == -* ]] && { echo "ERROR: Missing value for --spec" >&2; exit 1; }
-                SPEC_DIR="$2"
-                SESSION_TYPE="speckit"
                 shift 2
                 ;;
             --spike)
@@ -271,19 +260,6 @@ create_session_info() {
 
     # Build JSON based on type
     case $SESSION_TYPE in
-        speckit)
-            cat > "$tmp_info" << SESSIONEOF
-{
-  "schema_version": "2.2",
-  "session_id": "${session_id}",
-  "type": "speckit",
-  "workflow": "${workflow}",
-  "stage": "${stage}",
-  "created_at": "${created_at}",
-  "spec_dir": "specs/${SPEC_DIR}"${parent_json}${read_only_json}
-}
-SESSIONEOF
-            ;;
         github_issue)
             local issue_title=""
             if command -v gh &> /dev/null && [[ -n "$ISSUE_NUMBER" ]]; then
@@ -480,18 +456,16 @@ ensure_session_next_exists() {
 }
 
 create_session_tasks() {
-    # Only for non-Speckit sessions
     local session_id="$1"
     local session_dir
     session_dir=$(get_session_dir "$session_id")
     
-    if [[ "$SESSION_TYPE" != "speckit" ]]; then
-        local tasks_file="${session_dir}/tasks.md"
-        local goal_text=""
-        local issue_body=""
-        
-        case $SESSION_TYPE in
-            github_issue)
+    local tasks_file="${session_dir}/tasks.md"
+    local goal_text=""
+    local issue_body=""
+    
+    case $SESSION_TYPE in
+        github_issue)
                 goal_text="GitHub Issue #${ISSUE_NUMBER}"
                 # Fetch issue body for context
                 if command -v gh &> /dev/null && [[ -n "$ISSUE_NUMBER" ]]; then
@@ -528,7 +502,6 @@ EOF
 - Started: $(date -u +"%Y-%m-%dT%H:%M:%SZ")
 - Status: 0/0 complete
 EOF
-    fi
 }
 
 # ============================================================================
@@ -704,21 +677,22 @@ EOF
   "pause": ${pause_json},
   "repo_root": "${repo_root}",
   "session": {
-    "id": "${session_id}",
-    "type": "${sess_type}",
-    "workflow": "${sess_workflow}",
-    "stage": "${sess_stage}",
-    "read_only": ${sess_read_only},
-    "dir": "${session_dir}"$(if [[ -n "$sess_parent" ]]; then echo ",
-    \"parent_session_id\": \"${sess_parent_escaped}\""; fi),
-    "files": {
-      "info": "${session_dir}/session-info.json",
-      "state": "${session_dir}/state.json",
-      "notes": "${session_dir}/notes.md",
-      "next": "${session_dir}/next.md"$(if [[ "$sess_type" != "speckit" ]]; then echo ",
-      \"tasks\": \"${session_dir}/tasks.md\""; fi)
-    }
+  "id": "${session_id}",
+  "type": "${sess_type}",
+  "workflow": "${sess_workflow}",
+  "stage": "${sess_stage}",
+  "read_only": ${sess_read_only},
+  "dir": "${session_dir}"$(if [[ -n "$sess_parent" ]]; then echo ",
+  \"parent_session_id\": \"${sess_parent_escaped}\""; fi),
+  "files": {
+    "info": "${session_dir}/session-info.json",
+    "state": "${session_dir}/state.json",
+    "notes": "${session_dir}/notes.md",
+    "next": "${session_dir}/next.md",
+    "tasks": "${session_dir}/tasks.md"
+  }
   },
+
   ${prev_info}
   "project_context": {
     "constitution": ".session/project-context/constitution-summary.md",
@@ -786,14 +760,7 @@ output_human() {
     echo "  - state.json (progress tracking)"
     echo "  - notes.md (handoff notes)"
     echo "  - next.md (structured follow-up handoff)"
-    
-    # Get session type
-    local sess_type
-    sess_type=$(jq -r '.type // "unknown"' "${session_dir}/session-info.json" 2>/dev/null || echo "unknown")
-    
-    if [[ "$sess_type" != "speckit" ]]; then
-        echo "  - tasks.md (task checklist)"
-    fi
+    echo "  - tasks.md (task checklist)"
     
     echo ""
     echo "Project Context:"
@@ -962,13 +929,11 @@ main() {
         # Auto-detect type from arguments
         if [[ -n "$ISSUE_NUMBER" ]]; then
             SESSION_TYPE="github_issue"
-        elif [[ -n "$SPEC_DIR" ]]; then
-            SESSION_TYPE="speckit"
         elif [[ -n "$GOAL" ]]; then
             SESSION_TYPE="unstructured"
         elif $JSON_OUTPUT; then
             # In JSON/automation mode, no interactive triage — error immediately
-            echo '{"status":"error","message":"Must specify --issue, --spec, or a goal description"}' >&2
+            echo '{"status":"error","message":"Must specify --issue or a goal description"}' >&2
             exit 1
         else
             # Interactive triage: help the user choose the right workflow
@@ -1023,7 +988,7 @@ main() {
                     READ_ONLY=true
                     ;;
                 "")
-                    echo "ERROR: Must specify --issue, --spec, or a goal description" >&2
+                    echo "ERROR: Must specify --issue or a goal description" >&2
                     usage
                     exit 1
                     ;;
@@ -1055,12 +1020,6 @@ main() {
     
     # Validate required args for type
     case $SESSION_TYPE in
-        speckit)
-            if [[ -z "$SPEC_DIR" ]]; then
-                echo "ERROR: --spec required for speckit type" >&2
-                exit 1
-            fi
-            ;;
         github_issue)
             if [[ -z "$ISSUE_NUMBER" ]]; then
                 echo "ERROR: --issue required for github_issue type" >&2

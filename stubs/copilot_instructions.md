@@ -17,7 +17,6 @@ Use `next.md` as the structured follow-up artifact for the next session. Keep `n
 - `invoke session.start --brainstorm "description"` — Start a development/spike session with an upfront brainstorm before scope/plan
 - `invoke session.start --auto --issue N` — Auto until the next human gate; otherwise through `publish`, then stop for manual/custom review
 - `invoke session.start --auto --copilot-review --issue N` — Full auto with Copilot review before merge
-- `invoke session.start --spec 001-feature` — Spec Kit session
 - `invoke session.start "description"` — Development session (positional description)
 - `invoke session.start --spike "description"` — Spike/research (no PR)
 - `invoke session.start --debug "description"` — Debug/troubleshooting session (no PR by default)

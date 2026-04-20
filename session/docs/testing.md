@@ -80,19 +80,10 @@ rm -f unrelated.txt  # cleanup after the expected failure
 
 ---
 
-### Test 5: Start Speckit Session (No tasks.md)
+### Test 5: Standardize Pathing
 
-**Command:**
-```bash
-.session/scripts/bash/session-start.sh --spec 001-delete-project --json
-```
-
-**Expected:**
-- `type: "speckit"`
-- No tasks.md file created (speckit uses spec's tasks.md)
-- spec_dir recorded in session-info.json
-
-**Result:** ✅ Pass
+- Ensure all artifacts are created in `{session_dir}`
+- Verify no Speckit path paths or directories are created
 
 ---
 
@@ -213,7 +204,6 @@ cat .session/sessions/{session_id}/tasks.md
 | Empty notes on wrap | Soft warning (still completes) |
 | Missing "For Next Session" | Soft warning |
 | Incomplete tasks | Soft warning + included in previous session context |
-| Speckit session | No tasks.md created |
 
 ---
 

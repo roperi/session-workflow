@@ -15,7 +15,7 @@ Define **WHAT** to build with acceptance criteria and verification contracts. Th
 - ❌ Write any code or implementation (that's `session.execute`)
 - ❌ Modify scope.md (that's `session.scope`)
 
-**Output**: `{session_dir}/spec.md` (or `specs/{feature}/spec.md` for speckit) — nothing else.
+**Output**: `{session_dir}/spec.md` — nothing else.
 
 ## ⚠️ CRITICAL: Workflow State Tracking
 
@@ -35,9 +35,7 @@ Define **WHAT** to build with acceptance criteria and verification contracts. Th
 
 - This is a **formal workflow step** (part of the development chain only).
 - The spec agent is **interactive/dialogue-driven**: for each user story, ask about edge cases, error handling, and acceptance criteria rather than assuming.
-- **Write output to**:
-  - **Speckit sessions** (`type: speckit`): `specs/{feature}/spec.md` (read `spec_dir` from `session-info.json`)
-  - **All other sessions**: `{session_dir}/spec.md`
+- **Write output to**: `{session_dir}/spec.md`
 - Reads `scope.md` as primary input — the spec must stay within scope boundaries.
 - Skipped in **spike** workflows (scope goes directly to plan).
 
@@ -55,7 +53,7 @@ $ARGUMENTS
 
 **Behavior**:
 - **If `--resume` flag present**:
-  - Load existing spec from the resolved path (see Step 6 — `specs/{feature}/spec.md` for speckit, `{session_dir}/spec.md` otherwise)
+  - Load existing spec from `{session_dir}/spec.md`
   - Update/refine rather than replace
 - **If `--comment` provided**:
   - Use as guidance for spec focus
@@ -69,9 +67,9 @@ This agent assumes **session.start** has already run. If not, you will not have 
 
 Expected session variables from session-info.json:
 - `session_id` - Session identifier (e.g., "2025-12-21-1")
-- `type` - "speckit" | "github_issue" | "unstructured"
+- `type` - "github_issue" | "unstructured"
 - `workflow` - "development" (spec is skipped for spike/maintenance/debug/operational)
-- `issue_number` or `spec_id` (if applicable)
+- `issue_number` (if applicable)
 
 **⚠️ NEVER manually construct session directory paths.** Always read from `.session/ACTIVE_SESSION`.
 
@@ -118,15 +116,9 @@ If the workflow is not development, inform the user:
 
 Read available context (in priority order):
 
-- **Scope document (REQUIRED)**: resolve based on session type:
+- **Scope document (REQUIRED)**:
   ```bash
-  SESSION_TYPE=$(jq -r '.type' "$SESSION_DIR/session-info.json")
-  if [[ "$SESSION_TYPE" == "speckit" ]]; then
-    SPEC_DIR=$(jq -r '.spec_dir' "$SESSION_DIR/session-info.json")
-    SCOPE_FILE="${SPEC_DIR}/scope.md"
-  else
-    SCOPE_FILE="${SESSION_DIR}/scope.md"
-  fi
+  SCOPE_FILE="${SESSION_DIR}/scope.md"
 
   if [ ! -f "$SCOPE_FILE" ]; then
     echo "WARNING: No scope.md found. Run session.scope first for best results."
@@ -195,17 +187,10 @@ For each user story, engage in dialogue to define acceptance criteria. **Ask que
 
 ### 6. Resolve Output Path
 
-Determine the correct output path based on session type:
+Determine the correct output path:
 
 ```bash
-SESSION_TYPE=$(jq -r '.type' "$SESSION_DIR/session-info.json")
-if [[ "$SESSION_TYPE" == "speckit" ]]; then
-  SPEC_DIR=$(jq -r '.spec_dir' "$SESSION_DIR/session-info.json")
-  SPEC_FILE="${SPEC_DIR}/spec.md"
-  mkdir -p "$SPEC_DIR"
-else
-  SPEC_FILE="${SESSION_DIR}/spec.md"
-fi
+SPEC_FILE="${SESSION_DIR}/spec.md"
 ```
 
 ### 7. Produce Specification Document

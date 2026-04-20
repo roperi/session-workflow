@@ -38,9 +38,6 @@ Define **WHAT** we're solving and **HOW we'll know it's done** before any planni
 - This is a **formal workflow step** (part of the development/spike chain).
 - The scope agent is **interactive/dialogue-driven**: ask clarifying questions rather than assuming.
 - This remains true even when `session.start` is running in `--auto` mode — keep the dialogue focused, but do not suppress it.
-- **Write output to**:
-  - **Speckit sessions** (`type: speckit`): `specs/{feature}/scope.md` (read `spec_dir` from `session-info.json`)
-  - **All other sessions**: `{session_dir}/scope.md`
 - Keep it concise: problem boundaries and success criteria, not implementation details.
 
 ## User Input
@@ -71,9 +68,9 @@ This agent assumes **session.start** has already run. If not, you will not have 
 
 Expected session variables from session-info.json:
 - `session_id` - Session identifier (e.g., "2025-12-21-1")
-- `type` - "speckit" | "github_issue" | "unstructured"
+- `type` - "github_issue" | "unstructured"
 - `workflow` - "development" | "spike"
-- `issue_number` or `spec_id` (if applicable)
+- `issue_number` (if applicable)
 
 **⚠️ NEVER manually construct session directory paths.** Always read from `.session/ACTIVE_SESSION`.
 
@@ -125,7 +122,6 @@ Read available context (when present):
   ```bash
   gh issue view {issue_number} --json title,body,labels,assignees
   ```
-- **For Speckit sessions**: read `specs/{feature}/spec.md` and `specs/{feature}/scope.md` (if they exist)
 - **Project context**: `.session/project-context/technical-context.md` and `constitution-summary.md`
 
 If a brainstorm exists:
@@ -176,17 +172,10 @@ This is the heart of the scope agent. **Ask questions one at a time**, using the
 
 ### 5. Resolve Output Path
 
-Determine the correct output path based on session type:
+Determine the correct output path:
 
 ```bash
-SESSION_TYPE=$(jq -r '.type' "$SESSION_DIR/session-info.json")
-if [[ "$SESSION_TYPE" == "speckit" ]]; then
-  SPEC_DIR=$(jq -r '.spec_dir' "$SESSION_DIR/session-info.json")
-  SCOPE_FILE="${SPEC_DIR}/scope.md"
-  mkdir -p "$SPEC_DIR"
-else
-  SCOPE_FILE="${SESSION_DIR}/scope.md"
-fi
+SCOPE_FILE="${SESSION_DIR}/scope.md"
 ```
 
 ### 6. Produce Scope Document

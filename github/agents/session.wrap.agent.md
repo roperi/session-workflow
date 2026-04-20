@@ -103,32 +103,6 @@ session.wrap is the terminal agent for all workflows. It documents any session t
 
 ### 2. Mark Tasks Complete
 
-**CRITICAL: Update BOTH task files for Speckit sessions**
-
-#### For Speckit Features:
-
-**Step 1**: Update Speckit tasks.md (source of truth)
-```bash
-# Update specs/XXX/tasks.md
-# Mark completed tasks as [x]
-# Update progress count
-```
-
-**Step 2**: Update session tasks.md (session record)
-```bash
-# Copy or mirror changes to .session/sessions/YYYY-MM-DD-N/tasks.md
-# MUST match Speckit tasks.md for consistency
-
-# Simple approach: Copy if session tasks.md mirrors Speckit
-cp specs/003-project-model-config/tasks.md .session/sessions/2025-12-19-1/tasks.md
-
-# OR if session tasks.md is a summary, update it to reflect completion
-```
-
-**Rationale**: Next session needs consistent view. If session tasks.md is empty/stale while Speckit tasks.md is updated, it creates confusion.
-
-#### For Non-Speckit Sessions:
-
 Update `.session/sessions/{id}/tasks.md`:
 - Mark completed tasks as `[x]`
 - Update progress count at bottom
@@ -170,7 +144,6 @@ Create `{session_dir}/final-summary.md`:
 # Before running the wrap script, the remaining dirty paths should be limited to:
 # - {session_dir}/** durable session artifacts (not state.json)
 # - CHANGELOG.md
-# - the resolved tasks.md path for Speckit sessions
 #
 # Commit or stash anything else first. session-wrap.sh creates the archival
 # wrap commit itself, strips `.session/sessions/**/state.json` from that commit,
@@ -237,7 +210,7 @@ Report the cleanup result (what was removed/moved, if anything) in the final-sum
 ```
 
 This marks the session complete by:
-- Creating the archival wrap commit for `CHANGELOG.md`, durable session-history artifacts, and the resolved `tasks.md` path when needed
+- Creating the archival wrap commit for `CHANGELOG.md` and durable session-history artifacts
 - Updating local `state.json` with completion timestamp (without archiving it in git)
 - Clearing `ACTIVE_SESSION` sentinel
 
@@ -275,12 +248,6 @@ The ONLY files you should create or modify are:
 The session state is tracked locally in `state.json` by the wrap script - no additional files needed.
 
 ## Session Type Considerations
-
-**Speckit sessions:**
-- Tasks tracked in `specs/{feature}/tasks.md` (source of truth)
-- Session tasks.md MUST be kept in sync (copy or mirror)
-- Both files should show same completion status
-- This prevents confusion in next session
 
 **GitHub issue / Unstructured sessions:**
 - Tasks tracked in `.session/sessions/{id}/tasks.md`
