@@ -359,6 +359,9 @@ main() {
   hook_wrap_ym=$(echo "$hook_wrap_id" | cut -d'-' -f1,2)
   hook_wrap_dir=".session/sessions/${hook_wrap_ym}/${hook_wrap_id}"
   set_workflow_step "$hook_wrap_id" "execute" "completed" >/dev/null
+  mkdir -p .git/hooks
+  cp "$ROOT_DIR/.git-hooks/pre-commit" .git/hooks/pre-commit
+  # Overwrite with failing hook for testing
   cat > .git/hooks/pre-commit <<'EOF'
 #!/usr/bin/env bash
 exit 1
