@@ -19,7 +19,7 @@ tools: ["*"]
 
 **Actions**: Close issues, clean up branches, sync task status — nothing else.
 
-**Note**: When invoked directly by the user (not as a sub-agent), this agent also orchestrates Phase 3 by invoking session.wrap after finalize — see Handoff.
+**Note**: When invoked directly by the user (not as a sub-agent), this agent also orchestrates Phase 3 by invoking `session.retrospect` after finalize (which then handles handoff to `session.wrap`) — see Handoff.
 
 ## User Input
 

@@ -10,9 +10,23 @@ tools: ["*"]
 ## ⛔ SCOPE BOUNDARY
 
 **This agent ONLY analyzes performance and process. It does NOT:**
-- ❌ Modify code (that's for the development agents)
+- ❌ Modify product code directly (that's for the development agents)
 - ❌ Merge PRs or close issues (that's `session.finalize`)
 - ❌ Archive session documentation (that's `session.wrap`)
+
+**Exception for durable knowledge capture:** This agent MAY recommend `session.compound`, and in Auto-Mode it MAY trigger `session.compound` to write solution documentation under `docs/solutions/`. That compounding step is documentation capture, not product-code editing.
+
+## ⚠️ CRITICAL: Workflow State Tracking
+
+**ON ENTRY** — run preflight (validates transition, marks step `in_progress`):
+```bash
+.session/scripts/bash/session-preflight.sh --step retrospect --json
+```
+
+**ON EXIT** — run postflight (marks step `completed`, outputs valid next steps):
+```bash
+.session/scripts/bash/session-postflight.sh --step retrospect --json
+```
 
 ## Working Process
 
@@ -36,16 +50,11 @@ tools: ["*"]
 
 **IF running in Auto-Mode (`$ARGUMENTS` contains "Do NOT ask clarifying questions"):**
 
-1. **Auto-Compound Decision**:
-   - IF the session logs show a "non-trivial" technical problem solved, the retrospective agent **MUST** invoke `session.compound` automatically.
-   
-2. **Chain Completion**:
-   - Once `session.compound` finishes, OR if no compounding candidates are found, proceed to:
-   ```
-   agent_type: "session.wrap"
-   prompt: "Wrap session {session_id}. Retrospective and compounding complete. Do NOT ask clarifying questions."
-   ```
+1. **Return Findings to the Orchestrator**:
+   - Generate the retrospective report and return it to `session.start` as the sole orchestrator.
+   - If the session logs show a "non-trivial" technical problem solved, include a concise list of **compounding candidates** with enough detail for the orchestrator to decide whether to invoke `session.compound`.
+   - Do **NOT** invoke `session.compound` or `session.wrap` from this agent.
 
 **IF running in Primary/Manual Mode (user invoked directly):**
 1. **Trigger Compound (Optional)**: If candidates were identified, present findings and ask: "I identified solutions worth compounding. Would you like to run `session.compound` now?"
-2. **Trigger Wrap**: Proceed to Phase 3 completion (wrap).
+2. **End at Findings**: After presenting the retrospective, stop and let the user choose whether to run follow-on steps such as `session.compound` or `session.wrap`.

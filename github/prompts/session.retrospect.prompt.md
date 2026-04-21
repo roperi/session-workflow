@@ -1,12 +1,17 @@
+---
+agent: session.retrospect
+---
+
 # Retrospective Analysis Prompt
 
 ## Objective
 Perform a systematic retrospective analysis of the session.
 
 ## Data Sources
-- Git Log: `{session_dir}/../git-log.txt`
-- Interaction Logs: `{session_dir}/../interaction.log`
+- Session Notes: `{session_dir}/notes.md`
+- Session Next Steps: `{session_dir}/next.md`
 - Session Tasks: `{session_dir}/tasks.md`
+- Git History: run `git log --stat --decorate --oneline`
 
 ## Analysis Framework
 1. **Metrics**: Calculate session duration, tasks completed, and churn rate.

@@ -206,7 +206,7 @@ allowed_steps_for_workflow() {
 
     case "$workflow" in
         development)
-            printf '%s\n' start brainstorm scope spec plan task execute validate publish review finalize wrap
+            printf '%s\n' start brainstorm scope spec plan task execute validate publish review finalize retrospect wrap
             ;;
         spike)
             printf '%s\n' start brainstorm scope plan task execute wrap
