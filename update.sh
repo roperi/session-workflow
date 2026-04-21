@@ -323,28 +323,18 @@ update_docs() {
 update_agents() {
     info "Updating GitHub Copilot agents..."
 
-    local agents=(
-        "session.start.agent.md"
-        "session.plan.agent.md"
-        "session.task.agent.md"
-        "session.execute.agent.md"
-        "session.validate.agent.md"
-        "session.publish.agent.md"
-        "session.finalize.agent.md"
-        "session.retrospect.agent.md"
-        "session.wrap.agent.md"
-        "session.clarify.agent.md"
-        "session.analyze.agent.md"
-        "session.checklist.agent.md"
-        "session.brainstorm.agent.md"
-        "session.compound.agent.md"
-        "session.scope.agent.md"
-        "session.spec.agent.md"
-        "session.review.agent.md"
-    )
+    local source_agent_dir="${SOURCE_DIR:-.}/github/agents"
+    if [[ ! -d "$source_agent_dir" ]]; then
+        # If running from repo root, agents are in github/agents/
+        source_agent_dir="github/agents"
+    fi
 
-    for agent in "${agents[@]}"; do
-        update_managed_file "github/agents/${agent}" ".github/agents/${agent}"
+    for agent_path in "$source_agent_dir"/session.*.agent.md; do
+        if [[ -f "$agent_path" ]]; then
+            local agent
+            agent=$(basename "$agent_path")
+            update_managed_file "github/agents/${agent}" ".github/agents/${agent}"
+        fi
     done
 
     success "Agents updated"
@@ -353,28 +343,18 @@ update_agents() {
 update_prompts() {
     info "Updating GitHub Copilot prompts..."
 
-    local prompts=(
-        "session.start.prompt.md"
-        "session.plan.prompt.md"
-        "session.task.prompt.md"
-        "session.execute.prompt.md"
-        "session.validate.prompt.md"
-        "session.publish.prompt.md"
-        "session.finalize.prompt.md"
-        "session.retrospect.prompt.md"
-        "session.wrap.prompt.md"
-        "session.clarify.prompt.md"
-        "session.analyze.prompt.md"
-        "session.checklist.prompt.md"
-        "session.brainstorm.prompt.md"
-        "session.compound.prompt.md"
-        "session.scope.prompt.md"
-        "session.spec.prompt.md"
-        "session.review.prompt.md"
-    )
+    local source_prompt_dir="${SOURCE_DIR:-.}/github/prompts"
+    if [[ ! -d "$source_prompt_dir" ]]; then
+        # If running from repo root, prompts are in github/prompts/
+        source_prompt_dir="github/prompts"
+    fi
 
-    for prompt in "${prompts[@]}"; do
-        update_managed_file "github/prompts/${prompt}" ".github/prompts/${prompt}"
+    for prompt_path in "$source_prompt_dir"/session.*.prompt.md; do
+        if [[ -f "$prompt_path" ]]; then
+            local prompt
+            prompt=$(basename "$prompt_path")
+            update_managed_file "github/prompts/${prompt}" ".github/prompts/${prompt}"
+        fi
     done
 
     success "Prompts updated"
