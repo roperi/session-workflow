@@ -27,7 +27,10 @@ DETECTED_STACK=""
 DETECTED_TEST_CMD=""
 DETECTED_BUILD_CMD=""
 DETECTED_LINT_CMD=""
-PROJECT_ROOT=""
+# Set project root and anchor all subsequent relative path checks/writes there
+PROJECT_ROOT=$(git rev-parse --show-toplevel)
+cd "$PROJECT_ROOT" || error "Failed to change directory to project root: $PROJECT_ROOT"
+
 DETECTED_TOOLS=() # Array of detected AI tools
 
 # ============================================================================
@@ -119,7 +122,8 @@ detect_stack() {
                 if [[ "$DETECTED_ENV" == "containerized" ]]; then
                     DETECTED_TEST_CMD="# Run inside container or locally if node available\nnpm test"
                 else
-                    DETECTED_TEST_CMD="npm test"
+                    DETECTED_TEST_CMD="docker compose exec \"\$(docker compose ps --services | head -n 1)\" npm test"
+
                 fi
             fi
             
@@ -431,7 +435,6 @@ install_docs() {
     install_managed_file "session/docs/testing.md" ".session/docs/testing.md"
     install_managed_file "session/docs/shared-workflow.md" ".session/docs/shared-workflow.md"
     install_managed_file "session/docs/schema-versioning.md" ".session/docs/schema-versioning.md"
-    install_managed_file "session/docs/copilot-cli-mechanics.md" ".session/docs/copilot-cli-mechanics.md"
     install_managed_file "session/docs/reference.md" ".session/docs/reference.md"
     
     success "Session docs installed"

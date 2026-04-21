@@ -1,21 +1,21 @@
 # Session Workflow
 
-🤖 **Optimized for [GitHub Copilot CLI](https://docs.github.com/en/copilot)** — leverages Copilot's agent invocation, sub-agent orchestration, and code review tools. Works with all models available in Copilot CLI (GPT, Claude, Gemini).
+🤖 **AI-Assisted Development Workflow** — Provides a structured, spec-driven development (SDD) lifecycle with session tracking, context continuity, and multi-tool support.
+
+Session Workflow works with your preferred AI coding tool: Claude Code, Gemini CLI, GitHub Copilot, Cursor, and more.
 
 📝 **Changelog**: [CHANGELOG.md](CHANGELOG.md) | ⚖️ **License**: [MIT](LICENSE) | 🤝 **Contributing**: [CONTRIBUTING.md](CONTRIBUTING.md)
-
-> ⚠️ Other CLIs (Claude Code, Gemini CLI standalone) are unverified and may require adjustments.
 
 ---
 
 ## Overview
 
-When AI context windows reset, work continuity is lost. Session workflow solves this with:
+When AI context windows reset, work continuity is lost. Session Workflow solves this with:
 
 1. **Session tracking** — What's in progress, what's done
-2. **Handoff artifacts** — `notes.md` plus a dedicated `next.md` for the next AI session
-3. **Agent chain** — Structured workflow from scoping to delivery
-4. **Git hygiene** — Ensures clean state before session ends
+2. **Standardized Handoffs** — Unified workflow from scoping to delivery
+3. **Tool Agnosticism** — Projects workflow logic into native tool commands
+4. **Context Syncing** — Maintains cross-tool continuity
 
 ---
 
