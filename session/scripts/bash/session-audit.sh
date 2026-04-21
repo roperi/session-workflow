@@ -206,7 +206,7 @@ allowed_steps_for_workflow() {
 
     case "$workflow" in
         development)
-            printf '%s\n' start brainstorm scope spec plan task execute validate publish review finalize wrap
+            printf '%s\n' start brainstorm scope spec plan task execute validate publish review finalize retrospect wrap
             ;;
         spike)
             printf '%s\n' start brainstorm scope plan task execute wrap
@@ -234,8 +234,8 @@ required_steps_for_workflow() {
             if [[ "$session_completed" == "true" ]] || step_in_list publish "$observed_steps" || step_in_list review "$observed_steps" || step_in_list finalize "$observed_steps" || step_in_list wrap "$observed_steps"; then
                 printf '%s\n' publish
             fi
-            if [[ "$session_completed" == "true" ]] || step_in_list finalize "$observed_steps" || step_in_list wrap "$observed_steps"; then
-                printf '%s\n' finalize wrap
+            if [[ "$session_completed" == "true" ]] || step_in_list finalize "$observed_steps" || step_in_list retrospect "$observed_steps" || step_in_list wrap "$observed_steps"; then
+                printf '%s\n' finalize retrospect wrap
             fi
             ;;
         spike)

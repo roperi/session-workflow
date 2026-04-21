@@ -19,7 +19,7 @@ tools: ["*"]
 
 **Actions**: Close issues, clean up branches, sync task status — nothing else.
 
-**Note**: When invoked directly by the user (not as a sub-agent), this agent also orchestrates Phase 3 by invoking session.wrap after finalize — see Handoff.
+**Note**: When invoked directly by the user (not as a sub-agent), this agent also orchestrates Phase 3 by invoking `session.retrospect` after finalize (which then handles handoff to `session.wrap`) — see Handoff.
 
 ## User Input
 
@@ -221,21 +221,22 @@ Work complete. All tasks finished.
 If your input (`$ARGUMENTS`) contains "Do NOT ask clarifying questions", you are running as a sub-agent:
 - **Return your results** — issue closure status, task sync status, and branch cleanup status
 - The orchestrating agent (session.start) will invoke the next step
-- ⛔ Do NOT invoke session.wrap or any other agent yourself
+- ⛔ Do NOT invoke session.retrospect or any other agent yourself
 
 ### Direct Invocation Mode (user ran `invoke session.finalize`)
 
 If your input does NOT contain "Do NOT ask clarifying questions", you are the primary agent. Continue with **Phase 3 completion**:
 
-**wrap** — Invoke `session.wrap` agent (using the task tool with `agent_type`):
+**retrospect** — Invoke `session.retrospect` agent:
 ```
-agent_type: "session.wrap"
-prompt: "Wrap session {session_id}. Dir: {session_dir}. Do NOT ask clarifying questions."
+agent_type: "session.retrospect"
+prompt: "Analyze session {session_id}. Dir: {session_dir}. Do NOT ask clarifying questions."
 ```
 
-After wrap completes, output:
+After retrospect completes, the retrospect agent will handle triggering `session.wrap`.
+
 ```
-✅ Phase 3 (Completion) complete — session fully wrapped.
+✅ Phase 3 (Completion) in progress — finalize complete, handing off to retrospect.
 
 Session: {session_id}
 Issues closed: #{N}

@@ -417,7 +417,8 @@ declare -A WORKFLOW_TRANSITIONS=(
     ["validate"]="publish execute"
     ["publish"]="review finalize"
     ["review"]="finalize"
-    ["finalize"]="wrap"
+    ["finalize"]="retrospect"
+    ["retrospect"]="wrap"
     ["wrap"]=""
 )
 

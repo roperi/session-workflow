@@ -33,7 +33,7 @@ Install on Debian/Ubuntu:
 sudo apt-get update && sudo apt-get install -y jq shellcheck git
 ```
 
-**Agent Chain**: `start → [brainstorm] → scope → spec → plan → task → execute → validate → publish → [review] → finalize → wrap`
+**Agent Chain**: `start → [brainstorm] → scope → spec → plan → task → execute → validate → publish → [review] → finalize → retrospect → wrap`
 
 **Lightweight chains**: `maintenance`, `debug`, and `operational` start at `execute`; `spike` skips spec/review/publish.
 
@@ -147,7 +147,7 @@ invoke session.execute
 # Review the PR manually, or run `invoke session.review` if you want the
 # workflow to use the default/custom review agent. Then merge the PR, then:
 
-# Phase 3: Completion (finalize, wrap)
+# Phase 3: Completion (finalize, retrospect, wrap)
 invoke session.finalize
 ```
 
@@ -221,7 +221,7 @@ invoke session.start --resume
 
 ### 1. Development (default)
 
-**Chain**: `start → [brainstorm] → scope → spec → plan → task → execute → validate → publish → [review] → merge → finalize → wrap`
+**Chain**: `start → [brainstorm] → scope → spec → plan → task → execute → validate → publish → [review] → merge → finalize → retrospect → wrap`
 
 Use for feature development, bug fixes, and work that needs PR review.
 
@@ -291,7 +291,7 @@ invoke session.start --operational --auto "Run one guarded backfill pass"  # exe
                                                                       │
                                                                       ▼
 ┌──────────┐    ┌──────────┐    ┌──────────┐    ┌──────────┐    ┌──────────┐
-│   WRAP   │◀───│ FINALIZE │◀───│  REVIEW  │◀───│ PUBLISH  │◀───│ VALIDATE │
+│   WRAP   │◀───│ RETROSPECT │◀───│ FINALIZE │◀───│  REVIEW  │◀───│ PUBLISH  │◀───│ VALIDATE │
 │          │    │          │    │          │    │          │    │          │
 │ Document │    │ Close    │    │ Copilot  │    │ Create   │    │ Quality  │
 │ Cleanup  │    │ Issues   │    │ Review   │    │ PR       │    │ Tests    │
