@@ -315,7 +315,6 @@ update_docs() {
     update_managed_file "session/docs/testing.md" ".session/docs/testing.md"
     update_managed_file "session/docs/shared-workflow.md" ".session/docs/shared-workflow.md"
     update_managed_file "session/docs/schema-versioning.md" ".session/docs/schema-versioning.md"
-    update_managed_file "session/docs/copilot-cli-mechanics.md" ".session/docs/copilot-cli-mechanics.md"
     update_managed_file "session/docs/reference.md" ".session/docs/reference.md"
     success "Documentation updated"
 }

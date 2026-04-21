@@ -486,7 +486,6 @@ If you're updating an older installation that still ignores `.session/sessions/`
 │           ├── next.md
 │           └── tasks.md
 └── docs/
-    ├── copilot-cli-mechanics.md
     ├── reference.md
     ├── schema-versioning.md
     ├── shared-workflow.md

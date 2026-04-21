@@ -16,6 +16,7 @@ When AI context windows reset, work continuity is lost. Session Workflow solves 
 2. **Standardized Handoffs** — Unified workflow from scoping to delivery
 3. **Tool Agnosticism** — Projects workflow logic into native tool commands
 4. **Context Syncing** — Maintains cross-tool continuity
+5. **next.md Artifacts** — Primary handoff artifact for structured session continuity
 
 ---
 
@@ -44,7 +45,6 @@ sudo apt-get update && sudo apt-get install -y jq shellcheck git
 
 > **Human gates still apply in auto mode**: scope can ask focused clarifying questions, and manual-test checkpoints are recorded in `state.json.pause`. Resume with `invoke session.start --resume`.
 
-> **GitHub ecosystem integration**: `session.start` uses Copilot CLI's task tool for sub-agent orchestration and optionally uses `request_copilot_review` for automated PR reviews. See [Copilot CLI Mechanics](session/docs/copilot-cli-mechanics.md) for internals.
 
 ---
 
@@ -386,7 +386,6 @@ invoke session.[next-step] --force
 For detailed documentation:
 
 - **[Reference Guide](session/docs/reference.md)** — Agent responsibilities, arguments, project stages, lifecycle, file structure, workflow examples, SDD positioning
-- **[Copilot CLI Mechanics](session/docs/copilot-cli-mechanics.md)** — How the orchestration works under the hood
 - **[Shared Workflow Rules](session/docs/shared-workflow.md)** — State machine, scope boundaries, stage behavior
 - **[Schema Versioning](session/docs/schema-versioning.md)** — JSON schema for session-info.json and state.json
-- **[Testing Guide](session/docs/testing.md)** — Manual test cases and edge coverage
+- **[Next Step Artifacts](session/docs/reference.md#nextmd)** — Primary handoff artifact for structured session continuity

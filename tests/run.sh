@@ -1289,8 +1289,6 @@ EOF
     || fail "copilot instructions should mention the debug workflow"
   grep -q "invoke session.start --debug" "$ROOT_DIR/stubs/copilot_instructions.md" \
     || fail "copilot instructions stub should include the debug workflow"
-  grep -q "development/spike/maintenance/debug/operational" "$ROOT_DIR/session/docs/copilot-cli-mechanics.md" \
-    || fail "Copilot CLI mechanics docs should mention the debug and operational workflows"
   grep -q "dedicated \`debug\` workflow" "$ROOT_DIR/CHANGELOG.md" \
     || fail "CHANGELOG should record the new debug workflow"
 
@@ -1660,8 +1658,6 @@ EOF
     || fail "copilot instructions should mention the operational workflow"
   grep -q "invoke session.start --operational" "$ROOT_DIR/stubs/copilot_instructions.md" \
     || fail "copilot instructions stub should include the operational workflow"
-  grep -q "development/spike/maintenance/debug/operational" "$ROOT_DIR/session/docs/copilot-cli-mechanics.md" \
-    || fail "Copilot CLI mechanics docs should mention the operational workflow"
   grep -q "Added an \`operational\` workflow" "$ROOT_DIR/CHANGELOG.md" \
     || fail "CHANGELOG should record the new operational workflow"
 
