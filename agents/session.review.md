@@ -1,4 +1,5 @@
 ---
+name: session.review
 description: Review pull request and address feedback
 tools: ["*"]
 ---
@@ -198,16 +199,24 @@ These need manual attention before merge or any explicit second review request.
 **Next**: Orchestrator should stop and surface the unresolved items instead of auto-merging
 ```
 
-## Next Step
+## Chaining & Handoff
 
-**First**, run postflight to mark this step complete:
+**MANDATORY**: Run postflight to mark this step complete and get next steps:
 ```bash
 .session/scripts/bash/session-postflight.sh --step review --json
 ```
 
-After postflight, **return your results** — review status, comments addressed, commits pushed, and any unresolved items. The orchestrating agent will handle merge and subsequent steps.
+### Transition Protocol
+1. Parse the `valid_next_steps` from the postflight JSON output.
+2. Announce completion and suggest the next command(s).
+3. **Invoke the next step** using your tool's native mechanism (e.g., slash command, `@agent`, or sub-agent task) if in `--auto` mode. Otherwise, guide the user to the next step.
 
-⛔ Do NOT invoke session.finalize, session.wrap, or any other agent yourself.
+**Tool-Specific Invocation Examples:**
+- **GitHub Copilot**: `task(agent_type: "session.finalize", prompt: "...")`
+- **Claude Code**: `/session.finalize`
+- **Gemini CLI**: Activate sub-agent or skill `session.finalize`
+
+⛔ Do NOT perform the work of the next agent yourself.
 
 ## What NOT to Do
 
@@ -225,11 +234,11 @@ After postflight, **return your results** — review status, comments addressed,
 This agent uses GitHub Copilot Review by default. Users can override it with a custom review agent by replacing this file with their own `session.review.agent.md`.
 
 To weave a custom reviewer into the workflow:
-1. Run the normal development flow through PR creation (`invoke session.execute` or `invoke session.start --auto --issue N`)
+1. Run the normal development flow through PR creation (`session.execute` or `session.start --auto --issue N`)
 2. Stop after `session.publish`
 3. Invoke `session.review` explicitly so the workflow uses whatever implementation is in this file
 4. Merge the PR
-5. Run `invoke session.finalize`
+5. Run `session.finalize`
 
 Custom review agents must:
 1. Run preflight on entry (`--step review`)
@@ -241,8 +250,8 @@ Custom review agents must:
 ## Usage
 
 ```bash
-invoke session.review
-invoke session.review --skip
+session.review
+session.review --skip
 ```
 
 ### Check Workflow Compatibility

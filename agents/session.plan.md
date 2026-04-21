@@ -1,4 +1,5 @@
 ---
+name: session.plan
 description: Create implementation plan and approach for session work
 tools: ["*"]
 ---
@@ -316,14 +317,22 @@ Plan complete — proceeding to task generation.
 
 ## Chaining & Handoff
 
-**First**, run postflight to mark this step complete:
+**MANDATORY**: Run postflight to mark this step complete and get next steps:
 ```bash
 .session/scripts/bash/session-postflight.sh --step plan --json
 ```
 
-After postflight, **return your results** — plan.md location, component count, and key risks. The orchestrating agent (session.start) will invoke the next step.
+### Transition Protocol
+1. Parse the `valid_next_steps` from the postflight JSON output.
+2. Announce completion and suggest the next command(s).
+3. **Invoke the next step** using your tool's native mechanism (e.g., slash command, `@agent`, or sub-agent task) if in `--auto` mode. Otherwise, guide the user to the next step.
 
-⛔ Do NOT invoke session.task or any other agent yourself.
+**Tool-Specific Invocation Examples:**
+- **GitHub Copilot**: `task(agent_type: "session.task", prompt: "...")`
+- **Claude Code**: `/session.task`
+- **Gemini CLI**: Activate sub-agent or skill `session.task`
+
+⛔ Do NOT perform the work of the next agent yourself.
 
 ## Planning Guidelines
 

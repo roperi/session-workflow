@@ -28,6 +28,7 @@ DETECTED_TEST_CMD=""
 DETECTED_BUILD_CMD=""
 DETECTED_LINT_CMD=""
 PROJECT_ROOT=""
+DETECTED_TOOLS=() # Array of detected AI tools
 
 # ============================================================================
 # Helper Functions
@@ -67,6 +68,38 @@ detect_environment() {
         success "Detected: Containerized (Docker)"
     else
         success "Detected: Local environment"
+    fi
+
+    detect_ai_tools
+}
+
+detect_ai_tools() {
+    info "Detecting AI tools..."
+    
+    DETECTED_TOOLS=()
+    
+    # Claude Code
+    if [[ -d ".claude" ]]; then
+        DETECTED_TOOLS+=("claude")
+        success "Detected: Claude Code"
+    fi
+    
+    # Gemini CLI
+    if [[ -d ".gemini" ]] || [[ -d "${HOME}/.gemini" ]]; then
+        DETECTED_TOOLS+=("gemini")
+        success "Detected: Gemini CLI"
+    fi
+    
+    # GitHub Copilot (presence of .github often implies it, but let's be more specific if possible)
+    # Since session-workflow is agnostic, we always project to .github for Copilot compatibility
+    # unless it's explicitly excluded.
+    DETECTED_TOOLS+=("copilot")
+    success "Detected: GitHub Copilot (default)"
+
+    # Cursor
+    if [[ -f ".cursorrules" ]]; then
+        DETECTED_TOOLS+=("cursor")
+        success "Detected: Cursor"
     fi
 }
 
@@ -693,74 +726,80 @@ EOF
     esac
 }
 
-install_agents() {
-    info "Installing GitHub Copilot agents..."
+project_agents() {
+    info "Projecting tool-agnostic agents to detected tools..."
     
     local agents=(
-        "session.start.agent.md"
-        "session.plan.agent.md"
-        "session.task.agent.md"
-        "session.execute.agent.md"
-        "session.validate.agent.md"
-        "session.publish.agent.md"
-        "session.finalize.agent.md"
-        "session.wrap.agent.md"
-        "session.clarify.agent.md"
-        "session.analyze.agent.md"
-        "session.checklist.agent.md"
-        "session.brainstorm.agent.md"
-        "session.compound.agent.md"
-        "session.scope.agent.md"
-        "session.spec.agent.md"
-        "session.review.agent.md"
+        "session.start.md"
+        "session.plan.md"
+        "session.task.md"
+        "session.execute.md"
+        "session.validate.md"
+        "session.publish.md"
+        "session.finalize.md"
+        "session.wrap.md"
+        "session.clarify.md"
+        "session.analyze.md"
+        "session.checklist.md"
+        "session.brainstorm.md"
+        "session.compound.md"
+        "session.scope.md"
+        "session.spec.md"
+        "session.review.md"
     )
-    
-    mkdir -p .github/agents
-    
-    for agent in "${agents[@]}"; do
-        if [[ ! -f ".github/agents/${agent}" ]]; then
-            install_managed_file "github/agents/${agent}" ".github/agents/${agent}"
-        else
-            warn "${agent} already exists, skipping"
-        fi
-    done
-    
-    success "Agents installed"
-}
 
-install_prompts() {
-    info "Installing GitHub Copilot prompts..."
-    
-    local prompts=(
-        "session.start.prompt.md"
-        "session.plan.prompt.md"
-        "session.task.prompt.md"
-        "session.execute.prompt.md"
-        "session.validate.prompt.md"
-        "session.publish.prompt.md"
-        "session.finalize.prompt.md"
-        "session.wrap.prompt.md"
-        "session.clarify.prompt.md"
-        "session.analyze.prompt.md"
-        "session.checklist.prompt.md"
-        "session.brainstorm.prompt.md"
-        "session.compound.prompt.md"
-        "session.scope.prompt.md"
-        "session.spec.prompt.md"
-        "session.review.prompt.md"
-    )
-    
-    mkdir -p .github/prompts
-    
-    for prompt in "${prompts[@]}"; do
-        if [[ ! -f ".github/prompts/${prompt}" ]]; then
-            install_managed_file "github/prompts/${prompt}" ".github/prompts/${prompt}"
-        else
-            warn "${prompt} already exists, skipping"
-        fi
+    for agent in "${agents[@]}"; do
+        local source_path="agents/${agent}"
+        local content
+        
+        # Download the tool-agnostic source once
+        local tmp_source
+        tmp_source=$(mktemp)
+        download_file "${REPO_URL}/${source_path}" "$tmp_source"
+        
+        for tool in "${DETECTED_TOOLS[@]}"; do
+            case $tool in
+                claude)
+                    local dest=".claude/commands/${agent}"
+                    mkdir -p ".claude/commands"
+                    cp "$tmp_source" "$dest"
+                    register_managed_file "$source_path" "$dest"
+                    ;;
+                gemini)
+                    local dest=".gemini/agents/${agent}"
+                    mkdir -p ".gemini/agents"
+                    # Gemini CLI subagents need name/description in YAML
+                    # We'll transform the Copilot-style YAML to Gemini-style if needed
+                    # (Assuming agents/ source of truth will have both or common)
+                    cp "$tmp_source" "$dest"
+                    register_managed_file "$source_path" "$dest"
+                    ;;
+                copilot)
+                    local dest=".github/agents/${agent%.md}.agent.md"
+                    local prompt_dest=".github/prompts/${agent%.md}.prompt.md"
+                    mkdir -p ".github/agents" ".github/prompts"
+                    cp "$tmp_source" "$dest"
+                    register_managed_file "$source_path" "$dest"
+                    
+                    # Create prompt symlink for IDE integration
+                    if [[ ! -L "$prompt_dest" ]]; then
+                        ln -sf "../agents/${agent%.md}.agent.md" "$prompt_dest"
+                        register_managed_file "$source_path" "$prompt_dest"
+                    fi
+                    ;;
+                cursor)
+                    # Cursor doesn't have a commands directory yet, so we'll just
+                    # ensure the .cursorrules file references the agents directory
+                    if ! grep -q "agents/" .cursorrules 2>/dev/null; then
+                        echo -e "\n## Session Workflow\nUse agents in 'agents/' for SDD workflow." >> .cursorrules
+                    fi
+                    ;;
+            esac
+        done
+        rm -f "$tmp_source"
     done
     
-    success "Prompts installed"
+    success "Agents projected to: ${DETECTED_TOOLS[*]}"
 }
 
 remove_exact_line() {
@@ -864,8 +903,7 @@ main() {
     install_docs
     install_bootstrap
     install_project_context
-    install_agents
-    install_prompts
+    project_agents
     write_install_manifest
     update_gitignore
     create_sessions_dir

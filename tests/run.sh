@@ -1142,11 +1142,11 @@ EOF
 
   # 41) maintenance docs/agent contract reflect stop-after-execute default
   log "41) maintenance docs and agent contract reflect lightweight default"
-  grep -q "Maintenance Workflow: execute → STOP" "$ROOT_DIR/github/agents/session.start.agent.md" \
+  grep -q "#### Maintenance Workflow: execute → STOP" "$ROOT_DIR/agents/session.start.md" \
     || fail "session.start agent should document maintenance execute → STOP default"
-  grep -q "agent_type: \"session.execute\"" "$ROOT_DIR/github/agents/session.start.agent.md" \
+  grep -q "Invoke \*\*execute\*\*" "$ROOT_DIR/agents/session.start.md" \
     || fail "session.start agent should include an explicit maintenance execute sub-agent block"
-  grep -q "Maintenance Workflow: → STOP" "$ROOT_DIR/github/agents/session.execute.agent.md" \
+  grep -q "Maintenance Workflow: → STOP" "$ROOT_DIR/agents/session.execute.md" \
     || fail "session.execute agent should document maintenance stop-after-execute direct mode"
   grep -q "Maintenance runs \`execute\` and then stops" "$ROOT_DIR/README.md" \
     || fail "README should describe maintenance stop-after-execute default"
@@ -1221,17 +1221,17 @@ EOF
 
   # 45) auto-mode docs and agent contracts reflect human checkpoints
   log "45) auto-mode docs and agent contracts reflect human checkpoints"
-  grep -q "session.scope\` remains interactive" "$ROOT_DIR/github/agents/session.start.agent.md" \
+  grep -q "session.scope\` remains interactive" "$ROOT_DIR/agents/session.start.md" \
     || fail "session.start agent should keep scope interactive"
-  grep -q "Ask concise clarifying questions when needed" "$ROOT_DIR/github/agents/session.start.agent.md" \
+  grep -q "Ask concise clarifying questions when needed" "$ROOT_DIR/agents/session.start.md" \
     || fail "session.start agent should allow scope clarification prompts"
-  grep -q "required human checkpoint" "$ROOT_DIR/github/agents/session.start.agent.md" \
+  grep -q "required human checkpoint" "$ROOT_DIR/agents/session.start.md" \
     || fail "session.start agent should describe auto mode as stopping at human checkpoints"
-  grep -q "running in \`--auto\` mode" "$ROOT_DIR/github/agents/session.scope.agent.md" \
+  grep -q "running in \`--auto\` mode" "$ROOT_DIR/agents/session.scope.md" \
     || fail "session.scope agent should explicitly allow dialogue in auto mode"
-  grep -q "set_pause_state" "$ROOT_DIR/github/agents/session.execute.agent.md" \
+  grep -q "set_pause_state" "$ROOT_DIR/agents/session.execute.md" \
     || fail "session.execute agent should document pause recording"
-  grep -q "clear_pause_state" "$ROOT_DIR/github/agents/session.execute.agent.md" \
+  grep -q "clear_pause_state" "$ROOT_DIR/agents/session.execute.md" \
     || fail "session.execute agent should document pause clearing"
   grep -q "current version \`1.2\`" "$ROOT_DIR/session/docs/schema-versioning.md" \
     || fail "schema docs should show state version 1.2"
@@ -1267,13 +1267,13 @@ EOF
 
   # 48) debug docs and agent contracts reflect lightweight investigation workflow
   log "48) debug docs and agent contracts reflect lightweight investigation workflow"
-  grep -q "Debug Workflow: execute → STOP" "$ROOT_DIR/github/agents/session.start.agent.md" \
+  grep -q "Debug Workflow: execute → STOP" "$ROOT_DIR/agents/session.start.md" \
     || fail "session.start agent should document debug execute → STOP default"
-  grep -q "\`debug\`, \`troubleshoot\`, \`diagnose\`, \`trace\`, \`reproduce\`, \`investigate\`, \`why is\`" "$ROOT_DIR/github/agents/session.start.agent.md" \
+  grep -q "\`debug\`, \`troubleshoot\`, \`diagnose\`, \`trace\`, \`reproduce\`, \`investigate\`, \`why is\`" "$ROOT_DIR/agents/session.start.md" \
     || fail "session.start agent should include debug smart-routing signals"
-  grep -q "check_workflow_allowed \"\$SESSION_ID\" \"development\" \"spike\" \"maintenance\" \"debug\" \"operational\"" "$ROOT_DIR/github/agents/session.execute.agent.md" \
+  grep -q "check_workflow_allowed \"\$SESSION_ID\" \"development\" \"spike\" \"maintenance\" \"debug\" \"operational\"" "$ROOT_DIR/agents/session.execute.md" \
     || fail "session.execute agent should allow debug and operational workflows"
-  grep -q "Debug Workflow: → STOP" "$ROOT_DIR/github/agents/session.execute.agent.md" \
+  grep -q "Debug Workflow: → STOP" "$ROOT_DIR/agents/session.execute.md" \
     || fail "session.execute agent should document debug stop-after-execute direct mode"
   grep -q "invoke session.start --debug" "$ROOT_DIR/README.md" \
     || fail "README should include a debug workflow example"
@@ -1351,13 +1351,13 @@ EOF
     || fail "install.sh should install the next.md template"
   grep -q "next-template.md" "$ROOT_DIR/update.sh" \
     || fail "update.sh should update the next.md template"
-  grep -q "previous_session.next_file" "$ROOT_DIR/github/agents/session.start.agent.md" \
+  grep -q "previous_session.next_file" "$ROOT_DIR/agents/session.start.md" \
     || fail "session.start agent should mention previous_session.next_file"
-  grep -q "primary follow-up artifact" "$ROOT_DIR/github/agents/session.wrap.agent.md" \
+  grep -q "primary follow-up artifact" "$ROOT_DIR/agents/session.wrap.md" \
     || fail "session.wrap agent should treat next.md as the primary follow-up artifact"
-  grep -q "structured handoff" "$ROOT_DIR/github/agents/session.scope.agent.md" \
+  grep -q "structured handoff" "$ROOT_DIR/agents/session.scope.md" \
     || fail "session.scope agent should accept next.md continuation context"
-  grep -q "previous-session \`next.md\` path" "$ROOT_DIR/github/agents/session.plan.agent.md" \
+  grep -q "previous-session \`next.md\` path" "$ROOT_DIR/agents/session.plan.md" \
     || fail "session.plan agent should accept next.md continuation context"
   grep -q "next.md" "$ROOT_DIR/session/docs/reference.md" \
     || fail "reference docs should mention next.md"
@@ -1540,11 +1540,11 @@ EOF
     || fail "reference docs should distinguish volatile state.json bookkeeping"
   grep -q "intentionally ignored from git" "$ROOT_DIR/session/docs/schema-versioning.md" \
     || fail "schema docs should classify state.json as local bookkeeping"
-  grep -q "Never stage \`.session/sessions.*/state.json\`" "$ROOT_DIR/github/agents/session.execute.agent.md" \
+  grep -q "Never stage \`.session/sessions.*/state.json\`" "$ROOT_DIR/agents/session.execute.md" \
     || fail "session.execute agent should forbid staging volatile state.json"
-  grep -q "excluding volatile session bookkeeping" "$ROOT_DIR/github/agents/session.validate.agent.md" \
+  grep -q "excluding volatile session bookkeeping" "$ROOT_DIR/agents/session.validate.md" \
     || fail "session.validate agent should exclude volatile state.json bookkeeping"
-  grep -q "not state.json" "$ROOT_DIR/github/agents/session.wrap.agent.md" \
+  grep -q "not state.json" "$ROOT_DIR/agents/session.wrap.md" \
     || fail "session.wrap agent should exclude state.json from archival artifacts"
   grep -q "FIX (#72)" "$ROOT_DIR/CHANGELOG.md" \
     || fail "CHANGELOG should record the state.json bookkeeping fix"
@@ -1598,9 +1598,9 @@ EOF
     || fail "session-start help should explain what --brainstorm does"
   grep -q "invoke session.start --brainstorm" "$ROOT_DIR/README.md" \
     || fail "README should document the recommended brainstorm entrypoint"
-  grep -q "orchestration.brainstorm" "$ROOT_DIR/github/agents/session.start.agent.md" \
+  grep -q "orchestration.brainstorm" "$ROOT_DIR/agents/session.start.md" \
     || fail "session.start agent should inspect the brainstorm orchestration flag"
-  grep -q "requires an active session already created by \`session.start\`" "$ROOT_DIR/github/agents/session.brainstorm.agent.md" \
+  grep -q "requires an active session already created by \`session.start\`" "$ROOT_DIR/agents/session.brainstorm.md" \
     || fail "session.brainstorm agent should say that session.start must run first"
   grep -q "Recommended entrypoint: \`invoke session.start --brainstorm" "$ROOT_DIR/session/docs/reference.md" \
     || fail "reference docs should recommend session.start --brainstorm"
@@ -1636,15 +1636,15 @@ EOF
 
   # 58) operational docs and agent contracts reflect iterative runtime workflow
   log "58) operational docs and agent contracts reflect runtime workflow"
-  grep -q "Operational Workflow: execute → STOP" "$ROOT_DIR/github/agents/session.start.agent.md" \
+  grep -q "Operational Workflow: execute → STOP" "$ROOT_DIR/agents/session.start.md" \
     || fail "session.start agent should document operational execute → STOP default"
-  grep -q "\`batch\`, \`pipeline\`, \`backfill\`, \`ingest\`, \`scrape\`, \`transcode\`, \`reprocess\`, \`rerun\`" "$ROOT_DIR/github/agents/session.start.agent.md" \
+  grep -q "\`batch\`, \`pipeline\`, \`backfill\`, \`ingest\`, \`scrape\`, \`transcode\`, \`reprocess\`, \`rerun\`" "$ROOT_DIR/agents/session.start.md" \
     || fail "session.start agent should include operational smart-routing signals"
-  grep -q "workflow is \`development\`, \`spike\`, or \`operational\`" "$ROOT_DIR/github/agents/session.start.agent.md" \
+  grep -q "workflow is \`development\`, \`spike\`, or \`operational\`" "$ROOT_DIR/agents/session.start.md" \
     || fail "session.start agent should create a branch for operational workflow"
-  grep -q "check_workflow_allowed \"\$SESSION_ID\" \"development\" \"spike\" \"maintenance\" \"debug\" \"operational\"" "$ROOT_DIR/github/agents/session.execute.agent.md" \
+  grep -q "check_workflow_allowed \"\$SESSION_ID\" \"development\" \"spike\" \"maintenance\" \"debug\" \"operational\"" "$ROOT_DIR/agents/session.execute.md" \
     || fail "session.execute agent should allow operational workflow"
-  grep -q "Operational Workflow: → STOP" "$ROOT_DIR/github/agents/session.execute.agent.md" \
+  grep -q "Operational Workflow: → STOP" "$ROOT_DIR/agents/session.execute.md" \
     || fail "session.execute agent should document operational stop-after-execute direct mode"
   grep -q "invoke session.start --operational" "$ROOT_DIR/README.md" \
     || fail "README should include an operational workflow example"
@@ -1671,7 +1671,7 @@ EOF
     || fail "install.sh should install the session-audit script"
   grep -q "session-audit.sh" "$ROOT_DIR/update.sh" \
     || fail "update.sh should update the session-audit script"
-  [[ ! -f "$ROOT_DIR/github/agents/session.audit.agent.md" ]] \
+  [[ ! -f "$ROOT_DIR/agents/session.audit.md" ]] \
     || fail "session.audit agent should no longer be shipped"
   [[ ! -f "$ROOT_DIR/github/prompts/session.audit.prompt.md" ]] \
     || fail "session.audit prompt should no longer be shipped"

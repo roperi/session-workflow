@@ -1,4 +1,5 @@
 ---
+name: session.analyze
 description: Perform non-destructive cross-artifact consistency and quality analysis.
 tools: ["read", "search"]
 ---
@@ -55,7 +56,7 @@ Consider user input before proceeding.
    source .session/scripts/bash/session-common.sh
    SESSION_ID=$(get_active_session)
    ```
-2. If no active session, abort with: "No active session. invoke session.start first."
+2. If no active session, abort with: "No active session. session.start first."
 
 3. Load artifacts:
    - `.session/sessions/$SESSION_ID/session-info.json` - Session metadata
@@ -65,7 +66,7 @@ Consider user input before proceeding.
    - `.session/project-context/technical-context.md` - Stack/environment
    - Linked issue body or relevant spec (if applicable)
 
-4. If `tasks.md` missing, abort with: "No tasks found. invoke session.task first."
+4. If `tasks.md` missing, abort with: "No tasks found. session.task first."
 
 ### Step 2: Build Semantic Models
 
@@ -164,9 +165,9 @@ _or_
 2. **MEDIUM/LOW issues**: May proceed, but consider improvements
 
 **Suggested commands:**
-- invoke session.task --comment "Add error handling tasks" - Update task list
-- invoke session.clarify - If ambiguities need user input
-- invoke session.execute - If no critical issues
+- session.task --comment "Add error handling tasks" - Update task list
+- session.clarify - If ambiguities need user input
+- session.execute - If no critical issues
 ```
 
 ### Step 6: Offer Remediation
@@ -193,15 +194,15 @@ Ask the user:
 
 ```bash
 # After task generation
-invoke session.task
-invoke session.analyze  # Check coverage and consistency
+session.task
+session.analyze  # Check coverage and consistency
 
 # With specific focus
-invoke session.analyze --comment "Focus on security and error handling"
+session.analyze --comment "Focus on security and error handling"
 
 # Quick check before execution
-invoke session.analyze
-invoke session.execute  # If no critical issues
+session.analyze
+session.execute  # If no critical issues
 ```
 
 ---
@@ -211,6 +212,6 @@ invoke session.execute  # If no critical issues
 This agent does not auto-handoff. After analysis:
 
 **Suggested next steps:**
-- invoke session.execute - If no critical issues (proceed with implementation)
-- invoke session.task --comment "..." - Update tasks to address gaps
-- invoke session.clarify - If ambiguities need user clarification
+- session.execute - If no critical issues (proceed with implementation)
+- session.task --comment "..." - Update tasks to address gaps
+- session.clarify - If ambiguities need user clarification

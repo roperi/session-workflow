@@ -1,4 +1,5 @@
 ---
+name: session.scope
 description: Define problem boundaries, success criteria, and scope before any planning begins
 tools: ["*"]
 ---
@@ -273,14 +274,23 @@ Scope complete. Returning results to orchestrating agent.
 
 ## Chaining & Handoff
 
-**First**, run postflight to mark this step complete:
+**MANDATORY**: Run postflight to mark this step complete and get next steps:
 ```bash
 .session/scripts/bash/session-postflight.sh --step scope --json
 ```
 
-After postflight, **return your results** — scope.md location, key boundaries, and item counts. The orchestrating agent (session.start) will invoke the next step.
+### Transition Protocol
+1. Parse the `valid_next_steps` from the postflight JSON output.
+2. Announce completion and suggest the next command(s).
+3. **Invoke the next step** using your tool's native mechanism (e.g., slash command, `@agent`, or sub-agent task) if in `--auto` mode. Otherwise, guide the user to the next step.
 
-⛔ Do NOT invoke session.spec, session.plan, or any other agent yourself.
+**Tool-Specific Invocation Examples:**
+- **GitHub Copilot**: `task(agent_type: "session.spec", prompt: "...")`
+- **Claude Code**: `/session.spec`
+- **Gemini CLI**: Activate sub-agent or skill `session.spec`
+
+⛔ Do NOT perform the work of the next agent yourself.
+
 
 ## Scope Quality Guidelines
 

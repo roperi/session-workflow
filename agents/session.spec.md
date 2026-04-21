@@ -1,4 +1,5 @@
 ---
+name: session.spec
 description: Define detailed specification with acceptance criteria and verification contracts
 tools: ["*"]
 ---
@@ -110,7 +111,7 @@ echo "Workflow: $WORKFLOW"
 **Spike workflows skip spec** — they go directly from scope to plan.
 
 If the workflow is not development, inform the user:
-> "Spec is for development workflows only. For spike workflows, proceed directly to `invoke session.plan`."
+> "Spec is for development workflows only. For spike workflows, proceed directly to `session.plan`."
 
 ### 3. Gather Input Context
 
@@ -313,14 +314,22 @@ Spec complete. Returning results to orchestrating agent.
 
 ## Chaining & Handoff
 
-**First**, run postflight to mark this step complete:
+**MANDATORY**: Run postflight to mark this step complete and get next steps:
 ```bash
 .session/scripts/bash/session-postflight.sh --step spec --json
 ```
 
-After postflight, **return your results** — spec.md location, story count, acceptance criteria count, and any items needing clarification. The orchestrating agent (session.start) will invoke the next step.
+### Transition Protocol
+1. Parse the `valid_next_steps` from the postflight JSON output.
+2. Announce completion and suggest the next command(s).
+3. **Invoke the next step** using your tool's native mechanism (e.g., slash command, `@agent`, or sub-agent task) if in `--auto` mode. Otherwise, guide the user to the next step.
 
-⛔ Do NOT invoke session.plan, session.clarify, or any other agent yourself.
+**Tool-Specific Invocation Examples:**
+- **GitHub Copilot**: `task(agent_type: "session.plan", prompt: "...")`
+- **Claude Code**: `/session.plan`
+- **Gemini CLI**: Activate sub-agent or skill `session.plan`
+
+⛔ Do NOT perform the work of the next agent yourself.
 
 ## Spec Quality Guidelines
 
@@ -357,7 +366,7 @@ After postflight, **return your results** — spec.md location, story count, acc
 - **Human review gate**: User MUST review spec before proceeding to plan
 - **Interactive first**: Ask questions for each story, don't assume acceptance criteria
 - **Scope is law**: Every spec item must trace back to an "In Scope" item — flag anything that doesn't
-- **Clarification path**: `[NEEDS CLARIFICATION]` items can be resolved via `invoke session.clarify`
+- **Clarification path**: `[NEEDS CLARIFICATION]` items can be resolved via `session.clarify`
 - **Input from scope**: If `scope.md` exists (expected), use it as primary input
 - **Auto-chain after approval**: Once user confirms, proceed directly to session.plan
 - **⛔ Boundary reminder**: Do NOT generate plans, tasks, or code. Specification ONLY.

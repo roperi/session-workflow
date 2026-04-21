@@ -1,4 +1,5 @@
 ---
+name: session.publish
 description: Create or update pull request for session work
 tools: ["*"]
 ---
@@ -146,16 +147,24 @@ fi
 4. Then wrap up: `session.wrap`
 ```
 
-## Next step
+## Chaining & Handoff
 
-**First**, run postflight to mark this step complete:
+**MANDATORY**: Run postflight to mark this step complete and get next steps:
 ```bash
 .session/scripts/bash/session-postflight.sh --step publish --json
 ```
 
-After postflight, **return your results** — PR number, URL, and status. The orchestrating agent will either stop here for manual/custom review or invoke `session.review` if automated review was explicitly requested.
+### Transition Protocol
+1. Parse the `valid_next_steps` from the postflight JSON output.
+2. Announce completion and suggest the next command(s).
+3. **Invoke the next step** using your tool's native mechanism (e.g., slash command, `@agent`, or sub-agent task) if in `--auto` mode. Otherwise, guide the user to the next step.
 
-⛔ Do NOT invoke session.finalize or any other agent yourself.
+**Tool-Specific Invocation Examples:**
+- **GitHub Copilot**: `task(agent_type: "session.review", prompt: "...")`
+- **Claude Code**: `/session.review`
+- **Gemini CLI**: Activate sub-agent or skill `session.review`
+
+⛔ Do NOT perform the work of the next agent yourself.
 
 ## CRITICAL: PR Merge Rules
 
@@ -188,7 +197,7 @@ After postflight, **return your results** — PR number, URL, and status. The or
 ## Usage
 
 ```bash
-invoke session.publish
+session.publish
 ```
 
 

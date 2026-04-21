@@ -1,4 +1,5 @@
 ---
+name: session.validate
 description: Validates session work quality before publishing
 tools: ["*"]
 ---
@@ -348,7 +349,7 @@ STAGE=$(jq -r '.stage // "production"' "$SESSION_DIR/session-info.json")
 3. Run postflight: `.session/scripts/bash/session-postflight.sh --step validate --json`
 4. **Return results** to orchestrating agent. Add note: "⚠️ PoC mode: Proceeding despite validation warnings"
 
-⛔ Do NOT invoke session.publish or any other agent yourself.
+⛔ Do NOT session.publish or any other agent yourself.
 
 ### IF all checks PASS:
 1. Create both validation-results.json copies with overall: "pass"
@@ -356,7 +357,24 @@ STAGE=$(jq -r '.stage // "production"' "$SESSION_DIR/session-info.json")
 3. Run postflight: `.session/scripts/bash/session-postflight.sh --step validate --json`
 4. **Return results** to orchestrating agent.
 
-⛔ Do NOT invoke session.publish or any other agent yourself.
+## Chaining & Handoff
+
+**MANDATORY**: Run postflight to mark this step complete and get next steps:
+```bash
+.session/scripts/bash/session-postflight.sh --step validate --json
+```
+
+### Transition Protocol
+1. Parse the `valid_next_steps` from the postflight JSON output.
+2. Announce completion and suggest the next command(s).
+3. **Invoke the next step** using your tool's native mechanism (e.g., slash command, `@agent`, or sub-agent task) if in `--auto` mode. Otherwise, guide the user to the next step.
+
+**Tool-Specific Invocation Examples:**
+- **GitHub Copilot**: `task(agent_type: "session.publish", prompt: "...")`
+- **Claude Code**: `/session.publish`
+- **Gemini CLI**: Activate sub-agent or skill `session.publish`
+
+⛔ Do NOT perform the work of the next agent yourself.
 
 ### IF any checks FAIL:
 1. Create both validation-results.json copies with overall: "fail"
@@ -404,7 +422,7 @@ If user chooses "Wrap session":
 ## Usage
 
 ```bash
-invoke session.validate
+session.validate
 ```
 
 Typically invoked automatically by `session.execute` after task completion.

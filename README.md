@@ -75,8 +75,7 @@ cd your-project
 ```
 
 **What gets installed:**
-- `.github/agents/session.*.agent.md` - AI agent definitions
-- `.github/prompts/session.*.prompt.md` - Prompt link files (IDE integration, e.g. VS Code)
+- `agents/session.*.md` - AI agent definitions
 - `.session/` - Scripts, templates, project context, and versioned session history
 - `AGENTS.md` - AI bootstrap file (created if missing)
 - `.github/copilot-instructions.md` - Copilot config (created if missing)
@@ -107,8 +106,7 @@ curl -sSL https://raw.githubusercontent.com/roperi/session-workflow/main/update.
 ```
 
 **What gets updated** (safe to re-run at any time):
-- All agent files (`.github/agents/session.*.agent.md`)
-- All prompt files (`.github/prompts/session.*.prompt.md`)
+- All agent files (`agents/session.*.md`)
 - All bash scripts (`.session/scripts/bash/`)
 - The stable updater wrapper (`.session/update.sh`)
 - Templates and documentation (`.session/templates/`, `.session/docs/`)

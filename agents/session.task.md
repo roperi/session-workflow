@@ -1,4 +1,5 @@
 ---
+name: session.task
 description: Generate detailed task breakdown with user story organization, parallelization markers, and dependencies
 tools: ["*"]
 ---
@@ -294,14 +295,23 @@ Task breakdown complete — proceeding to execution.
 
 ## Chaining & Handoff
 
-**First**, run postflight to mark this step complete:
+**MANDATORY**: Run postflight to mark this step complete and get next steps:
 ```bash
 .session/scripts/bash/session-postflight.sh --step task --json
 ```
 
-After postflight, **return your results** — tasks.md location, total task count, and phase breakdown. The orchestrating agent (session.start) will invoke the next step.
+### Transition Protocol
+1. Parse the `valid_next_steps` from the postflight JSON output.
+2. Announce completion and suggest the next command(s).
+3. **Invoke the next step** using your tool's native mechanism (e.g., slash command, `@agent`, or sub-agent task) if in `--auto` mode. Otherwise, guide the user to the next step.
 
-⛔ Do NOT invoke session.execute or any other agent yourself.
+**Tool-Specific Invocation Examples:**
+- **GitHub Copilot**: `task(agent_type: "session.execute", prompt: "...")`
+- **Claude Code**: `/session.execute`
+- **Gemini CLI**: Activate sub-agent or skill `session.execute`
+
+⛔ Do NOT perform the work of the next agent yourself.
+
 
 ## Task Generation Guidelines
 

@@ -1,4 +1,5 @@
 ---
+name: session.brainstorm
 description: Clarify WHAT to build and capture decisions in a session-scoped brainstorm doc.
 tools: ["read", "edit", "search"]
 ---
@@ -11,7 +12,7 @@ Produce a concise brainstorm that clarifies **WHAT/WHY** (not detailed HOW), exp
 
 - This is an **optional** planning agent. It is not part of the default chain unless `session.start --brainstorm` explicitly inserts it.
 - It requires an active session already created by `session.start`.
-- Recommended entrypoint: `invoke session.start --brainstorm ...`
+- Recommended entrypoint: `session.start --brainstorm ...`
 - Write the output to the session artifact `{session_dir}/brainstorm.md` (not `docs/brainstorms/`).
 - Keep it tight: no novel-length docs, no implementation task lists.
 
@@ -115,8 +116,8 @@ Rationale:
 
 ## Next Step
 
-Recommended: invoke session.scope and use this brainstorm as input.
-If you intentionally want to skip scope/spec, invoke session.plan directly.
+Recommended: session.scope and use this brainstorm as input.
+If you intentionally want to skip scope/spec, session.plan directly.
 ```
 
 ### 5) Record reference in session notes
@@ -130,8 +131,8 @@ If the notes do not already contain a Brainstorm section, append:
 ### 6) Handoff
 
 If invoked directly by the user, suggest the next step:
-- `invoke session.scope` (recommended) to turn the brainstorm into explicit boundaries
-- or `invoke session.plan` if the user intentionally wants to skip scope/spec and accept the preflight warning
+- `session.scope` (recommended) to turn the brainstorm into explicit boundaries
+- or `session.plan` if the user intentionally wants to skip scope/spec and accept the preflight warning
 - or `session.clarify` if unresolved questions remain
 
 If invoked by `session.start --brainstorm`, return the brainstorm path and let `session.start` continue the planning chain.

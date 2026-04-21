@@ -17,9 +17,7 @@ session-workflow/
 │   └── workflows/
 │       └── tests.yml                           CI configuration
 │
-├── github/                                     agent definitions and prompts
-│   ├── agents/                                 individual agent definitions (MD)
-│   └── prompts/                                individual agent system prompts (MD)
+├── agents/                                     individual agent definitions (MD)
 │
 ├── session/                                    session management logic and templates
 │   ├── docs/                                   session workflow documentation

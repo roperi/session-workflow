@@ -1,4 +1,5 @@
 ---
+name: session.start
 description: Start a new work session or resume an existing one — always run this first before any other session agent
 tools: ["*"]
 ---
@@ -271,263 +272,66 @@ Why this matters:
 - **Exception: `session.scope` remains interactive**. Its prompt should allow concise clarifying questions because scoping is itself a human gate, even during `--auto`.
 - `session.brainstorm` may also ask concise clarifying questions when needed because it shapes the WHAT/WHY before planning.
 
----
+## Chaining & Handoff Protocol
+
+After session-start.sh completes, you orchestrate the workflow chain.
+
+### ⛔ CRITICAL: Invoke Agents — Do NOT Do Their Work
+
+For each step, you MUST invoke the corresponding agent as a **separate sub-agent or command** using your tool's native mechanism (e.g., `task` tool, `@agent` mention, slash command, or `generalist` sub-agent). Do NOT read their agent files and do their work yourself.
+
+**Tool-Specific Invocation Examples:**
+- **GitHub Copilot**: Use `task(agent: "session.scope", prompt: "...")`
+- **Claude Code**: Suggest or execute `/session.scope`
+- **Gemini CLI**: Activate sub-agent or skill `session.scope`
 
 ### Default Mode
 
-For development/spike, orchestrate the planning phase only. For maintenance/debug/operational, invoke execute immediately, then stop and guide the user.
+Orchestrate Phase 1 (Planning) only for development/spike. For maintenance/debug/operational, invoke execute immediately, then stop.
 
 #### Optional Brainstorm Insert (`--brainstorm`)
 
-If `orchestration.brainstorm` is `true`, invoke `session.brainstorm` immediately after initialization for `development` or `spike`, then continue with the normal planning chain. This is the preferred way to use brainstorm because `session.start` still establishes the required active session first.
-
-**brainstorm** - Invoke `session.brainstorm` agent:
-```
-agent_type: "session.brainstorm"
-prompt: "Brainstorm this session goal. Session: {session_id}, dir: {session_dir}, workflow: {workflow}, stage: {stage}. Clarify the WHAT/WHY in {session_dir}/brainstorm.md. Ask concise clarifying questions only when truly needed."
-```
-
-After brainstorm completes:
-- development -> continue with `scope`, `spec`, `plan`, `task`
-- spike -> continue with `scope`, `plan`, `task`
-- do not stop after brainstorm unless it surfaces an unresolved human checkpoint
+Invoke `session.brainstorm` immediately after initialization:
+- **Prompt**: "Brainstorm this session goal. Session: {session_id}, dir: {session_dir}, workflow: {workflow}, stage: {stage}. Clarify the WHAT/WHY in {session_dir}/brainstorm.md. Ask concise clarifying questions only when truly needed."
 
 #### Development Workflow: [brainstorm →] scope → spec → plan → task → STOP
 
-**scope** — Invoke `session.scope` agent:
-```
-agent_type: "session.scope"
-prompt: "Scope issue #{N}: {title}. Session: {session_id}, dir: {session_dir}, branch: {branch}, workflow: development, stage: {stage}. Ask concise clarifying questions when needed to define boundaries and success criteria before writing scope.md."
-```
-
-**spec** — Invoke `session.spec` agent:
-```
-agent_type: "session.spec"
-prompt: "Write spec for issue #{N}: {title}. Session: {session_id}, dir: {session_dir}. Scope defined in {session_dir}/scope.md. Do NOT ask clarifying questions."
-```
-
-**plan** — Invoke `session.plan` agent:
-```
-agent_type: "session.plan"
-prompt: "Plan issue #{N}: {title}. Session: {session_id}, dir: {session_dir}. Spec in {session_dir}/spec.md. Do NOT ask clarifying questions."
-```
-
-**task** — Invoke `session.task` agent:
-```
-agent_type: "session.task"
-prompt: "Generate tasks for issue #{N}: {title}. Session: {session_id}, dir: {session_dir}. Plan in {session_dir}/plan.md. Do NOT ask clarifying questions."
-```
-
-After task completes, output:
-```
-✅ Phase 1 (Planning) complete
-
-Session: {session_id}
-Workflow: development
-Branch: {branch}
-
-Artifacts:
-- scope.md ✓
-- spec.md ✓
-- plan.md ✓
-- tasks.md ✓ ({count} tasks)
-
-Next: Review planning artifacts, then run:
-  invoke session.execute
-
-Optional quality agents before execution:
-  invoke session.clarify    — Clarify underspecified requirements
-  invoke session.analyze    — Cross-artifact consistency check
-  invoke session.checklist  — Generate quality checklist
-```
+1. **scope**: "Scope issue #{N}: {title}. Session: {session_id}, dir: {session_dir}, branch: {branch}, workflow: development, stage: {stage}. Ask concise clarifying questions when needed to define boundaries and success criteria before writing scope.md."
+2. **spec**: "Write spec for issue #{N}: {title}. Session: {session_id}, dir: {session_dir}. Scope defined in {session_dir}/scope.md. Do NOT ask clarifying questions."
+3. **plan**: "Plan issue #{N}: {title}. Session: {session_id}, dir: {session_dir}. Spec in {session_dir}/spec.md. Do NOT ask clarifying questions."
+4. **task**: "Generate tasks for issue #{N}: {title}. Session: {session_id}, dir: {session_dir}. Plan in {session_dir}/plan.md. Do NOT ask clarifying questions."
 
 #### Spike Workflow: [brainstorm →] scope → plan → task → STOP
 
-Same as development but skip spec. After task completes:
-```
-✅ Phase 1 (Planning) complete
-
-Session: {session_id}
-Workflow: spike
-Branch: {branch}
-
-Artifacts:
-- scope.md ✓
-- plan.md ✓
-- tasks.md ✓ ({count} tasks)
-
-Next: Review planning artifacts, then run:
-  invoke session.execute
-```
+Same as development but skip spec.
 
 #### Maintenance Workflow: execute → STOP
 
-Maintenance has no planning phase, so invoke `session.execute` immediately:
-
-**execute** — Invoke `session.execute` agent:
-```
-agent_type: "session.execute"
-prompt: "Execute maintenance work for session {session_id}. Dir: {session_dir}. Tasks in {tasks_file}. Workflow: maintenance. Do NOT ask clarifying questions."
-```
-
-After execute completes, STOP and guide the user to review the result, then run `invoke session.wrap` only when they want to close out the session.
-
-Return a summary like:
-```
-✅ Maintenance execution complete
-
-Session: {session_id}
-Workflow: maintenance
-
-Next:
-  - Review the changes or report output
-  - Run `invoke session.wrap` when you want to close out the session
-```
+Invoke **execute**: "Execute maintenance work for session {session_id}. Dir: {session_dir}. Tasks in {tasks_file}. Workflow: maintenance. Do NOT ask clarifying questions."
 
 #### Debug Workflow: execute → STOP
 
-Debug has no planning phase, so invoke `session.execute` immediately:
-
-**execute** — Invoke `session.execute` agent:
-```
-agent_type: "session.execute"
-prompt: "Execute debug investigation for session {session_id}. Dir: {session_dir}. Tasks in {tasks_file}. Workflow: debug. Do NOT ask clarifying questions."
-```
-
-After execute completes, STOP and guide the user to review the findings, reproduction notes, or fix verification results, then run `invoke session.wrap` only when they want to close out the session.
-
-Return a summary like:
-```
-✅ Debug investigation complete
-
-Session: {session_id}
-Workflow: debug
-
-Next:
-  - Review the findings, reproduction notes, or verification results
-  - Run `invoke session.wrap` when you want to close out the session
-```
+Invoke **execute**: "Execute debug investigation for session {session_id}. Dir: {session_dir}. Tasks in {tasks_file}. Workflow: debug. Do NOT ask clarifying questions."
 
 #### Operational Workflow: execute → STOP
 
-Operational has no planning phase, so invoke `session.execute` immediately:
-
-**execute** — Invoke `session.execute` agent:
-```
-agent_type: "session.execute"
-prompt: "Execute operational work for session {session_id}. Dir: {session_dir}. Tasks in {tasks_file}. Workflow: operational. Treat tasks.md as a living checklist for monitored runs and follow-up fixes. Do NOT ask clarifying questions."
-```
-
-After execute completes, STOP and guide the user to review the batch outputs, metrics, or logs, patch if needed, and resume with another execution pass before wrapping the session.
-
-Return a summary like:
-```
-✅ Operational execution pass complete
-
-Session: {session_id}
-Workflow: operational
-
-Next:
-  - Review the batch outputs, metrics, or logs
-  - Apply follow-up fixes, then run `invoke session.execute --resume` for the next pass
-  - Run `invoke session.wrap` when you want to close out the session
-```
+Invoke **execute**: "Execute operational work for session {session_id}. Dir: {session_dir}. Tasks in {tasks_file}. Workflow: operational. Treat tasks.md as a living checklist for monitored runs and follow-up fixes. Do NOT ask clarifying questions."
 
 ---
 
 ### Auto Mode (`--auto`)
 
-Orchestrate the automatic workflow chain until it reaches a manual review gate **or any other required human checkpoint** (for example: scope questions, manual test confirmation, or an active pause recorded in `state.json`). Invoke each agent in sequence, waiting for each to complete.
-
-After each sub-agent returns, check whether the session context or `state.json` reports `pause.active = true`. If it does:
-- STOP immediately
-- Surface the pending action and resume command to the user
-- Do **not** invoke the next workflow step until the paused step clears the checkpoint
+Orchestrate the automatic workflow chain until it reaches a manual review gate or **any other required human checkpoint** (for example: scope questions, manual test confirmation, or an active pause recorded in `state.json`).
 
 #### Development Workflow (Auto): [brainstorm →] scope → spec → plan → task → execute → validate → publish → [review] → [merge] → [finalize] → [wrap]
 
-**Phase 1: Planning** — If `orchestration.brainstorm` is true, invoke brainstorm first. Then invoke scope, spec, plan, task (same invocation patterns as Default Mode above).
-
-**Phase 2: Implementation**
-
-**execute** — Invoke `session.execute` agent:
-```
-agent_type: "session.execute"
-prompt: "Execute tasks for issue #{N}: {title}. Session: {session_id}, dir: {session_dir}. Tasks in {tasks_file}. Do NOT ask clarifying questions. IMPORTANT: {include any containerisation or environment constraints from the user's original message}."
-```
-
-**validate** — Invoke `session.validate` agent:
-```
-agent_type: "session.validate"
-prompt: "Validate work for issue #{N}. Session: {session_id}, dir: {session_dir}, stage: {stage}. Do NOT ask clarifying questions."
-```
-
-**publish** — Invoke `session.publish` agent:
-```
-agent_type: "session.publish"
-prompt: "Publish PR for issue #{N}. Session: {session_id}, dir: {session_dir}, repo: {owner/repo}, branch: {branch}. Do NOT ask clarifying questions."
-```
-
-**Phase 3: Review / Merge Gate**
-
-After publish completes and returns the PR number:
-
-**If `--copilot-review` was specified:**
-
-**review** — Invoke `session.review` agent:
-```
-agent_type: "session.review"
-prompt: "Review PR #{pr_number} for issue #{N}. Session: {session_id}, dir: {session_dir}, repo: {owner/repo}. Do NOT ask clarifying questions."
-```
-
-If `session.review` reports unresolved items, stop and surface them for manual attention. Do **not** auto-merge in that case.
-
-Only after `session.review` completes cleanly:
-
-**Merge the PR:**
-1. **Wait for CI** to pass on the PR.
-2. **Merge the PR** to main using squash merge.
-3. **Clean up branches** — delete the remote feature branch after merge.
-
-**Phase 4: Post-merge**
-
-**finalize** — Invoke `session.finalize` agent:
-```
-agent_type: "session.finalize"
-prompt: "Finalize merged PR #{pr_number} for issue #{N}. Session: {session_id}, dir: {session_dir}. PR merged to main. Do NOT ask clarifying questions."
-```
-
-**wrap** — Invoke `session.wrap` agent:
-```
-agent_type: "session.wrap"
-prompt: "Wrap session {session_id}. Dir: {session_dir}. Issue #{N} closed, PR #{pr_number} merged. Do NOT ask clarifying questions."
-```
-
-After wrap completes:
-```
-✅ Full workflow complete for issue #{N}.
-
-Workflow chain: start → scope → spec → plan → task → execute → validate → publish → [review] → merge → finalize → wrap ✓
-```
-
-**If `--copilot-review` was NOT specified:**
-- STOP after `session.publish`.
-- Surface the PR URL and tell the user:
-  1. Review the PR manually, OR run `invoke session.review` if they want to use the default or an overridden custom review agent
-  2. Merge the PR once review and CI are satisfied
-  3. Run `invoke session.finalize`
-- Return immediately with a summary like:
-  ```
-  ✅ Auto workflow paused after publish
-
-  PR: #{pr_number}
-  Status: Published, awaiting manual/custom review
-
-  Next:
-    1. Review the PR manually, OR run `invoke session.review`
-    2. Merge the PR
-    3. Run `invoke session.finalize`
-  ```
+**Implementation Steps:**
+1. **execute**: "Execute tasks for issue #{N}: {title}. Session: {session_id}, dir: {session_dir}. Tasks in {tasks_file}. Do NOT ask clarifying questions."
+2. **validate**: "Validate work for issue #{N}. Session: {session_id}, dir: {session_dir}, stage: {stage}. Do NOT ask clarifying questions."
+3. **publish**: "Publish PR for issue #{N}. Session: {session_id}, dir: {session_dir}, repo: {owner/repo}, branch: {branch}. Do NOT ask clarifying questions."
+4. **review** (if `--copilot-review`): "Review PR #{pr_number} for issue #{N}. Session: {session_id}, dir: {session_dir}, repo: {owner/repo}. Do NOT ask clarifying questions."
+5. **finalize**: "Finalize merged PR #{pr_number} for issue #{N}. Session: {session_id}, dir: {session_dir}. PR merged to main. Do NOT ask clarifying questions."
+6. **wrap**: "Wrap session {session_id}. Dir: {session_dir}. Issue #{N} closed, PR #{pr_number} merged. Do NOT ask clarifying questions."
 
 In this mode, `--auto` means "auto-chain until an external review decision is required." It does **not** bypass manual/custom review and merge gates.
 
@@ -536,7 +340,7 @@ In this mode, `--auto` means "auto-chain until an external review decision is re
 Same as development but skip spec, validate, publish (no PR). If `orchestration.brainstorm` is true, invoke brainstorm first. After execute, invoke wrap directly:
 
 ```
-agent_type: "session.wrap"
+agent: "session.wrap"
 prompt: "Wrap spike session {session_id}. Dir: {session_dir}. Do NOT ask clarifying questions."
 ```
 
@@ -566,10 +370,10 @@ When resuming (`--resume`), check `state.json` to determine what step the sessio
 ## Notes
 
 - **Mode-aware orchestration**: Default runs Phase 1 (Planning) only for development/spike; maintenance/debug/operational run execute and then stop. `--auto` continues until the next human gate — review decisions, scope dialogue, or recorded pause checkpoints
-- **Brainstorm entrypoint**: Prefer `session.start --brainstorm` when the WHAT/WHY is fuzzy. Direct `invoke session.brainstorm` only applies once an active planning session already exists
+- **Brainstorm entrypoint**: Prefer `session.start --brainstorm` when the WHAT/WHY is fuzzy. Direct `session.brainstorm` only applies once an active planning session already exists
 - **No code changes**: Never write application code directly — that's session.execute's job
 - **Invoke, don't impersonate**: Use the task tool to invoke each agent — never `cat` their files and do their work
 - **Five workflows**: development (full), spike (no PR), maintenance (housekeeping), debug (investigation), operational (iterative runtime work)
-- **Review cycle**: Only auto-runs with `--auto --copilot-review`; otherwise stop after publish for manual review or an explicit `invoke session.review`
+- **Review cycle**: Only auto-runs with `--auto --copilot-review`; otherwise stop after publish for manual review or an explicit `session.review`
 - **Pass constraints through**: If the user's message includes environment constraints (e.g., "containerised app", "don't install locally"), pass them to session.execute
-- **Quality agents**: In default mode, users can invoke session.clarify, session.analyze, and session.checklist between phases
+- **Quality agents**: In default mode, users can session.clarify, session.analyze, and session.checklist between phases
