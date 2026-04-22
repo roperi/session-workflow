@@ -1157,9 +1157,9 @@ EOF
   grep -q "start → execute → STOP" "$ROOT_DIR/session/docs/shared-workflow.md" \
     || fail "shared workflow docs should show lightweight maintenance default"
   grep -q "Maintenance workflow" "$ROOT_DIR/AI.md" \
-    || fail "copilot instructions should mention the maintenance workflow"
+    || fail "AI onboarding docs should mention the maintenance workflow"
   grep -q "start → execute → STOP" "$ROOT_DIR/AI.md" \
-    || fail "copilot instructions should show maintenance stop-after-execute default"
+    || fail "AI onboarding docs should show maintenance stop-after-execute default"
   grep -q "Maintenance workflow is now lightweight by default" "$ROOT_DIR/CHANGELOG.md" \
     || fail "CHANGELOG should record the maintenance default change"
   ! grep -q "Maintenance workflow always auto-chains" "$ROOT_DIR/CHANGELOG.md" \
@@ -1286,9 +1286,9 @@ EOF
   grep -Fq "\`development\` \| \`spike\` \| \`maintenance\` \| \`debug\` \| \`operational\`" "$ROOT_DIR/session/docs/schema-versioning.md" \
     || fail "schema docs should include debug and operational as workflow values"
   grep -q "Debug workflow" "$ROOT_DIR/AI.md" \
-    || fail "copilot instructions should mention the debug workflow"
+    || fail "AI onboarding docs should mention the debug workflow"
   grep -q "invoke session.start --debug" "$ROOT_DIR/stubs/copilot_instructions.md" \
-    || fail "copilot instructions stub should include the debug workflow"
+    || fail "AI onboarding docs stub should include the debug workflow"
   grep -q "dedicated \`debug\` workflow" "$ROOT_DIR/CHANGELOG.md" \
     || fail "CHANGELOG should record the new debug workflow"
 
@@ -1360,9 +1360,9 @@ EOF
   grep -q "next.md" "$ROOT_DIR/session/docs/reference.md" \
     || fail "reference docs should mention next.md"
   grep -q "next.md" "$ROOT_DIR/AI.md" \
-    || fail "copilot instructions should mention next.md"
+    || fail "AI onboarding docs should mention next.md"
   grep -q "next.md" "$ROOT_DIR/stubs/copilot_instructions.md" \
-    || fail "copilot instructions stub should mention next.md"
+    || fail "AI onboarding docs stub should mention next.md"
 
   log "All next.md artifact tests passed."
 
@@ -1605,9 +1605,9 @@ EOF
   grep -q "session.start --brainstorm" "$ROOT_DIR/session/docs/shared-workflow.md" \
     || fail "shared workflow docs should mention the brainstorm entrypoint"
   grep -q "session.start --brainstorm" "$ROOT_DIR/AI.md" \
-    || fail "copilot instructions should mention the brainstorm entrypoint"
+    || fail "AI onboarding docs should mention the brainstorm entrypoint"
   grep -q "session.start --brainstorm" "$ROOT_DIR/stubs/copilot_instructions.md" \
-    || fail "copilot instructions stub should mention the brainstorm entrypoint"
+    || fail "AI onboarding docs stub should mention the brainstorm entrypoint"
   grep -q "session.start.*--brainstorm" "$ROOT_DIR/CHANGELOG.md" \
     || fail "CHANGELOG should record the brainstorm entrypoint change"
 
@@ -1655,9 +1655,9 @@ EOF
   grep -Fq "\`development\` \| \`spike\` \| \`maintenance\` \| \`debug\` \| \`operational\`" "$ROOT_DIR/session/docs/schema-versioning.md" \
     || fail "schema docs should include operational as a workflow value"
   grep -q "Operational workflow" "$ROOT_DIR/AI.md" \
-    || fail "copilot instructions should mention the operational workflow"
+    || fail "AI onboarding docs should mention the operational workflow"
   grep -q "invoke session.start --operational" "$ROOT_DIR/stubs/copilot_instructions.md" \
-    || fail "copilot instructions stub should include the operational workflow"
+    || fail "AI onboarding docs stub should include the operational workflow"
   grep -q "Added an \`operational\` workflow" "$ROOT_DIR/CHANGELOG.md" \
     || fail "CHANGELOG should record the new operational workflow"
 
@@ -1684,14 +1684,14 @@ EOF
   grep -q "VALIDATION_RESULTS_SCHEMA_VERSION" "$ROOT_DIR/session/docs/schema-versioning.md" \
     || fail "schema docs should document validation-results.json schema version"
   grep -q "./.session/scripts/bash/session-audit.sh --all --summary" "$ROOT_DIR/AI.md" \
-    || fail "copilot instructions should mention the direct session-audit.sh utility"
+    || fail "AI onboarding docs should mention the direct session-audit.sh utility"
   grep -q "./.session/scripts/bash/session-audit.sh --all --summary" "$ROOT_DIR/stubs/copilot_instructions.md" \
-    || fail "copilot instructions stub should mention the direct session-audit.sh utility"
+    || fail "AI onboarding docs stub should mention the direct session-audit.sh utility"
   if grep -q "invoke session.audit" "$ROOT_DIR/AI.md"; then
-    fail "copilot instructions should not advertise session.audit as an agent"
+    fail "AI onboarding docs should not advertise session.audit as an agent"
   fi
   if grep -q "invoke session.audit" "$ROOT_DIR/stubs/copilot_instructions.md"; then
-    fail "copilot instructions stub should not advertise session.audit as an agent"
+    fail "AI onboarding docs stub should not advertise session.audit as an agent"
   fi
   grep -q "NEW (#50)" "$ROOT_DIR/CHANGELOG.md" \
     || fail "CHANGELOG should record the direct session-audit.sh entrypoint"
