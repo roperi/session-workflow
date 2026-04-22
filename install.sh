@@ -778,17 +778,10 @@ project_agents() {
                     register_managed_file "$source_path" "$dest"
                     ;;
                 copilot)
-                    local dest=".github/agents/${agent%.md}.agent.md"
-                    local prompt_dest=".github/prompts/${agent%.md}.prompt.md"
-                    mkdir -p ".github/agents" ".github/prompts"
+                    local dest=".github/agents/${agent}"
+                    mkdir -p ".github/agents"
                     cp "$tmp_source" "$dest"
                     register_managed_file "$source_path" "$dest"
-                    
-                    # Create prompt symlink for IDE integration
-                    if [[ ! -L "$prompt_dest" ]]; then
-                        ln -sf "../agents/${agent%.md}.agent.md" "$prompt_dest"
-                        register_managed_file "$source_path" "$prompt_dest"
-                    fi
                     ;;
                 cursor)
                     # Cursor doesn't have a commands directory yet, so we'll just

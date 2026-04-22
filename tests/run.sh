@@ -1669,12 +1669,12 @@ EOF
     || fail "update.sh should update the session-audit script"
   [[ ! -f "$ROOT_DIR/agents/session.audit.md" ]] \
     || fail "session.audit agent should no longer be shipped"
-  [[ ! -f "$ROOT_DIR/github/prompts/session.audit.prompt.md" ]] \
+  [[ ! -f "$ROOT_DIR/github/agents/session.audit.md" ]] \
     || fail "session.audit prompt should no longer be shipped"
-  if grep -q "session.audit.agent.md" "$ROOT_DIR/install.sh"; then
+  if grep -q "session.audit.md" "$ROOT_DIR/install.sh"; then
     fail "install.sh should not install the removed session.audit agent"
   fi
-  if grep -q "session.audit.prompt.md" "$ROOT_DIR/update.sh"; then
+  if grep -q "session.audit.md" "$ROOT_DIR/update.sh"; then
     fail "update.sh should not update the removed session.audit prompt"
   fi
   grep -q "./.session/scripts/bash/session-audit.sh --all --summary" "$ROOT_DIR/README.md" \

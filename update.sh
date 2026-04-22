@@ -356,16 +356,9 @@ update_agents() {
                     update_managed_file "$source_path" "$dest"
                     ;;
                 copilot)
-                    local dest=".github/agents/${agent%.md}.agent.md"
-                    local prompt_dest=".github/prompts/${agent%.md}.prompt.md"
-                    mkdir -p ".github/agents" ".github/prompts"
+                    local dest=".github/agents/${agent}"
+                    mkdir -p ".github/agents"
                     update_managed_file "$source_path" "$dest"
-                    
-                    # Ensure prompt symlink for IDE integration
-                    if [[ ! -L "$prompt_dest" ]]; then
-                        ln -sf "../agents/${agent%.md}.agent.md" "$prompt_dest"
-                        register_managed_file "$source_path" "$prompt_dest"
-                    fi
                     ;;
                 cursor)
                     # No file to update, just ensure reference exists
