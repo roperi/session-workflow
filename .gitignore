@@ -37,3 +37,6 @@ coverage/
 .session/
 .maintainer/
 .session/internal/
+.session/ACTIVE_SESSION
+.session/sessions/**/state.json
+.session/validation-results.json

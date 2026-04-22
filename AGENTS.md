@@ -17,6 +17,8 @@ session-workflow/
 │   └── workflows/
 │       └── tests.yml                           CI configuration
 │
+├── .maintainer/                                internal maintenance artifacts (private)
+│
 ├── agents/                                     individual agent definitions (MD)
 │
 ├── session/                                    session management logic and templates
