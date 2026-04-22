@@ -27,9 +27,23 @@ DETECTED_STACK=""
 DETECTED_TEST_CMD=""
 DETECTED_BUILD_CMD=""
 DETECTED_LINT_CMD=""
+SKIP_HOOKS=false
+# Simple argument parsing
+for arg in "$@"; do
+    if [[ "$arg" == "--no-hooks" ]]; then
+        SKIP_HOOKS=true
+    fi
+done
+
+error() { echo -e "${RED}[ERROR]${NC} $1"; exit 1; }
+
 # Set project root and anchor all subsequent relative path checks/writes there
+if ! git rev-parse --is-inside-work-tree > /dev/null 2>&1; then
+    echo -e "${RED}[ERROR]${NC} Not in a git repository. Run 'git init' first."
+    exit 1
+fi
 PROJECT_ROOT=$(git rev-parse --show-toplevel)
-cd "$PROJECT_ROOT" || error "Failed to change directory to project root: $PROJECT_ROOT"
+cd "$PROJECT_ROOT" || { echo -e "Failed to change directory to project root: $PROJECT_ROOT"; exit 1; }
 
 DETECTED_TOOLS=() # Array of detected AI tools
 
@@ -93,11 +107,12 @@ detect_ai_tools() {
         success "Detected: Gemini CLI"
     fi
     
-    # GitHub Copilot (presence of .github often implies it, but let's be more specific if possible)
-    # Since session-workflow is agnostic, we always project to .github for Copilot compatibility
-    # unless it's explicitly excluded.
-    DETECTED_TOOLS+=("copilot")
-    success "Detected: GitHub Copilot (default)"
+    # GitHub Copilot
+    # Only default to copilot if .github exists or if NO other tools are detected
+    if [[ -d ".github" ]] || [[ ${#DETECTED_TOOLS[@]} -eq 0 ]]; then
+        DETECTED_TOOLS+=("copilot")
+        success "Detected: GitHub Copilot"
+    fi
 
     # Cursor
     if [[ -f ".cursorrules" ]]; then
@@ -933,10 +948,14 @@ main() {
 main "$@"
 
 # Install git hooks
-info "Installing git hooks..."
-REPO_ROOT="$(git rev-parse --show-toplevel)"
-HOOKS_DIR="$(git -C "$REPO_ROOT" rev-parse --path-format=absolute --git-path hooks)"
-mkdir -p "$HOOKS_DIR"
-cp "$REPO_ROOT/.git-hooks/pre-commit" "$HOOKS_DIR/pre-commit"
-chmod +x "$HOOKS_DIR/pre-commit"
-success "Git hooks installed to $HOOKS_DIR."
+if ! $SKIP_HOOKS; then
+    info "Installing git hooks..."
+    REPO_ROOT="$(git rev-parse --show-toplevel)"
+    HOOKS_DIR="$(git -C "$REPO_ROOT" rev-parse --path-format=absolute --git-path hooks)"
+    mkdir -p "$HOOKS_DIR"
+    cp "$REPO_ROOT/.git-hooks/pre-commit" "$HOOKS_DIR/pre-commit"
+    chmod +x "$HOOKS_DIR/pre-commit"
+    success "Git hooks installed to $HOOKS_DIR."
+else
+    info "Skipping git hooks installation (--no-hooks)."
+fi
