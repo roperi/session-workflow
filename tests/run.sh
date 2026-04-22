@@ -1156,9 +1156,9 @@ EOF
     || fail "shared workflow docs should describe the lightweight maintenance default"
   grep -q "start → execute → STOP" "$ROOT_DIR/session/docs/shared-workflow.md" \
     || fail "shared workflow docs should show lightweight maintenance default"
-  grep -q "Maintenance workflow" "$ROOT_DIR/.github/copilot-instructions.md" \
+  grep -q "Maintenance workflow" "$ROOT_DIR/AI.md" \
     || fail "copilot instructions should mention the maintenance workflow"
-  grep -q "start → execute → STOP" "$ROOT_DIR/.github/copilot-instructions.md" \
+  grep -q "start → execute → STOP" "$ROOT_DIR/AI.md" \
     || fail "copilot instructions should show maintenance stop-after-execute default"
   grep -q "Maintenance workflow is now lightweight by default" "$ROOT_DIR/CHANGELOG.md" \
     || fail "CHANGELOG should record the maintenance default change"
@@ -1285,7 +1285,7 @@ EOF
     || fail "shared workflow docs should describe the debug workflow"
   grep -Fq "\`development\` \| \`spike\` \| \`maintenance\` \| \`debug\` \| \`operational\`" "$ROOT_DIR/session/docs/schema-versioning.md" \
     || fail "schema docs should include debug and operational as workflow values"
-  grep -q "Debug workflow" "$ROOT_DIR/.github/copilot-instructions.md" \
+  grep -q "Debug workflow" "$ROOT_DIR/AI.md" \
     || fail "copilot instructions should mention the debug workflow"
   grep -q "invoke session.start --debug" "$ROOT_DIR/stubs/copilot_instructions.md" \
     || fail "copilot instructions stub should include the debug workflow"
@@ -1359,7 +1359,7 @@ EOF
     || fail "session.plan agent should accept next.md continuation context"
   grep -q "next.md" "$ROOT_DIR/session/docs/reference.md" \
     || fail "reference docs should mention next.md"
-  grep -q "next.md" "$ROOT_DIR/.github/copilot-instructions.md" \
+  grep -q "next.md" "$ROOT_DIR/AI.md" \
     || fail "copilot instructions should mention next.md"
   grep -q "next.md" "$ROOT_DIR/stubs/copilot_instructions.md" \
     || fail "copilot instructions stub should mention next.md"
@@ -1604,7 +1604,7 @@ EOF
     || fail "reference docs should recommend session.start --brainstorm"
   grep -q "session.start --brainstorm" "$ROOT_DIR/session/docs/shared-workflow.md" \
     || fail "shared workflow docs should mention the brainstorm entrypoint"
-  grep -q "session.start --brainstorm" "$ROOT_DIR/.github/copilot-instructions.md" \
+  grep -q "session.start --brainstorm" "$ROOT_DIR/AI.md" \
     || fail "copilot instructions should mention the brainstorm entrypoint"
   grep -q "session.start --brainstorm" "$ROOT_DIR/stubs/copilot_instructions.md" \
     || fail "copilot instructions stub should mention the brainstorm entrypoint"
@@ -1654,7 +1654,7 @@ EOF
     || fail "shared workflow docs should describe the operational workflow"
   grep -Fq "\`development\` \| \`spike\` \| \`maintenance\` \| \`debug\` \| \`operational\`" "$ROOT_DIR/session/docs/schema-versioning.md" \
     || fail "schema docs should include operational as a workflow value"
-  grep -q "Operational workflow" "$ROOT_DIR/.github/copilot-instructions.md" \
+  grep -q "Operational workflow" "$ROOT_DIR/AI.md" \
     || fail "copilot instructions should mention the operational workflow"
   grep -q "invoke session.start --operational" "$ROOT_DIR/stubs/copilot_instructions.md" \
     || fail "copilot instructions stub should include the operational workflow"
@@ -1683,11 +1683,11 @@ EOF
     || fail "reference docs should document session-audit.sh as a script"
   grep -q "VALIDATION_RESULTS_SCHEMA_VERSION" "$ROOT_DIR/session/docs/schema-versioning.md" \
     || fail "schema docs should document validation-results.json schema version"
-  grep -q "./.session/scripts/bash/session-audit.sh --all --summary" "$ROOT_DIR/.github/copilot-instructions.md" \
+  grep -q "./.session/scripts/bash/session-audit.sh --all --summary" "$ROOT_DIR/AI.md" \
     || fail "copilot instructions should mention the direct session-audit.sh utility"
   grep -q "./.session/scripts/bash/session-audit.sh --all --summary" "$ROOT_DIR/stubs/copilot_instructions.md" \
     || fail "copilot instructions stub should mention the direct session-audit.sh utility"
-  if grep -q "invoke session.audit" "$ROOT_DIR/.github/copilot-instructions.md"; then
+  if grep -q "invoke session.audit" "$ROOT_DIR/AI.md"; then
     fail "copilot instructions should not advertise session.audit as an agent"
   fi
   if grep -q "invoke session.audit" "$ROOT_DIR/stubs/copilot_instructions.md"; then

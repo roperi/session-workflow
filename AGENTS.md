@@ -1,11 +1,15 @@
 # AGENTS.md
 
-Repository map for AI coding agents. The structure is the index.
+Repository map for AI coding agents.
 
+**STOP**: If you are an AI agent, read **[AI.md](AI.md)** first for critical onboarding, build instructions, and architectural guardrails.
+
+## Repository Index
 ```
 session-workflow/
 ├── README.md                                   user-facing introduction, setup, and quick start
-├── AGENTS.md                                   repository map for AI coding agents
+├── AI.md                                       AI-specific onboarding and context
+├── AGENTS.md                                   repository map (index)
 ├── CHANGELOG.md                                version history
 ├── CONTRIBUTING.md                             contribution guidelines
 ├── install.sh                                  installation script

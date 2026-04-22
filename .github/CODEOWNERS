@@ -1,9 +1,10 @@
 # Require review for LLM instruction surface and installer scripts
-# Any change to agent prompts, prompt links, stubs, or installers
+# Any change to agent definitions, stubs, or installers
 # must be reviewed by the repo owner.
 
-github/agents/   @roperi
-github/prompts/  @roperi
+agents/          @roperi
 stubs/           @roperi
 install.sh       @roperi
 update.sh        @roperi
+AI.md            @roperi
+AGENTS.md        @roperi
