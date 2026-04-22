@@ -35,3 +35,5 @@ coverage/
 
 # Session workflow local state
 .session/
+.maintainer/
+.session/internal/
