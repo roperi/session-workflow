@@ -764,6 +764,7 @@ project_agents() {
         "session.scope.md"
         "session.spec.md"
         "session.review.md"
+        "session.retrospect.md"
     )
 
     for agent in "${agents[@]}"; do

@@ -11,6 +11,7 @@ Welcome, AI Agent. This project uses **Spec-Driven Development (SDD)**. Your goa
 This section describes how an **end-user** interacts with the tool once installed. This documentation is required for capability verification.
 
 - **Standard Workflows**: Users follow the chain: `start → scope → spec → plan → tasks → execute → validate → wrap`.
+- **GitHub Integration**: Link sessions to issues using `session.start --issue <N>`.
 - **Brainstorming**: The `session.start --brainstorm` entrypoint is used for fuzzy goals.
 - **Maintenance workflow**: Lightweight chain (start → execute → STOP).
 - **Debug workflow**: Investigation chain (start → execute → STOP).

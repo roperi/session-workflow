@@ -13,10 +13,11 @@ Session Workflow works with your preferred AI coding tool: Claude Code, Gemini C
 When AI context windows reset, work continuity is lost. Session Workflow solves this with:
 
 1. **Session tracking** — What's in progress, what's done
-2. **Standardized Handoffs** — Unified workflow from scoping to delivery
-3. **Tool Agnosticism** — Projects workflow logic into native tool commands
-4. **Context Syncing** — Maintains cross-tool continuity
-5. **next.md Artifacts** — Primary handoff artifact for structured session continuity
+2. **GitHub Integration** — Link sessions directly to issues (`--issue 123`) and automate PR creation/reviews
+3. **Standardized Handoffs** — Unified workflow from scoping to delivery
+4. **Tool Agnosticism** — Projects workflow logic into native tool commands
+5. **Context Syncing** — Maintains cross-tool continuity
+6. **next.md Artifacts** — Primary handoff artifact for structured session continuity
 
 ---
 
