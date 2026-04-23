@@ -1,5 +1,5 @@
 ---
-name: session.analyze
+name: session-analyze
 description: Perform non-destructive cross-artifact consistency and quality analysis.
 tools: ["read", "search"]
 ---

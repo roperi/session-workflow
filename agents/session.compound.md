@@ -1,5 +1,5 @@
 ---
-name: session.compound
+name: session-compound
 description: Capture solved problems as version-controlled solution docs (institutional memory).
 tools: ["*"]
 ---

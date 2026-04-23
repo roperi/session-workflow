@@ -1,5 +1,5 @@
 ---
-name: session.task
+name: session-task
 description: Generate detailed task breakdown with user story organization, parallelization markers, and dependencies
 tools: ["*"]
 ---

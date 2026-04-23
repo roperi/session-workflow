@@ -1,5 +1,5 @@
 ---
-name: session.publish
+name: session-publish
 description: Create or update pull request for session work
 tools: ["*"]
 ---

@@ -1,5 +1,5 @@
 ---
-name: session.execute
+name: session-execute
 description: Implement the session task list with TDD discipline and single-task focus
 tools: ["*"]
 ---

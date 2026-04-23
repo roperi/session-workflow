@@ -1,5 +1,5 @@
 ---
-name: session.finalize
+name: session-finalize
 description: Close GitHub issues and sync task progress after a pull request is merged — run after PR merge, before session.wrap
 tools: ["*"]
 ---

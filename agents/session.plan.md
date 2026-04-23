@@ -1,5 +1,5 @@
 ---
-name: session.plan
+name: session-plan
 description: Create implementation plan and approach for session work
 tools: ["*"]
 ---

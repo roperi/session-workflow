@@ -1,5 +1,5 @@
 ---
-name: session.scope
+name: session-scope
 description: Define problem boundaries, success criteria, and scope before any planning begins
 tools: ["*"]
 ---

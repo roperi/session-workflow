@@ -1,5 +1,5 @@
 ---
-name: session.review
+name: session-review
 description: Review pull request and address feedback
 tools: ["*"]
 ---

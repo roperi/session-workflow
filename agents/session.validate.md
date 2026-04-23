@@ -1,5 +1,5 @@
 ---
-name: session.validate
+name: session-validate
 description: Validates session work quality before publishing
 tools: ["*"]
 ---

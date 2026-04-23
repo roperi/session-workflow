@@ -1,5 +1,5 @@
 ---
-name: session.wrap
+name: session-wrap
 description: End the session — write final summary, update CHANGELOG, and clear session state. Terminal step in the workflow chain.
 tools: ["*"]
 ---

@@ -1,5 +1,5 @@
 ---
-name: session.start
+name: session-start
 description: Start a new work session or resume an existing one — always run this first before any other session agent
 tools: ["*"]
 ---

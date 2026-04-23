@@ -1,5 +1,5 @@
 ---
-name: session.spec
+name: session-spec
 description: Define detailed specification with acceptance criteria and verification contracts
 tools: ["*"]
 ---

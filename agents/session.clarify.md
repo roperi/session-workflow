@@ -1,5 +1,5 @@
 ---
-name: session.clarify
+name: session-clarify
 description: Ask targeted questions to clarify underspecified requirements.
 tools: ["read", "search"]
 ---
