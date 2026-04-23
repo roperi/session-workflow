@@ -8,7 +8,8 @@ set -euo pipefail
 # Configuration
 # ============================================================================
 
-REPO_URL="https://raw.githubusercontent.com/roperi/session-workflow/main"
+REPO_URL="${SESSION_WORKFLOW_REPO_URL:-https://raw.githubusercontent.com/roperi/session-workflow/main}"
+SOURCE_DIR="${SESSION_WORKFLOW_SOURCE_DIR:-}"
 VERSION="2.0.0"
 MANIFEST_FILE=".session/install-manifest.json"
 MANAGED_FILES=()
@@ -293,7 +294,13 @@ install_managed_file() {
     local dest="$2"
     local mode="${3:-}"
 
-    download_file "${REPO_URL}/${source_path}" "$dest"
+    if [[ -n "$SOURCE_DIR" ]]; then
+        mkdir -p "$(dirname "$dest")"
+        cp "${SOURCE_DIR}/${source_path}" "$dest"
+    else
+        download_file "${REPO_URL}/${source_path}" "$dest"
+    fi
+
     if [[ "$mode" == "executable" ]]; then
         chmod +x "$dest"
     fi
@@ -458,46 +465,51 @@ install_docs() {
 install_bootstrap() {
     info "Installing AI bootstrap files..."
     
-    # Create .github directory
-    mkdir -p .github
+    local has_any=false
     
-    # Install copilot-instructions.md if it doesn't exist
-    if [[ ! -f ".github/copilot-instructions.md" ]]; then
-        download_file "${REPO_URL}/stubs/copilot_instructions.md" ".github/copilot-instructions.md"
-        success "Created .github/copilot-instructions.md"
-    else
-        # Append session workflow section if not already present
-        if ! grep -q "Session Workflow" .github/copilot-instructions.md 2>/dev/null; then
-            echo "" >> .github/copilot-instructions.md
-            echo "## Session Workflow" >> .github/copilot-instructions.md
-            echo "" >> .github/copilot-instructions.md
-            echo "This project uses session workflow for AI context continuity." >> .github/copilot-instructions.md
-            echo "See \`.session/docs/README.md\` for quick reference." >> .github/copilot-instructions.md
-            echo "" >> .github/copilot-instructions.md
-            echo "**Agents:**" >> .github/copilot-instructions.md
-            echo "- \`invoke session.start --issue N\` — Development session from GitHub issue (planning phase by default)" >> .github/copilot-instructions.md
-            echo "- \`invoke session.start --brainstorm \"description\"\` — Start a development/spike session with an upfront brainstorm before scope/plan" >> .github/copilot-instructions.md
-            echo "- \`invoke session.start --auto --issue N\` — Auto until the next human gate; otherwise through \`publish\`, then stop for manual/custom review" >> .github/copilot-instructions.md
-            echo "- \`invoke session.start --auto --copilot-review --issue N\` — Full auto with Copilot review before merge" >> .github/copilot-instructions.md
-            echo "- \`invoke session.start \"description\"\` — Development session (positional description)" >> .github/copilot-instructions.md
-            echo "- \`invoke session.start --spike \"description\"\` — Spike/research (no PR)" >> .github/copilot-instructions.md
-            echo "- \`invoke session.start --debug \"description\"\` — Debug/troubleshooting session (no PR by default)" >> .github/copilot-instructions.md
-            echo "- \`invoke session.start --operational \"description\"\` — Operational batch/pipeline session (feature branch, no PR by default)" >> .github/copilot-instructions.md
-            echo "- \`invoke session.start --resume\` — Resume active session" >> .github/copilot-instructions.md
-            echo "- \`invoke session.review\` — Run the default or overridden custom review agent after publish" >> .github/copilot-instructions.md
-            echo "- \`invoke session.finalize\` — Post-merge cleanup (after PR merge)" >> .github/copilot-instructions.md
-            echo "- \`invoke session.wrap\` — End session" >> .github/copilot-instructions.md
-            echo "" >> .github/copilot-instructions.md
-            echo "**Utilities:**" >> .github/copilot-instructions.md
-            echo "- \`./.session/scripts/bash/session-audit.sh --all --summary\` — Deterministic post-session audit script; run it directly from the shell and share the report if you want AI help interpreting it" >> .github/copilot-instructions.md
-            echo "" >> .github/copilot-instructions.md
-            echo "**Project context:**" >> .github/copilot-instructions.md
-            echo "- \`.session/project-context/technical-context.md\` - Stack, build/test commands" >> .github/copilot-instructions.md
-            echo "- \`.session/project-context/constitution-summary.md\` - Quality standards" >> .github/copilot-instructions.md
-            success "Updated .github/copilot-instructions.md with session workflow section"
-        else
-            warn ".github/copilot-instructions.md already has session workflow section, skipping"
-        fi
+    for tool in "${DETECTED_TOOLS[@]}"; do
+        case $tool in
+            copilot)
+                mkdir -p .github
+                if [[ ! -f ".github/copilot-instructions.md" ]]; then
+                    install_managed_file "stubs/rules/claude-rules.md" ".github/copilot-instructions.md"
+                    success "Created .github/copilot-instructions.md"
+                else
+                    # Append session workflow section if not already present
+                    if ! grep -q "Session Workflow" .github/copilot-instructions.md 2>/dev/null; then
+                        echo -e "\n## Session Workflow\nUse agents in 'agents/' for SDD workflow." >> .github/copilot-instructions.md
+                        success "Updated .github/copilot-instructions.md"
+                    fi
+                fi
+                has_any=true
+                ;;
+            claude)
+                if [[ ! -f "CLAUDE.md" ]]; then
+                    install_managed_file "stubs/rules/claude-rules.md" "CLAUDE.md"
+                    success "Created CLAUDE.md"
+                fi
+                has_any=true
+                ;;
+            gemini)
+                mkdir -p .gemini
+                if [[ ! -f ".gemini/context.md" ]]; then
+                    install_managed_file "stubs/rules/gemini-rules.md" ".gemini/context.md"
+                    success "Created .gemini/context.md"
+                fi
+                has_any=true
+                ;;
+            cursor)
+                if [[ ! -f ".cursorrules" ]]; then
+                    install_managed_file "stubs/rules/cursor-rules.md" ".cursorrules"
+                    success "Created .cursorrules"
+                fi
+                has_any=true
+                ;;
+        esac
+    done
+
+    if ! $has_any; then
+        warn "No AI tools detected; skipping bootstrap files."
     fi
 }
 
@@ -771,10 +783,15 @@ project_agents() {
         local source_path="agents/${agent}"
         local content
         
-        # Download the tool-agnostic source once
+        # Source the tool-agnostic content
         local tmp_source
         tmp_source=$(mktemp)
-        download_file "${REPO_URL}/${source_path}" "$tmp_source"
+        
+        if [[ -n "$SOURCE_DIR" ]]; then
+            cp "${SOURCE_DIR}/${source_path}" "$tmp_source"
+        else
+            download_file "${REPO_URL}/${source_path}" "$tmp_source"
+        fi
         
         for tool in "${DETECTED_TOOLS[@]}"; do
             case $tool in
