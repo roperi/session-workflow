@@ -171,15 +171,15 @@ git log --oneline -5
 
 ```bash
 # For GitHub issues
-git checkout -b fix/issue-{number}-short-description
+git checkout -b fix/issue-[number]-short-description
 
 # For unstructured/spike work
-git checkout -b feat/{short-description}
+git checkout -b feat/[short-description]
 # or
-git checkout -b spike/{short-description}
+git checkout -b spike/[short-description]
 
 # For operational runtime work
-git checkout -b ops/{short-description}
+git checkout -b ops/[short-description]
 ```
 
 **Branch naming conventions:**
@@ -222,19 +222,19 @@ Display session summary:
 ```
 ✅ Session initialized successfully
 
-Session ID: {session.id}
-Type: {github_issue|unstructured}
-Workflow: {development|spike|maintenance|debug|operational}
-Stage: {poc|mvp|production}
-Read-only: {yes|no}
-Branch: {current-branch}
-Previous session: {session-id or "none"}
+Session ID: [session.id]
+Type: [github_issue|unstructured]
+Workflow: [development|spike|maintenance|debug|operational]
+Stage: [poc|mvp|production]
+Read-only: [yes|no]
+Branch: [current-branch]
+Previous session: [session-id or "none"]
 
 Context loaded:
-- Constitution: {summary-path} {status}
-- Technical: {context-path} {status}
-- Session notes: {notes-path}
-- Tasks file: {tasks-path or spec-path}
+- Constitution: [summary-path] [status]
+- Technical: [context-path] [status]
+- Session notes: [notes-path]
+- Tasks file: [tasks-path or spec-path]
 
 Next step: see Chaining & Handoff below.
 ```
@@ -292,14 +292,14 @@ Orchestrate Phase 1 (Planning) only for development/spike. For maintenance/debug
 #### Optional Brainstorm Insert (`--brainstorm`)
 
 Invoke `session.brainstorm` immediately after initialization:
-- **Prompt**: "Brainstorm this session goal. Session: {session_id}, dir: {session_dir}, workflow: {workflow}, stage: {stage}. Clarify the WHAT/WHY in {session_dir}/brainstorm.md. Ask concise clarifying questions only when truly needed."
+- **Prompt**: "Brainstorm this session goal. Session: [session_id], dir: [session_dir], workflow: [workflow], stage: [stage]. Clarify the WHAT/WHY in [session_dir]/brainstorm.md. Ask concise clarifying questions only when truly needed."
 
 #### Development Workflow: [brainstorm →] scope → spec → plan → task → STOP
 
-1. **scope**: "Scope issue #{N}: {title}. Session: {session_id}, dir: {session_dir}, branch: {branch}, workflow: development, stage: {stage}. Ask concise clarifying questions when needed to define boundaries and success criteria before writing scope.md."
-2. **spec**: "Write spec for issue #{N}: {title}. Session: {session_id}, dir: {session_dir}. Scope defined in {session_dir}/scope.md. Do NOT ask clarifying questions."
-3. **plan**: "Plan issue #{N}: {title}. Session: {session_id}, dir: {session_dir}. Spec in {session_dir}/spec.md. Do NOT ask clarifying questions."
-4. **task**: "Generate tasks for issue #{N}: {title}. Session: {session_id}, dir: {session_dir}. Plan in {session_dir}/plan.md. Do NOT ask clarifying questions."
+1. **scope**: "Scope issue #[N]: [title]. Session: [session_id], dir: [session_dir], branch: [branch], workflow: development, stage: [stage]. Ask concise clarifying questions when needed to define boundaries and success criteria before writing scope.md."
+2. **spec**: "Write spec for issue #[N]: [title]. Session: [session_id], dir: [session_dir]. Scope defined in [session_dir]/scope.md. Do NOT ask clarifying questions."
+3. **plan**: "Plan issue #[N]: [title]. Session: [session_id], dir: [session_dir]. Spec in [session_dir]/spec.md. Do NOT ask clarifying questions."
+4. **task**: "Generate tasks for issue #[N]: [title]. Session: [session_id], dir: [session_dir]. Plan in [session_dir]/plan.md. Do NOT ask clarifying questions."
 
 #### Spike Workflow: [brainstorm →] scope → plan → task → STOP
 
@@ -307,15 +307,15 @@ Same as development but skip spec.
 
 #### Maintenance Workflow: execute → STOP
 
-Invoke **execute**: "Execute maintenance work for session {session_id}. Dir: {session_dir}. Tasks in {tasks_file}. Workflow: maintenance. Do NOT ask clarifying questions."
+Invoke **execute**: "Execute maintenance work for session [session_id]. Dir: [session_dir]. Tasks in [tasks_file]. Workflow: maintenance. Do NOT ask clarifying questions."
 
 #### Debug Workflow: execute → STOP
 
-Invoke **execute**: "Execute debug investigation for session {session_id}. Dir: {session_dir}. Tasks in {tasks_file}. Workflow: debug. Do NOT ask clarifying questions."
+Invoke **execute**: "Execute debug investigation for session [session_id]. Dir: [session_dir]. Tasks in [tasks_file]. Workflow: debug. Do NOT ask clarifying questions."
 
 #### Operational Workflow: execute → STOP
 
-Invoke **execute**: "Execute operational work for session {session_id}. Dir: {session_dir}. Tasks in {tasks_file}. Workflow: operational. Treat tasks.md as a living checklist for monitored runs and follow-up fixes. Do NOT ask clarifying questions."
+Invoke **execute**: "Execute operational work for session [session_id]. Dir: [session_dir]. Tasks in [tasks_file]. Workflow: operational. Treat tasks.md as a living checklist for monitored runs and follow-up fixes. Do NOT ask clarifying questions."
 
 ---
 
@@ -326,12 +326,12 @@ Orchestrate the automatic workflow chain until it reaches a manual review gate o
 #### Development Workflow (Auto): [brainstorm →] scope → spec → plan → task → execute → validate → publish → [review] → [merge] → [finalize] → [wrap]
 
 **Implementation Steps:**
-1. **execute**: "Execute tasks for issue #{N}: {title}. Session: {session_id}, dir: {session_dir}. Tasks in {tasks_file}. Do NOT ask clarifying questions."
-2. **validate**: "Validate work for issue #{N}. Session: {session_id}, dir: {session_dir}, stage: {stage}. Do NOT ask clarifying questions."
-3. **publish**: "Publish PR for issue #{N}. Session: {session_id}, dir: {session_dir}, repo: {owner/repo}, branch: {branch}. Do NOT ask clarifying questions."
-4. **review** (if `--copilot-review`): "Review PR #{pr_number} for issue #{N}. Session: {session_id}, dir: {session_dir}, repo: {owner/repo}. Do NOT ask clarifying questions."
-5. **finalize**: "Finalize merged PR #{pr_number} for issue #{N}. Session: {session_id}, dir: {session_dir}. PR merged to main. Do NOT ask clarifying questions."
-6. **wrap**: "Wrap session {session_id}. Dir: {session_dir}. Issue #{N} closed, PR #{pr_number} merged. Do NOT ask clarifying questions."
+1. **execute**: "Execute tasks for issue #[N]: [title]. Session: [session_id], dir: [session_dir]. Tasks in [tasks_file]. Do NOT ask clarifying questions."
+2. **validate**: "Validate work for issue #[N]. Session: [session_id], dir: [session_dir], stage: [stage]. Do NOT ask clarifying questions."
+3. **publish**: "Publish PR for issue #[N]. Session: [session_id], dir: [session_dir], repo: [owner/repo], branch: [branch]. Do NOT ask clarifying questions."
+4. **review** (if `--copilot-review`): "Review PR #[pr_number] for issue #[N]. Session: [session_id], dir: [session_dir], repo: [owner/repo]. Do NOT ask clarifying questions."
+5. **finalize**: "Finalize merged PR #[pr_number] for issue #[N]. Session: [session_id], dir: [session_dir]. PR merged to main. Do NOT ask clarifying questions."
+6. **wrap**: "Wrap session [session_id]. Dir: [session_dir]. Issue #[N] closed, PR #[pr_number] merged. Do NOT ask clarifying questions."
 
 In this mode, `--auto` means "auto-chain until an external review decision is required." It does **not** bypass manual/custom review and merge gates.
 
@@ -341,7 +341,7 @@ Same as development but skip spec, validate, publish (no PR). If `orchestration.
 
 ```
 agent: "session.wrap"
-prompt: "Wrap spike session {session_id}. Dir: {session_dir}. Do NOT ask clarifying questions."
+prompt: "Wrap spike session [session_id]. Dir: [session_dir]. Do NOT ask clarifying questions."
 ```
 
 #### Maintenance Workflow (Auto): execute → wrap

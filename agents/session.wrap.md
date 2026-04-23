@@ -63,7 +63,7 @@ Complete ALL steps IN ORDER before running the wrap script. The script enforces 
 
 ### 1. Update Session Notes and Handoff Artifacts
 
-Edit `{session_dir}/notes.md` with:
+Edit `[session_dir]/notes.md` with:
 
 ```markdown
 ## Summary
@@ -81,7 +81,7 @@ Edit `{session_dir}/notes.md` with:
 - Context needed: [any special context next AI should know]
 ```
 
-Update `{session_dir}/next.md` as the **primary follow-up artifact** with:
+Update `[session_dir]/next.md` as the **primary follow-up artifact** with:
 
 ```markdown
 ## Completed
@@ -104,7 +104,7 @@ session.wrap is the terminal agent for all workflows. It documents any session t
 
 ### 2. Mark Tasks Complete
 
-Update `.session/sessions/{id}/tasks.md`:
+Update `.session/sessions/[id]/tasks.md`:
 - Mark completed tasks as `[x]`
 - Update progress count at bottom
 
@@ -113,7 +113,7 @@ Update `.session/sessions/{id}/tasks.md`:
 Add entry under `## [Unreleased]`:
 
 ```markdown
-### {SESSION_ID}
+### [SESSION_ID]
 - **type: Description** (#PR, closes #Issue)
   - Detail 1
   - Detail 2
@@ -121,10 +121,10 @@ Add entry under `## [Unreleased]`:
 
 ### 4. Create Final Summary
 
-Create `{session_dir}/final-summary.md`:
+Create `[session_dir]/final-summary.md`:
 
 ```markdown
-# Daily Summary: {SESSION_ID}
+# Daily Summary: [SESSION_ID]
 
 ## Accomplishments
 - What was done
@@ -143,7 +143,7 @@ Create `{session_dir}/final-summary.md`:
 
 ```bash
 # Before running the wrap script, the remaining dirty paths should be limited to:
-# - {session_dir}/** durable session artifacts (not state.json)
+# - [session_dir]/** durable session artifacts (not state.json)
 # - CHANGELOG.md
 #
 # Commit or stash anything else first. session-wrap.sh creates the archival
@@ -158,7 +158,7 @@ Create `{session_dir}/final-summary.md`:
 
 ```bash
 # Get the session's feature branch name from state.json
-SESSION_BRANCH=$(cat .session/sessions/{id}/state.json | jq -r '.branch // empty')
+SESSION_BRANCH=$(cat .session/sessions/[id]/state.json | jq -r '.branch // empty')
 
 # Only attempt deletion if we have a branch and it's not main
 if [ -n "$SESSION_BRANCH" ] && [ "$SESSION_BRANCH" != "main" ]; then
@@ -227,7 +227,7 @@ git push
 - The wrap script is mechanical - it doesn't validate your work, but it does create the archival wrap commit
 - Good handoff notes make the next session efficient
 - **⛔ Boundary reminder**: Do NOT close issues, merge PRs, or do any work outside documentation. Documentation ONLY.
-- Durable session data is preserved in `.session/sessions/{id}/`; local `state.json` bookkeeping remains available but is not part of the archival commit
+- Durable session data is preserved in `.session/sessions/[id]/`; local `state.json` bookkeeping remains available but is not part of the archival commit
 
 **No Handoff After Wrap**: session.wrap is the terminal agent in the workflow. It documents and archives the session, then clears the ACTIVE_SESSION sentinel. The next session starts fresh with `session.start`.
 
@@ -236,10 +236,10 @@ git push
 **DO NOT create extra files not specified in this prompt.**
 
 The ONLY files you should create or modify are:
-1. `{session_dir}/notes.md` - Update with summary
-2. `{session_dir}/tasks.md` - Mark tasks complete
+1. `[session_dir]/notes.md` - Update with summary
+2. `[session_dir]/tasks.md` - Mark tasks complete
 3. `CHANGELOG.md` - Add session entry
-4. `{session_dir}/final-summary.md` - Create final summary
+4. `[session_dir]/final-summary.md` - Create final summary
 
 **DO NOT create:**
 - ❌ WRAP_SUMMARY.md
@@ -251,6 +251,6 @@ The session state is tracked locally in `state.json` by the wrap script - no add
 ## Session Type Considerations
 
 **GitHub issue / Unstructured sessions:**
-- Tasks tracked in `.session/sessions/{id}/tasks.md`
+- Tasks tracked in `.session/sessions/[id]/tasks.md`
 - Update this file with [x] marks for completed tasks
 - Close GitHub issue if work is complete and merged

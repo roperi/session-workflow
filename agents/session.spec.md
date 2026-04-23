@@ -16,7 +16,7 @@ Define **WHAT** to build with acceptance criteria and verification contracts. Th
 - ❌ Write any code or implementation (that's `session.execute`)
 - ❌ Modify scope.md (that's `session.scope`)
 
-**Output**: `{session_dir}/spec.md` — nothing else.
+**Output**: `[session_dir]/spec.md` — nothing else.
 
 ## ⚠️ CRITICAL: Workflow State Tracking
 
@@ -36,7 +36,7 @@ Define **WHAT** to build with acceptance criteria and verification contracts. Th
 
 - This is a **formal workflow step** (part of the development chain only).
 - The spec agent is **interactive/dialogue-driven**: for each user story, ask about edge cases, error handling, and acceptance criteria rather than assuming.
-- **Write output to**: `{session_dir}/spec.md`
+- **Write output to**: `[session_dir]/spec.md`
 - Reads `scope.md` as primary input — the spec must stay within scope boundaries.
 - Skipped in **spike** workflows (scope goes directly to plan).
 
@@ -54,7 +54,7 @@ $ARGUMENTS
 
 **Behavior**:
 - **If `--resume` flag present**:
-  - Load existing spec from `{session_dir}/spec.md`
+  - Load existing spec from `[session_dir]/spec.md`
   - Update/refine rather than replace
 - **If `--comment` provided**:
   - Use as guidance for spec focus
@@ -94,7 +94,7 @@ fi
 
 SESSION_ID=$(cat "$ACTIVE_SESSION_FILE")
 YEAR_MONTH=$(echo "$SESSION_ID" | cut -d'-' -f1,2)
-SESSION_DIR=".session/sessions/${YEAR_MONTH}/${SESSION_ID}"
+SESSION_DIR=".session/sessions/$[YEAR_MONTH]/$[SESSION_ID]"
 
 cat "$SESSION_DIR/session-info.json"
 ```
@@ -119,7 +119,7 @@ Read available context (in priority order):
 
 - **Scope document (REQUIRED)**:
   ```bash
-  SCOPE_FILE="${SESSION_DIR}/scope.md"
+  SCOPE_FILE="$[SESSION_DIR]/scope.md"
 
   if [ ! -f "$SCOPE_FILE" ]; then
     echo "WARNING: No scope.md found. Run session.scope first for best results."
@@ -128,12 +128,12 @@ Read available context (in priority order):
   cat "$SCOPE_FILE" 2>/dev/null
   ```
 
-- **Session info**: `{session_dir}/session-info.json`
-- **Session notes**: `{session_dir}/notes.md`
-- **Brainstorm** (if exists): `{session_dir}/brainstorm.md`
+- **Session info**: `[session_dir]/session-info.json`
+- **Session notes**: `[session_dir]/notes.md`
+- **Brainstorm** (if exists): `[session_dir]/brainstorm.md`
 - **For GitHub issue sessions**: fetch issue details for additional acceptance criteria
   ```bash
-  gh issue view {issue_number} --json title,body,labels,assignees
+  gh issue view [issue_number] --json title,body,labels,assignees
   ```
 - **Project context**: `.session/project-context/technical-context.md` and `.session/project-context/constitution-summary.md`
 
@@ -145,7 +145,7 @@ Analyze the scope document and extract user stories. Each "In Scope" item should
 
 **Format:**
 ```markdown
-As a {role}, I want {capability} so that {benefit}.
+As a [role], I want [capability] so that [benefit].
 ```
 
 Present the derived stories to the user:
@@ -166,11 +166,11 @@ For each user story, engage in dialogue to define acceptance criteria. **Ask que
 1. **Happy path**: "What should happen when a user does X successfully?"
    - Define the expected behavior in Given/When/Then format
 
-2. **Edge cases**: "What should happen when {boundary condition}?"
+2. **Edge cases**: "What should happen when [boundary condition]?"
    - Empty inputs, maximum values, concurrent access, etc.
    - Suggest likely edge cases based on context
 
-3. **Error scenarios**: "What should happen when {error condition}?"
+3. **Error scenarios**: "What should happen when [error condition]?"
    - Invalid input, missing dependencies, network failures, etc.
    - Ask about error messages and recovery behavior
 
@@ -191,7 +191,7 @@ For each user story, engage in dialogue to define acceptance criteria. **Ask que
 Determine the correct output path:
 
 ```bash
-SPEC_FILE="${SESSION_DIR}/spec.md"
+SPEC_FILE="$[SESSION_DIR]/spec.md"
 ```
 
 ### 7. Produce Specification Document
@@ -201,68 +201,68 @@ Create the spec file at the resolved path (`$SPEC_FILE`):
 ```markdown
 ---
 date: YYYY-MM-DD
-session_id: {SESSION_ID}
+session_id: [SESSION_ID]
 type: spec
 derived_from: scope.md
 related:
-  issue: {#123 or null}
+  issue: [#123 or null]
   scope: true
 status: draft
 ---
 
-# Specification: {Short Title}
+# Specification: [Short Title]
 
 ## Overview
 
-{1-2 sentences linking back to scope. What this spec defines.}
+[1-2 sentences linking back to scope. What this spec defines.]
 
 ## User Stories and Acceptance Criteria
 
-### US-1: {Story Title}
+### US-1: [Story Title]
 
-**As a** {role}, **I want** {capability} **so that** {benefit}.
+**As a** [role], **I want** [capability] **so that** [benefit].
 
 **Acceptance Criteria:**
 
-- **AC-1.1**: Given {precondition}, when {action}, then {expected result}
-- **AC-1.2**: Given {precondition}, when {action}, then {expected result}
+- **AC-1.1**: Given [precondition], when [action], then [expected result]
+- **AC-1.2**: Given [precondition], when [action], then [expected result]
 
 **Edge Cases:**
 
-- {Edge case description} → {expected behavior}
-- {Edge case description} → {expected behavior}
+- [Edge case description] → [expected behavior]
+- [Edge case description] → [expected behavior]
 
 **Error Scenarios:**
 
-- {Error condition} → {expected behavior / error message}
-- {Error condition} → {expected behavior / error message}
+- [Error condition] → [expected behavior / error message]
+- [Error condition] → [expected behavior / error message]
 
-### US-2: {Story Title}
+### US-2: [Story Title]
 
-{...same structure...}
+[...same structure...]
 
 ## Non-Functional Requirements
 
-{Stage-appropriate. Omit section for poc.}
+[Stage-appropriate. Omit section for poc.]
 
-- **Performance**: {requirements or "No specific requirements for this stage"}
-- **Security**: {requirements or "Standard practices apply"}
-- **Compatibility**: {requirements}
-- **Other**: {as applicable}
+- **Performance**: [requirements or "No specific requirements for this stage"]
+- **Security**: [requirements or "Standard practices apply"]
+- **Compatibility**: [requirements]
+- **Other**: [as applicable]
 
 ## Needs Clarification
 
-{Items marked [NEEDS CLARIFICATION] during dialogue. If none: "No items need clarification."}
+[Items marked [NEEDS CLARIFICATION] during dialogue. If none: "No items need clarification."]
 
-- [ ] {Ambiguous requirement — what needs to be decided}
-- [ ] {Missing information — what needs to be gathered}
+- [ ] [Ambiguous requirement — what needs to be decided]
+- [ ] [Missing information — what needs to be gathered]
 
 ## Verification Checklist
 
-{What must pass for the spec to be considered "done" — these become the contract.}
+[What must pass for the spec to be considered "done" — these become the contract.]
 
-- [ ] {Verification item — maps to acceptance criteria}
-- [ ] {Verification item — maps to acceptance criteria}
+- [ ] [Verification item — maps to acceptance criteria]
+- [ ] [Verification item — maps to acceptance criteria]
 - [ ] All acceptance criteria have at least one happy-path scenario
 - [ ] Edge cases identified for each user story
 - [ ] Error scenarios defined with expected behavior
@@ -277,7 +277,7 @@ status: draft
 
 ### 8. Record Reference in Session Notes
 
-Append to `{session_dir}/notes.md` (idempotent — skip if already present):
+Append to `[session_dir]/notes.md` (idempotent — skip if already present):
 
 ```bash
 SPEC_REL="$SPEC_FILE"  # Already relative to repo root
@@ -285,7 +285,7 @@ if ! grep -q "^## Spec" "$SESSION_DIR/notes.md" 2>/dev/null; then
   cat >> "$SESSION_DIR/notes.md" << EOF
 
 ## Spec
-- ${SPEC_REL}
+- $[SPEC_REL]
 EOF
 fi
 ```
@@ -297,16 +297,16 @@ Display the specification summary and ask the user to confirm:
 ```
 ✅ Specification complete
 
-Session: {SESSION_ID}
-Spec: {SPEC_FILE path}
+Session: [SESSION_ID]
+Spec: [SPEC_FILE path]
 
 --- spec.md summary ---
-User stories: {count}
-Acceptance criteria: {total count across all stories}
-Edge cases: {count}
-Error scenarios: {count}
-Needs clarification: {count} items
-Verification checklist: {count} items
+User stories: [count]
+Acceptance criteria: [total count across all stories]
+Edge cases: [count]
+Error scenarios: [count]
+Needs clarification: [count] items
+Verification checklist: [count] items
 ------------------------
 
 Spec complete. Returning results to orchestrating agent.

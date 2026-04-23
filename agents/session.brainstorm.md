@@ -13,7 +13,7 @@ Produce a concise brainstorm that clarifies **WHAT/WHY** (not detailed HOW), exp
 - This is an **optional** planning agent. It is not part of the default chain unless `session.start --brainstorm` explicitly inserts it.
 - It requires an active session already created by `session.start`.
 - Recommended entrypoint: `session.start --brainstorm ...`
-- Write the output to the session artifact `{session_dir}/brainstorm.md` (not `docs/brainstorms/`).
+- Write the output to the session artifact `[session_dir]/brainstorm.md` (not `docs/brainstorms/`).
 - Keep it tight: no novel-length docs, no implementation task lists.
 
 ## User Input
@@ -51,8 +51,8 @@ If the workflow check fails, stop and explain that `session.brainstorm` is only 
 ### 2) Read current context
 
 Read (when present):
-- Session notes: `{session_dir}/notes.md`
-- Session info: `{session_dir}/session-info.json`
+- Session notes: `[session_dir]/notes.md`
+- Session info: `[session_dir]/session-info.json`
 - For GitHub issue sessions: issue title/body
 - Project context: `.session/project-context/technical-context.md` and `constitution-summary.md`
 
@@ -63,18 +63,18 @@ Stop early if sufficient.
 
 ### 4) Produce brainstorm doc in session directory
 
-Create a new file at `{session_dir}/brainstorm.md` (the session directory already exists from `session.start`):
+Create a new file at `[session_dir]/brainstorm.md` (the session directory already exists from `session.start`):
 ```markdown
 ---
 date: YYYY-MM-DD
-session_id: {SESSION_ID}
+session_id: [SESSION_ID]
 type: brainstorm
 related:
-  issue: {#123 or null}
+  issue: [#123 or null]
 status: draft
 ---
 
-# Brainstorm: {Topic}
+# Brainstorm: [Topic]
 
 ## Problem / Goal (WHAT)
 
@@ -90,18 +90,18 @@ status: draft
 
 ## Options (2-3)
 
-### Option A: {name}
+### Option A: [name]
 - Summary:
 - Pros:
 - Cons:
 - Risks:
 
-### Option B: {name}
+### Option B: [name]
 ...
 
 ## Recommendation
 
-**Choose:** Option {A/B/C}
+**Choose:** Option [A/B/C]
 
 Rationale:
 - ...
@@ -125,7 +125,7 @@ If you intentionally want to skip scope/spec, session.plan directly.
 If the notes do not already contain a Brainstorm section, append:
 ```markdown
 ## Brainstorm
-- {session_dir}/brainstorm.md
+- [session_dir]/brainstorm.md
 ```
 
 ### 6) Handoff

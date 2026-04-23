@@ -18,7 +18,7 @@ tools: ["*"]
 - ❌ Merge PRs or close issues (that's `session.finalize`)
 - ❌ Write session documentation (that's `session.wrap`)
 
-**Output**: `{session_dir}/validation-results.json` plus the latest local `.session/validation-results.json` summary — nothing else.
+**Output**: `[session_dir]/validation-results.json` plus the latest local `.session/validation-results.json` summary — nothing else.
 
 ## User Input
 
@@ -246,7 +246,7 @@ Check session `tasks.md`:
 **When to run**: Only for development workflow sessions that have a `spec.md` (produced by `session.spec`).
 
 **How it works**:
-1. Locate `spec.md`: session directory `{session_dir}/spec.md`
+1. Locate `spec.md`: session directory `[session_dir]/spec.md`
 2. Parse the **Verification Checklist** section (checkbox items `- [x]` / `- [ ]`)
 3. Compare checked vs unchecked items
 4. Report which criteria are met/unmet
@@ -279,7 +279,7 @@ Check session `tasks.md`:
 
 **ALWAYS create both**:
 
-- `{session_dir}/validation-results.json` — durable session-scoped audit artifact
+- `[session_dir]/validation-results.json` — durable session-scoped audit artifact
 - `.session/validation-results.json` — latest local summary for publish/review flow
 
 Use this schema for the validation summary payload:
@@ -323,8 +323,8 @@ Use this schema for the validation summary payload:
       "verified": 8,
       "total": 8,
       "items": [
-        {"item": "All acceptance criteria have at least one happy-path test", "status": "met"},
-        {"item": "Edge cases identified for each user story", "status": "met"}
+        ["item": "All acceptance criteria have at least one happy-path test", "status": "met"],
+        ["item": "Edge cases identified for each user story", "status": "met"]
       ],
       "details": "All 8 spec verification items met"
     }

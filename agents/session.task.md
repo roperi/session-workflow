@@ -18,7 +18,7 @@ tools: ["*"]
 - ❌ Create PRs or publish work (that's `session.publish`)
 - ❌ Modify plan.md, scope.md, or spec.md
 
-**Output**: `{session_dir}/tasks.md` — nothing else.
+**Output**: `[session_dir]/tasks.md` — nothing else.
 
 ## ⚠️ CRITICAL: Workflow State Tracking
 
@@ -66,7 +66,7 @@ This agent assumes:
 
 Expected context:
 - Session info in `.session/ACTIVE_SESSION` pointing to active session ID
-- Session directory: `.session/sessions/YYYY-MM/{session-id}/`
+- Session directory: `.session/sessions/YYYY-MM/[session-id]/`
 - Plan available (from session.plan output)
 
 **⚠️ NEVER manually construct session directory paths.** Always read from `.session/ACTIVE_SESSION`.
@@ -91,7 +91,7 @@ fi
 
 SESSION_ID=$(cat "$ACTIVE_SESSION_FILE")
 YEAR_MONTH=$(echo "$SESSION_ID" | cut -d'-' -f1,2)
-SESSION_DIR=".session/sessions/${YEAR_MONTH}/${SESSION_ID}"
+SESSION_DIR=".session/sessions/$[YEAR_MONTH]/$[SESSION_ID]"
 
 # Read session info
 SESSION_INFO=$(cat "$SESSION_DIR/session-info.json")
@@ -194,33 +194,33 @@ Mark special tasks:
 
 ```bash
 cat > "$SESSION_DIR/tasks.md" << 'EOF'
-# Session Tasks: {SESSION_ID}
+# Session Tasks: [SESSION_ID]
 
-**Session**: {session-id}
-**Type**: {github_issue|unstructured}
-**Goal**: {goal or issue title}
-**Generated**: {timestamp}
+**Session**: [session-id]
+**Type**: [github_issue|unstructured]
+**Goal**: [goal or issue title]
+**Generated**: [timestamp]
 
 ---
 
 ## Phase 1: Setup
 
-{setup-tasks}
+[setup-tasks]
 
 ## Phase 2: Foundational
 
-{foundational-tasks}
+[foundational-tasks]
 
-## Phase 3: User Story 1 - {title} (Priority: P1) 🎯 MVP
+## Phase 3: User Story 1 - [title] (Priority: P1) 🎯 MVP
 
-**Goal**: {brief description}
-**Independent Test**: {verification criteria}
+**Goal**: [brief description]
+**Independent Test**: [verification criteria]
 
-{us1-tasks}
+[us1-tasks]
 
 ## Phase N: Polish & Cross-Cutting
 
-{polish-tasks}
+[polish-tasks]
 
 ---
 
@@ -275,20 +275,20 @@ Before finalizing, verify:
 ```
 ✅ Task generation complete
 
-Session: {session-id}
-Task file: {path to tasks.md}
+Session: [session-id]
+Task file: [path to tasks.md]
 
 Summary:
-├── Phase 1 (Setup): {n} tasks
-├── Phase 2 (Foundational): {n} tasks
-├── Phase 3 (US1 - MVP): {n} tasks
-├── Phase 4 (US2): {n} tasks
-└── Phase N (Polish): {n} tasks
+├── Phase 1 (Setup): [n] tasks
+├── Phase 2 (Foundational): [n] tasks
+├── Phase 3 (US1 - MVP): [n] tasks
+├── Phase 4 (US2): [n] tasks
+└── Phase N (Polish): [n] tasks
 
-Total: {total} tasks
-Parallel opportunities: {count} task groups
+Total: [total] tasks
+Parallel opportunities: [count] task groups
 
-MVP Scope: Phases 1-3 ({n} tasks)
+MVP Scope: Phases 1-3 ([n] tasks)
 
 Task breakdown complete — proceeding to execution.
 ```
@@ -329,7 +329,7 @@ When `spec.md` exists in the session directory (produced by `session.spec`), use
 1. **Read acceptance criteria** from spec.md (`AC-x.x: Given ... when ... then ...`)
 2. **Generate test stubs** for each criterion using the Given/When/Then structure:
    ```
-   - [ ] T0XX [TEST] [USx] AC-x.x: Given {precondition}, verify {expected result} when {action}
+   - [ ] T0XX [TEST] [USx] AC-x.x: Given [precondition], verify [expected result] when [action]
    ```
 3. **Map edge cases and error scenarios** from spec to additional test tasks
 4. **Add verification task** at the end of each user story phase:

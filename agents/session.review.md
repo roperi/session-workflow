@@ -66,7 +66,7 @@ SESSION_ID=$(get_active_session)
 SESSION_DIR=$(get_session_dir "$SESSION_ID")
 
 # Read PR number saved by session.publish
-PR_URL_FILE="${SESSION_DIR}/pr_url.txt"
+PR_URL_FILE="$[SESSION_DIR]/pr_url.txt"
 if [ ! -f "$PR_URL_FILE" ]; then
     echo "❌ No PR URL found — was session.publish run?"
     # Mark step as failed so workflow isn't stuck in_progress
@@ -137,22 +137,22 @@ If further review is desired after the fixes are pushed, that should be an expli
 
 ### 6. Save Review Artifacts
 
-Save a review summary to `{session_dir}/review-summary.md`:
+Save a review summary to `[session_dir]/review-summary.md`:
 
 ```markdown
 # Review Summary
 
-**PR**: #{pr_number}
+**PR**: #[pr_number]
 **Review requested**: once
-**Final status**: {approved | changes_addressed | unresolved_comments}
-**Comments addressed**: {count}
-**Commits pushed**: {count}
+**Final status**: [approved | changes_addressed | unresolved_comments]
+**Comments addressed**: [count]
+**Commits pushed**: [count]
 
 ## Comments Addressed
-- {file}:{line} — {description of fix}
+- [file]:[line] — [description of fix]
 
 ## Unresolved Comments (if any)
-- {file}:{line} — {reason not addressed}
+- [file]:[line] — [reason not addressed]
 ```
 
 ## Decision Logic
@@ -161,7 +161,7 @@ Save a review summary to `{session_dir}/review-summary.md`:
 ```
 ✅ Review passed — no changes needed
 
-PR #{pr_number} reviewed by Copilot
+PR #[pr_number] reviewed by Copilot
 Status: Approved / No actionable comments
 
 **Next**: Orchestrator will handle merge → finalize → wrap
@@ -171,9 +171,9 @@ Status: Approved / No actionable comments
 ```
 ✅ Review comments addressed
 
-PR #{pr_number} reviewed by Copilot
-Comments addressed: {count}
-Commits pushed: {count}
+PR #[pr_number] reviewed by Copilot
+Comments addressed: [count]
+Commits pushed: [count]
 PR summary comment posted: yes
 
 All actionable review feedback has been addressed and pushed to the PR.
@@ -186,13 +186,13 @@ No automatic follow-up review was requested.
 ```
 ⚠️ Review completed with unresolved comments
 
-PR #{pr_number} reviewed by Copilot
-Comments addressed: {count}
-Unresolved: {count}
+PR #[pr_number] reviewed by Copilot
+Comments addressed: [count]
+Unresolved: [count]
 PR summary comment posted: yes
 
 **Unresolved items:**
-- {file}:{line} — {description}
+- [file]:[line] — [description]
 
 These need manual attention before merge or any explicit second review request.
 
@@ -243,7 +243,7 @@ To weave a custom reviewer into the workflow:
 Custom review agents must:
 1. Run preflight on entry (`--step review`)
 2. Perform their review logic (any tool, any reviewer)
-3. Save `{session_dir}/review-summary.md`
+3. Save `[session_dir]/review-summary.md`
 4. Run postflight on exit (`--step review`)
 5. Return results to the orchestrator without chaining to the next agent
 

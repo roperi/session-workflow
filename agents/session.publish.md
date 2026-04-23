@@ -116,8 +116,8 @@ fi
 
 4. **Report Status**:
    - Provide PR URL
-   - Save PR URL to `{session_dir}/pr_url.txt` (single line, no trailing newline)
-   - Save PR summary to `{session_dir}/pr-summary.md`
+   - Save PR URL to `[session_dir]/pr_url.txt` (single line, no trailing newline)
+   - Save PR summary to `[session_dir]/pr-summary.md`
    - Summary of validation results
    - Next steps
 

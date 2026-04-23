@@ -37,7 +37,7 @@ This agent assumes:
 
 Expected context:
 - Session info in `.session/ACTIVE_SESSION` pointing to active session ID
-- Session directory: `.session/sessions/YYYY-MM/{session-id}/`
+- Session directory: `.session/sessions/YYYY-MM/[session-id]/`
 - Tasks defined in session `tasks.md`
 
 **⚠️ NEVER manually construct session directory paths.** Always read from `.session/ACTIVE_SESSION`.
@@ -77,7 +77,7 @@ fi
 
 SESSION_ID=$(cat "$ACTIVE_SESSION_FILE")
 YEAR_MONTH=$(echo "$SESSION_ID" | cut -d'-' -f1,2)  # Extract YYYY-MM
-SESSION_DIR=".session/sessions/${YEAR_MONTH}/${SESSION_ID}"
+SESSION_DIR=".session/sessions/$[YEAR_MONTH]/$[SESSION_ID]"
 
 echo "Active session: $SESSION_ID"
 echo "Session directory: $SESSION_DIR"
@@ -209,15 +209,15 @@ When you encounter a `[MANUAL]` test task:
    ```bash
    source .session/scripts/bash/session-common.sh
    SESSION_ID=$(get_active_session)
-   set_pause_state "$SESSION_ID" "manual_test" "execute" "{task-id}" "{task-description}" "{specific-action-to-test}" "session.start --resume"
+   set_pause_state "$SESSION_ID" "manual_test" "execute" "[task-id]" "[task-description]" "[specific-action-to-test]" "session.start --resume"
    ```
 2. **Stop** automated execution and **prompt user**:
    ```
     🔍 Manual browser test required:
    
-   Task: {task-description}
-   Action: {specific-action-to-test}
-   Expected: {expected-result}
+   Task: [task-description]
+   Action: [specific-action-to-test]
+   Expected: [expected-result]
    
     Please test in browser and confirm:
     - [ ] Test passed (works as expected)
@@ -272,10 +272,10 @@ Track your context usage:
 
 **Then**: Suggest handoff:
 ```
-⚠️ Context window filling up ({percentage}%)
+⚠️ Context window filling up ([percentage]%)
 
-Completed: {count} tasks
-Remaining: {count} tasks
+Completed: [count] tasks
+Remaining: [count] tasks
 
 Recommend pausing now.
 You can resume with session.execute in next session.
@@ -294,13 +294,13 @@ When all incomplete tasks are done (or pausing for context):
 ✅ Task execution complete
 
 Session: $SESSION_ID
-Completed: {count} tasks
-Commits: {count} commits made
+Completed: [count] tasks
+Commits: [count] commits made
 
 Execution complete — ready for validation and publishing.
 
-{If more tasks remain}:
-Remaining: {count} tasks
+[If more tasks remain]:
+Remaining: [count] tasks
 Can resume with session.execute
 ```
 
@@ -353,22 +353,22 @@ Invoke the remaining Phase 2 agents as sub-agents (using the task tool with `age
 **validate** — Invoke `session.validate` agent:
 ```
 agent: "session.validate"
-prompt: "Validate work for session {session_id}. Dir: {session_dir}, stage: {stage}. Do NOT ask clarifying questions."
+prompt: "Validate work for session [session_id]. Dir: [session_dir], stage: [stage]. Do NOT ask clarifying questions."
 ```
 
 **publish** — Invoke `session.publish` agent:
 ```
 agent: "session.publish"
-prompt: "Publish PR for session {session_id}. Dir: {session_dir}, repo: {owner/repo}, branch: {branch}. Do NOT ask clarifying questions."
+prompt: "Publish PR for session [session_id]. Dir: [session_dir], repo: [owner/repo], branch: [branch]. Do NOT ask clarifying questions."
 ```
 
 After publish completes, output:
 ```
 ✅ Phase 2 (Implementation) complete
 
-Session: {session_id}
-Tasks completed: {count}
-PR: #{pr_number} created
+Session: [session_id]
+Tasks completed: [count]
+PR: #[pr_number] created
 
 Next:
   1. Review the PR manually, OR run `session.review` if you want the workflow to use the default or an overridden custom review agent
@@ -384,7 +384,7 @@ Invoke wrap directly (no validation or publishing):
 **wrap** — Invoke `session.wrap` agent:
 ```
 agent: "session.wrap"
-prompt: "Wrap session {session_id}. Dir: {session_dir}. Do NOT ask clarifying questions."
+prompt: "Wrap session [session_id]. Dir: [session_dir]. Do NOT ask clarifying questions."
 ```
 
 After wrap completes, output the session summary.
@@ -396,8 +396,8 @@ Do NOT auto-wrap maintenance sessions when invoked directly. After execute compl
 ```
 ✅ Maintenance execution complete
 
-Session: {session_id}
-Tasks completed: {count}
+Session: [session_id]
+Tasks completed: [count]
 
 Next:
   - Review the changes or report output
@@ -411,8 +411,8 @@ Do NOT auto-wrap debug sessions when invoked directly. After execute completes, 
 ```
 ✅ Debug investigation complete
 
-Session: {session_id}
-Tasks completed: {count}
+Session: [session_id]
+Tasks completed: [count]
 
 Next:
   - Review the findings, reproduction notes, or fix verification results
@@ -426,8 +426,8 @@ Do NOT auto-wrap operational sessions when invoked directly. After execute compl
 ```
 ✅ Operational execution pass complete
 
-Session: {session_id}
-Tasks completed: {count}
+Session: [session_id]
+Tasks completed: [count]
 
 Next:
   - Review the outputs, metrics, or logs from this pass
