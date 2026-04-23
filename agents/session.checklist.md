@@ -1,7 +1,7 @@
 ---
 name: session-checklist
 description: Generate a custom quality checklist for the current session.
-tools: ["read", "search"]
+tools: ["*"]
 ---
 
 # session.checklist

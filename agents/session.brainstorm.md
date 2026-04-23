@@ -1,7 +1,7 @@
 ---
 name: session-brainstorm
 description: Clarify WHAT to build and capture decisions in a session-scoped brainstorm doc.
-tools: ["read", "edit", "search"]
+tools: ["*"]
 ---
 
 # session.brainstorm
