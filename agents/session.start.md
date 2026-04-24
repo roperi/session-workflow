@@ -27,17 +27,9 @@ Skipping steps causes: untracked work, documentation mismatch, broken continuity
 
 ## Outline
 
-### 1. Get Repository Owner/Name
+### 1. Run Session-Start Script (MANDATORY)
 
-Required before any GitHub API calls:
-
-```bash
-gh repo view --json owner,name -q '.owner.login + "/" + .name'
-```
-
-Use this exact owner/repo for all GitHub MCP tool calls. **Never guess the repository name.**
-
-### 2. Run Session-Start Script (MANDATORY)
+Do NOT explore the repository, check remotes, or verify your identity first. Execute the start script **immediately** to establish the active session and get your bearings.
 
 ```bash
 .session/scripts/bash/session-start.sh --json "$ARGUMENTS"
