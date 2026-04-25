@@ -1144,7 +1144,7 @@ EOF
   log "41) maintenance docs and agent contract reflect lightweight default"
   grep -q "#### Maintenance Workflow: execute → STOP" "$ROOT_DIR/agents/session.start.md" \
     || fail "session.start agent should document maintenance execute → STOP default"
-  grep -q "Invoke \*\*execute\*\*" "$ROOT_DIR/agents/session.start.md" \
+  grep -q "Use the \`session-execute\` agent" "$ROOT_DIR/agents/session.start.md" \
     || fail "session.start agent should include an explicit maintenance execute sub-agent block"
   grep -q "Maintenance Workflow: → STOP" "$ROOT_DIR/agents/session.execute.md" \
     || fail "session.execute agent should document maintenance stop-after-execute direct mode"

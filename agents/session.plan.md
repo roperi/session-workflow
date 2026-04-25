@@ -325,7 +325,7 @@ Plan complete — proceeding to task generation.
 ### Transition Protocol
 1. Parse the `valid_next_steps` from the postflight JSON output.
 2. Announce completion and suggest the next command(s).
-3. **Invoke the next step** using your tool's native mechanism (e.g., slash command, `@agent`, or sub-agent task) if in `--auto` mode. Otherwise, guide the user to the next step.
+3. **Ask your parent tool to trigger the next step** using your tool's native mechanism (e.g., slash command, `@agent`, or sub-agent task) if in `--auto` mode. Otherwise, guide the user to the next step.
 
 **Tool-Specific Invocation Examples:**
 - **GitHub Copilot**: `task(agent_type: "session.task", prompt: "...")`

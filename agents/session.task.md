@@ -71,6 +71,8 @@ Expected context:
 
 **⚠️ NEVER manually construct session directory paths.** Always read from `.session/ACTIVE_SESSION`.
 
+**MANDATORY**: For simple goals (e.g., adding a comment, updating a single string, minor README fixes), you MUST generate **fewer than 3 tasks**. Do NOT over-complicate the execution plan.
+
 ## Outline
 
 ### 1. Load Session Context
@@ -303,7 +305,7 @@ Task breakdown complete — proceeding to execution.
 ### Transition Protocol
 1. Parse the `valid_next_steps` from the postflight JSON output.
 2. Announce completion and suggest the next command(s).
-3. **Invoke the next step** using your tool's native mechanism (e.g., slash command, `@agent`, or sub-agent task) if in `--auto` mode. Otherwise, guide the user to the next step.
+3. **Ask your parent tool to trigger the next step** using your tool's native mechanism (e.g., slash command, `@agent`, or sub-agent task) if in `--auto` mode. Otherwise, guide the user to the next step.
 
 **Tool-Specific Invocation Examples:**
 - **GitHub Copilot**: `task(agent_type: "session.execute", prompt: "...")`

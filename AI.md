@@ -11,12 +11,12 @@ Welcome, AI Agent. This project uses **Spec-Driven Development (SDD)**. Your goa
 This section describes how an **end-user** interacts with the tool once installed. This documentation is required for capability verification.
 
 - **Standard Workflows**: Users follow the chain: `start → scope → spec → plan → tasks → execute → validate → wrap`.
-- **GitHub Integration**: Link sessions to issues using `session.start --issue <N>`.
-- **Brainstorming**: The `session.start --brainstorm` entrypoint is used for fuzzy goals.
-- **Maintenance workflow**: Lightweight chain (start → execute → STOP).
-- **Debug workflow**: Investigation chain (start → execute → STOP).
-- **Operational workflow**: Runtime loop (start → execute → STOP).
-- **Audit**: Users can run `./.session/scripts/bash/session-audit.sh --all --summary` to check progress.
+- **GitHub Integration**: Users can ask the agent to "Start a session for issue [N]" to link work directly to GitHub.
+- **Brainstorming**: Users can ask for a `session.start --brainstorm` session for fuzzy goals.
+- **Maintenance workflow**: Ask the agent to "Run a maintenance session" (start → execute → STOP).
+- **Debug workflow**: Ask to "Start a debug session" (start → execute → STOP).
+- **Operational workflow**: Ask to "Run an operational session" (start → execute → STOP).
+- **Audit**: Users can run `./.session/scripts/bash/session-audit.sh --all --summary` directly in their shell to check session health.
 - **Continuity**: The `next.md` artifact is the primary handoff tool between sessions.
 
 ## 3. Maintainer Workflow (Development)

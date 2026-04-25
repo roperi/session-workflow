@@ -268,23 +268,28 @@ Why this matters:
 
 After session-start.sh completes, you orchestrate the workflow chain.
 
-### ⛔ CRITICAL: Invoke Agents — Do NOT Do Their Work
+### ⛔ CRITICAL: Delegate to Agents — Do NOT Do Their Work
 
-For each step, you MUST invoke the corresponding agent as a **separate sub-agent or command** using your tool's native mechanism (e.g., `task` tool, `@agent` mention, slash command, or `generalist` sub-agent). Do NOT read their agent files and do their work yourself.
+For each step, you MUST delegate work to the corresponding agent as a **separate sub-agent or command** using your tool's native mechanism (e.g., `task` tool, slash command, or `generalist` sub-agent). Do NOT read their agent files and do their work yourself.
 
-**Tool-Specific Invocation Examples:**
-- **GitHub Copilot**: Use `task(agent: "session.scope", prompt: "...")`
-- **Claude Code**: Suggest or execute `/session.scope`
-- **Gemini CLI**: Activate sub-agent or skill `session.scope`
+**How to trigger transitions:**
+Ask your parent tool to "Use the [agent-name] agent to [objective]".
+
+**Native Mechanism Examples:**
+- **GitHub Copilot**: Use the `task` tool with `agent_type` set to the agent name.
+- **Claude Code**: Execute the corresponding slash command (e.g., `/session-scope`).
+- **Gemini CLI**: Activate the sub-agent or skill by name (e.g., `session-scope`).
+
 
 ### Default Mode
 
-Orchestrate Phase 1 (Planning) only for development/spike. For maintenance/debug/operational, invoke execute immediately, then stop.
+Orchestrate Phase 1 (Planning) only for development/spike. For maintenance/debug/operational, run the implementation phase using the session-execute agent immediately, then stop.
 
 #### Optional Brainstorm Insert (`--brainstorm`)
 
-Invoke `session.brainstorm` immediately after initialization:
-- **Prompt**: "Brainstorm this session goal. Session: [session_id], dir: [session_dir], workflow: [workflow], stage: [stage]. Clarify the WHAT/WHY in [session_dir]/brainstorm.md. Ask concise clarifying questions only when truly needed."
+Use the `session-brainstorm` agent immediately after initialization:
+- **Objective**: "Brainstorm this session goal. Session: [session_id], dir: [session_dir], workflow: [workflow], stage: [stage]. Clarify the WHAT/WHY in [session_dir]/brainstorm.md. Ask concise clarifying questions only when truly needed."
+
 
 #### Development Workflow: [brainstorm →] scope → spec → plan → task → STOP
 
@@ -299,15 +304,16 @@ Same as development but skip spec.
 
 #### Maintenance Workflow: execute → STOP
 
-Invoke **execute**: "Execute maintenance work for session [session_id]. Dir: [session_dir]. Tasks in [tasks_file]. Workflow: maintenance. Do NOT ask clarifying questions."
+Use the `session-execute` agent: "Execute maintenance work for session [session_id]. Dir: [session_dir]. Tasks in [tasks_file]. Workflow: maintenance. Do NOT ask clarifying questions."
 
 #### Debug Workflow: execute → STOP
 
-Invoke **execute**: "Execute debug investigation for session [session_id]. Dir: [session_dir]. Tasks in [tasks_file]. Workflow: debug. Do NOT ask clarifying questions."
+Use the `session-execute` agent: "Execute debug investigation for session [session_id]. Dir: [session_dir]. Tasks in [tasks_file]. Workflow: debug. Do NOT ask clarifying questions."
 
 #### Operational Workflow: execute → STOP
 
-Invoke **execute**: "Execute operational work for session [session_id]. Dir: [session_dir]. Tasks in [tasks_file]. Workflow: operational. Treat tasks.md as a living checklist for monitored runs and follow-up fixes. Do NOT ask clarifying questions."
+Use the `session-execute` agent: "Execute operational work for session [session_id]. Dir: [session_dir]. Tasks in [tasks_file]. Workflow: operational. Treat tasks.md as a living checklist for monitored runs and follow-up fixes. Do NOT ask clarifying questions."
+
 
 ---
 
@@ -317,13 +323,13 @@ Orchestrate the automatic workflow chain until it reaches a manual review gate o
 
 #### Development Workflow (Auto): [brainstorm →] scope → spec → plan → task → execute → validate → publish → [review] → [merge] → [finalize] → [wrap]
 
-**Implementation Steps:**
-1. **execute**: "Execute tasks for issue #[N]: [title]. Session: [session_id], dir: [session_dir]. Tasks in [tasks_file]. Do NOT ask clarifying questions."
-2. **validate**: "Validate work for issue #[N]. Session: [session_id], dir: [session_dir], stage: [stage]. Do NOT ask clarifying questions."
-3. **publish**: "Publish PR for issue #[N]. Session: [session_id], dir: [session_dir], repo: [owner/repo], branch: [branch]. Do NOT ask clarifying questions."
-4. **review** (if `--copilot-review`): "Review PR #[pr_number] for issue #[N]. Session: [session_id], dir: [session_dir], repo: [owner/repo]. Do NOT ask clarifying questions."
-5. **finalize**: "Finalize merged PR #[pr_number] for issue #[N]. Session: [session_id], dir: [session_dir]. PR merged to main. Do NOT ask clarifying questions."
-6. **wrap**: "Wrap session [session_id]. Dir: [session_dir]. Issue #[N] closed, PR #[pr_number] merged. Do NOT ask clarifying questions."
+**Delegation Steps:**
+1. **execute**: Use the `session-execute` agent: "Execute tasks for issue #[N]: [title]. Session: [session_id], dir: [session_dir]. Tasks in [tasks_file]. Do NOT ask clarifying questions."
+2. **validate**: Use the `session-validate` agent: "Validate work for issue #[N]. Session: [session_id], dir: [session_dir], stage: [stage]. Do NOT ask clarifying questions."
+3. **publish**: Use the `session-publish` agent: "Publish PR for issue #[N]. Session: [session_id], dir: [session_dir], repo: [owner/repo], branch: [branch]. Do NOT ask clarifying questions."
+4. **review** (if `--copilot-review`): Use the `session-review` agent: "Review PR #[pr_number] for issue #[N]. Session: [session_id], dir: [session_dir], repo: [owner/repo]. Do NOT ask clarifying questions."
+5. **finalize**: Use the `session-finalize` agent: "Finalize merged PR #[pr_number] for issue #[N]. Session: [session_id], dir: [session_dir]. PR merged to main. Do NOT ask clarifying questions."
+6. **wrap**: Use the `session-wrap` agent: "Wrap session [session_id]. Dir: [session_dir]. Issue #[N] closed, PR #[pr_number] merged. Do NOT ask clarifying questions."
 
 In this mode, `--auto` means "auto-chain until an external review decision is required." It does **not** bypass manual/custom review and merge gates.
 
