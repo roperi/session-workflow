@@ -71,7 +71,6 @@ Expected context:
 
 **⚠️ NEVER manually construct session directory paths.** Always read from `.session/ACTIVE_SESSION`.
 
-**MANDATORY**: For simple goals (e.g., adding a comment, updating a single string, minor README fixes), you MUST generate **fewer than 3 tasks**. Do NOT over-complicate the execution plan.
 
 ## Outline
 

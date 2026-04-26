@@ -157,12 +157,13 @@ fi
 ### Transition Protocol
 1. Parse the `valid_next_steps` from the postflight JSON output.
 2. Announce completion and suggest the next command(s).
-3. **Ask your parent tool to trigger the next step** using your tool's native mechanism (e.g., slash command, `@agent`, or sub-agent task) if in `--auto` mode. Otherwise, guide the user to the next step.
+3. **⛔ CRITICAL STOP**: If a PR was created, you MUST stop here. Do NOT invoke `session-wrap`. The session cannot be finalized until the PR is merged.
+4. **Invoke the next step** only if explicitly in `--auto --copilot-review` mode (to trigger `session-review`).
 
 **Tool-Specific Invocation Examples:**
-- **GitHub Copilot**: `task(agent_type: "session.review", prompt: "...")`
-- **Claude Code**: `/session.review`
-- **Gemini CLI**: Activate sub-agent or skill `session.review`
+- **GitHub Copilot**: `task(agent: "session-review", prompt: "...")`
+- **Claude Code**: `/session-review`
+- **Gemini CLI**: Activate sub-agent or skill `session-review`
 
 ⛔ Do NOT perform the work of the next agent yourself.
 

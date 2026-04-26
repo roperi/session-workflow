@@ -327,9 +327,15 @@ Orchestrate the automatic workflow chain until it reaches a manual review gate o
 1. **execute**: Use the `session-execute` agent: "Execute tasks for issue #[N]: [title]. Session: [session_id], dir: [session_dir]. Tasks in [tasks_file]. Do NOT ask clarifying questions."
 2. **validate**: Use the `session-validate` agent: "Validate work for issue #[N]. Session: [session_id], dir: [session_dir], stage: [stage]. Do NOT ask clarifying questions."
 3. **publish**: Use the `session-publish` agent: "Publish PR for issue #[N]. Session: [session_id], dir: [session_dir], repo: [owner/repo], branch: [branch]. Do NOT ask clarifying questions."
-4. **review** (if `--copilot-review`): Use the `session-review` agent: "Review PR #[pr_number] for issue #[N]. Session: [session_id], dir: [session_dir], repo: [owner/repo]. Do NOT ask clarifying questions."
-5. **finalize**: Use the `session-finalize` agent: "Finalize merged PR #[pr_number] for issue #[N]. Session: [session_id], dir: [session_dir]. PR merged to main. Do NOT ask clarifying questions."
-6. **wrap**: Use the `session-wrap` agent: "Wrap session [session_id]. Dir: [session_dir]. Issue #[N] closed, PR #[pr_number] merged. Do NOT ask clarifying questions."
+
+**⛔ NO SHORTCUTS**: You MUST NOT skip directly to `session-wrap` after `session-publish`.
+
+**Conclusion Chain:**
+4. **review** (if requested): Use the `session-review` agent: "Review PR #[pr_number] for issue #[N]. Session: [session_id], dir: [session_dir], repo: [owner/repo]. Do NOT ask clarifying questions."
+5. **[MERGE PR]**: Wait for PR to be merged to main.
+6. **finalize**: Use the `session-finalize` agent: "Finalize merged PR #[pr_number] for issue #[N]. Session: [session_id], dir: [session_dir]. PR merged to main. Do NOT ask clarifying questions."
+7. **retrospect**: Use the `session-retrospect` agent: "Retrospect session [session_id]. Dir: [session_dir]. Do NOT ask clarifying questions."
+8. **wrap**: Use the `session-wrap` agent: "Wrap session [session_id]. Dir: [session_dir]. Issue #[N] closed, PR #[pr_number] merged. Do NOT ask clarifying questions."
 
 In this mode, `--auto` means "auto-chain until an external review decision is required." It does **not** bypass manual/custom review and merge gates.
 
