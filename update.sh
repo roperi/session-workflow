@@ -315,49 +315,62 @@ update_docs() {
     update_managed_file "session/docs/testing.md" ".session/docs/testing.md"
     update_managed_file "session/docs/shared-workflow.md" ".session/docs/shared-workflow.md"
     update_managed_file "session/docs/schema-versioning.md" ".session/docs/schema-versioning.md"
-    update_managed_file "session/docs/copilot-cli-mechanics.md" ".session/docs/copilot-cli-mechanics.md"
     update_managed_file "session/docs/reference.md" ".session/docs/reference.md"
     success "Documentation updated"
 }
 
 update_agents() {
-    info "Updating GitHub Copilot agents..."
+    info "Updating tool-agnostic agents and projecting to detected tools..."
 
-    local source_agent_dir="${SOURCE_DIR:-.}/github/agents"
+    local source_agent_dir="${SOURCE_DIR:-.}/agents"
     if [[ ! -d "$source_agent_dir" ]]; then
-        # If running from repo root, agents are in github/agents/
-        source_agent_dir="github/agents"
+        source_agent_dir="agents"
     fi
 
-    for agent_path in "$source_agent_dir"/session.*.agent.md; do
-        if [[ -f "$agent_path" ]]; then
-            local agent
-            agent=$(basename "$agent_path")
-            update_managed_file "github/agents/${agent}" ".github/agents/${agent}"
-        fi
+    # For update.sh, we'll use a similar projection logic as install.sh
+    # but focused on updating existing files.
+    
+    # Tool detection (simplified for update)
+    local detected_tools=()
+    [[ -d ".claude" ]] && detected_tools+=("claude")
+    [[ -d ".gemini" ]] && detected_tools+=("gemini")
+    detected_tools+=("copilot") # Default
+    [[ -f ".cursorrules" ]] && detected_tools+=("cursor")
+
+    for agent_path in "$source_agent_dir"/session.*.md; do
+        [[ -f "$agent_path" ]] || continue
+        local agent
+        agent=$(basename "$agent_path")
+        local source_path="agents/${agent}"
+
+        for tool in "${detected_tools[@]}"; do
+            case $tool in
+                claude)
+                    local dest=".claude/commands/${agent}"
+                    mkdir -p ".claude/commands"
+                    update_managed_file "$source_path" "$dest"
+                    ;;
+                gemini)
+                    local dest=".gemini/agents/${agent}"
+                    mkdir -p ".gemini/agents"
+                    update_managed_file "$source_path" "$dest"
+                    ;;
+                copilot)
+                    local dest=".github/agents/${agent}"
+                    mkdir -p ".github/agents"
+                    update_managed_file "$source_path" "$dest"
+                    ;;
+                cursor)
+                    # No file to update, just ensure reference exists
+                    if ! grep -q "agents/" .cursorrules 2>/dev/null; then
+                        echo -e "\n## Session Workflow\nUse agents in 'agents/' for SDD workflow." >> .cursorrules
+                    fi
+                    ;;
+            esac
+        done
     done
 
-    success "Agents updated"
-}
-
-update_prompts() {
-    info "Updating GitHub Copilot prompts..."
-
-    local source_prompt_dir="${SOURCE_DIR:-.}/github/prompts"
-    if [[ ! -d "$source_prompt_dir" ]]; then
-        # If running from repo root, prompts are in github/prompts/
-        source_prompt_dir="github/prompts"
-    fi
-
-    for prompt_path in "$source_prompt_dir"/session.*.prompt.md; do
-        if [[ -f "$prompt_path" ]]; then
-            local prompt
-            prompt=$(basename "$prompt_path")
-            update_managed_file "github/prompts/${prompt}" ".github/prompts/${prompt}"
-        fi
-    done
-
-    success "Prompts updated"
+    success "Agents updated and projected"
 }
 
 remove_exact_line() {
@@ -548,7 +561,6 @@ main() {
     update_templates
     update_docs
     update_agents
-    update_prompts
     update_gitignore
     update_bootstrap_sections
     prune_removed_managed_files

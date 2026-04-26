@@ -1,6 +1,7 @@
 ---
+name: session-brainstorm
 description: Clarify WHAT to build and capture decisions in a session-scoped brainstorm doc.
-tools: ["read", "edit", "search"]
+tools: ["*"]
 ---
 
 # session.brainstorm
@@ -11,8 +12,8 @@ Produce a concise brainstorm that clarifies **WHAT/WHY** (not detailed HOW), exp
 
 - This is an **optional** planning agent. It is not part of the default chain unless `session.start --brainstorm` explicitly inserts it.
 - It requires an active session already created by `session.start`.
-- Recommended entrypoint: `invoke session.start --brainstorm ...`
-- Write the output to the session artifact `{session_dir}/brainstorm.md` (not `docs/brainstorms/`).
+- Recommended entrypoint: `session.start --brainstorm ...`
+- Write the output to the session artifact `[session_dir]/brainstorm.md` (not `docs/brainstorms/`).
 - Keep it tight: no novel-length docs, no implementation task lists.
 
 ## User Input
@@ -50,8 +51,8 @@ If the workflow check fails, stop and explain that `session.brainstorm` is only 
 ### 2) Read current context
 
 Read (when present):
-- Session notes: `{session_dir}/notes.md`
-- Session info: `{session_dir}/session-info.json`
+- Session notes: `[session_dir]/notes.md`
+- Session info: `[session_dir]/session-info.json`
 - For GitHub issue sessions: issue title/body
 - Project context: `.session/project-context/technical-context.md` and `constitution-summary.md`
 
@@ -62,18 +63,18 @@ Stop early if sufficient.
 
 ### 4) Produce brainstorm doc in session directory
 
-Create a new file at `{session_dir}/brainstorm.md` (the session directory already exists from `session.start`):
+Create a new file at `[session_dir]/brainstorm.md` (the session directory already exists from `session.start`):
 ```markdown
 ---
 date: YYYY-MM-DD
-session_id: {SESSION_ID}
+session_id: [SESSION_ID]
 type: brainstorm
 related:
-  issue: {#123 or null}
+  issue: [#123 or null]
 status: draft
 ---
 
-# Brainstorm: {Topic}
+# Brainstorm: [Topic]
 
 ## Problem / Goal (WHAT)
 
@@ -89,18 +90,18 @@ status: draft
 
 ## Options (2-3)
 
-### Option A: {name}
+### Option A: [name]
 - Summary:
 - Pros:
 - Cons:
 - Risks:
 
-### Option B: {name}
+### Option B: [name]
 ...
 
 ## Recommendation
 
-**Choose:** Option {A/B/C}
+**Choose:** Option [A/B/C]
 
 Rationale:
 - ...
@@ -115,8 +116,8 @@ Rationale:
 
 ## Next Step
 
-Recommended: invoke session.scope and use this brainstorm as input.
-If you intentionally want to skip scope/spec, invoke session.plan directly.
+Recommended: session.scope and use this brainstorm as input.
+If you intentionally want to skip scope/spec, session.plan directly.
 ```
 
 ### 5) Record reference in session notes
@@ -124,14 +125,14 @@ If you intentionally want to skip scope/spec, invoke session.plan directly.
 If the notes do not already contain a Brainstorm section, append:
 ```markdown
 ## Brainstorm
-- {session_dir}/brainstorm.md
+- [session_dir]/brainstorm.md
 ```
 
 ### 6) Handoff
 
 If invoked directly by the user, suggest the next step:
-- `invoke session.scope` (recommended) to turn the brainstorm into explicit boundaries
-- or `invoke session.plan` if the user intentionally wants to skip scope/spec and accept the preflight warning
+- `session.scope` (recommended) to turn the brainstorm into explicit boundaries
+- or `session.plan` if the user intentionally wants to skip scope/spec and accept the preflight warning
 - or `session.clarify` if unresolved questions remain
 
 If invoked by `session.start --brainstorm`, return the brainstorm path and let `session.start` continue the planning chain.

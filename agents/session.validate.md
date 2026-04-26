@@ -1,4 +1,5 @@
 ---
+name: session-validate
 description: Validates session work quality before publishing
 tools: ["*"]
 ---
@@ -17,7 +18,7 @@ tools: ["*"]
 - ❌ Merge PRs or close issues (that's `session.finalize`)
 - ❌ Write session documentation (that's `session.wrap`)
 
-**Output**: `{session_dir}/validation-results.json` plus the latest local `.session/validation-results.json` summary — nothing else.
+**Output**: `[session_dir]/validation-results.json` plus the latest local `.session/validation-results.json` summary — nothing else.
 
 ## User Input
 
@@ -245,7 +246,7 @@ Check session `tasks.md`:
 **When to run**: Only for development workflow sessions that have a `spec.md` (produced by `session.spec`).
 
 **How it works**:
-1. Locate `spec.md`: session directory `{session_dir}/spec.md`
+1. Locate `spec.md`: session directory `[session_dir]/spec.md`
 2. Parse the **Verification Checklist** section (checkbox items `- [x]` / `- [ ]`)
 3. Compare checked vs unchecked items
 4. Report which criteria are met/unmet
@@ -278,7 +279,7 @@ Check session `tasks.md`:
 
 **ALWAYS create both**:
 
-- `{session_dir}/validation-results.json` — durable session-scoped audit artifact
+- `[session_dir]/validation-results.json` — durable session-scoped audit artifact
 - `.session/validation-results.json` — latest local summary for publish/review flow
 
 Use this schema for the validation summary payload:
@@ -322,8 +323,8 @@ Use this schema for the validation summary payload:
       "verified": 8,
       "total": 8,
       "items": [
-        {"item": "All acceptance criteria have at least one happy-path test", "status": "met"},
-        {"item": "Edge cases identified for each user story", "status": "met"}
+        ["item": "All acceptance criteria have at least one happy-path test", "status": "met"],
+        ["item": "Edge cases identified for each user story", "status": "met"]
       ],
       "details": "All 8 spec verification items met"
     }
@@ -348,7 +349,7 @@ STAGE=$(jq -r '.stage // "production"' "$SESSION_DIR/session-info.json")
 3. Run postflight: `.session/scripts/bash/session-postflight.sh --step validate --json`
 4. **Return results** to orchestrating agent. Add note: "⚠️ PoC mode: Proceeding despite validation warnings"
 
-⛔ Do NOT invoke session.publish or any other agent yourself.
+⛔ Do NOT session.publish or any other agent yourself.
 
 ### IF all checks PASS:
 1. Create both validation-results.json copies with overall: "pass"
@@ -356,7 +357,24 @@ STAGE=$(jq -r '.stage // "production"' "$SESSION_DIR/session-info.json")
 3. Run postflight: `.session/scripts/bash/session-postflight.sh --step validate --json`
 4. **Return results** to orchestrating agent.
 
-⛔ Do NOT invoke session.publish or any other agent yourself.
+## Chaining & Handoff
+
+**MANDATORY**: Run postflight to mark this step complete and get next steps:
+```bash
+.session/scripts/bash/session-postflight.sh --step validate --json
+```
+
+### Transition Protocol
+1. Parse the `valid_next_steps` from the postflight JSON output.
+2. Announce completion and suggest the next command(s).
+3. **Ask your parent tool to trigger the next step** using your tool's native mechanism (e.g., slash command, `@agent`, or sub-agent task) if in `--auto` mode. Otherwise, guide the user to the next step.
+
+**Tool-Specific Invocation Examples:**
+- **GitHub Copilot**: `task(agent_type: "session.publish", prompt: "...")`
+- **Claude Code**: `/session.publish`
+- **Gemini CLI**: Activate sub-agent or skill `session.publish`
+
+⛔ Do NOT perform the work of the next agent yourself.
 
 ### IF any checks FAIL:
 1. Create both validation-results.json copies with overall: "fail"
@@ -404,7 +422,7 @@ If user chooses "Wrap session":
 ## Usage
 
 ```bash
-invoke session.validate
+session.validate
 ```
 
 Typically invoked automatically by `session.execute` after task completion.

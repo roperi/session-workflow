@@ -512,6 +512,13 @@ set_workflow_step() {
 STATEJSON
     fi
     
+    # Update state.json ... (rest of jq calls)
+    
+    # Run session-sync.sh to update tool-specific files
+    if [[ -f "${SCRIPT_DIR}/session-sync.sh" ]]; then
+        bash "${SCRIPT_DIR}/session-sync.sh" >/dev/null 2>&1 || true
+    fi
+
     echo -e "${GREEN}✓ Workflow step: $step_name ($status)${NC}"
 }
 

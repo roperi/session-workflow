@@ -1,46 +1,12 @@
-# GitHub Copilot Instructions
-
-<!-- 
-This file provides additional context to GitHub Copilot.
-It's read automatically when Copilot CLI starts in this repository.
--->
-
 ## Session Workflow
 
 This project uses session workflow for AI context continuity.
-See `.session/docs/README.md` for quick reference.
+See `.session/docs/agnostic-workflow-guide.md` for quick reference.
 
-Use `next.md` as the structured follow-up artifact for the next session. Keep `notes.md` for broader running notes and compatibility.
-
-**Agents:**
-- `invoke session.start --issue N` — Development session from GitHub issue (planning phase by default)
-- `invoke session.start --brainstorm "description"` — Start a development/spike session with an upfront brainstorm before scope/plan
-- `invoke session.start --auto --issue N` — Auto until the next human gate; otherwise through `publish`, then stop for manual/custom review
-- `invoke session.start --auto --copilot-review --issue N` — Full auto with Copilot review before merge
-- `invoke session.start "description"` — Development session (positional description)
-- `invoke session.start --spike "description"` — Spike/research (no PR)
-- `invoke session.start --debug "description"` — Debug/troubleshooting session (no PR by default)
-- `invoke session.start --operational "description"` — Operational batch/pipeline session (feature branch, no PR by default)
-- `invoke session.start --resume` — Resume active session
-- `invoke session.review` — Run the default or overridden custom review agent after publish
-- `invoke session.finalize` — Post-merge cleanup (after PR merge)
-- `invoke session.wrap` — End session
-
-**Utilities:**
-- `./.session/scripts/bash/session-audit.sh --all --summary` — Deterministic post-session audit script; run it directly from the shell and share the report if you want AI help interpreting it
-
-**Project context:**
-- `.session/project-context/technical-context.md` - Stack, build/test commands
-- `.session/project-context/constitution-summary.md` - Quality standards
-
-## Code Style
-
-<!-- TODO: Add code style preferences -->
-
-## Testing
-
-<!-- TODO: Add testing conventions -->
-
-## Documentation
-
-<!-- TODO: Add documentation standards -->
+**Debug Workflow:**
+- `invoke session.start --debug "description"`
+SECTION
+- next.md for handoff
+- `invoke session.start --brainstorm "description"` — Start a development/spike session with an upfront brainstorm
+- `invoke session.start --operational "description"` — Operational batch/pipeline session
+- ./.session/scripts/bash/session-audit.sh --all --summary

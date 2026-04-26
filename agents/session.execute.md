@@ -1,4 +1,5 @@
 ---
+name: session-execute
 description: Implement the session task list with TDD discipline and single-task focus
 tools: ["*"]
 ---
@@ -36,7 +37,7 @@ This agent assumes:
 
 Expected context:
 - Session info in `.session/ACTIVE_SESSION` pointing to active session ID
-- Session directory: `.session/sessions/YYYY-MM/{session-id}/`
+- Session directory: `.session/sessions/YYYY-MM/[session-id]/`
 - Tasks defined in session `tasks.md`
 
 **⚠️ NEVER manually construct session directory paths.** Always read from `.session/ACTIVE_SESSION`.
@@ -76,7 +77,7 @@ fi
 
 SESSION_ID=$(cat "$ACTIVE_SESSION_FILE")
 YEAR_MONTH=$(echo "$SESSION_ID" | cut -d'-' -f1,2)  # Extract YYYY-MM
-SESSION_DIR=".session/sessions/${YEAR_MONTH}/${SESSION_ID}"
+SESSION_DIR=".session/sessions/$[YEAR_MONTH]/$[SESSION_ID]"
 
 echo "Active session: $SESSION_ID"
 echo "Session directory: $SESSION_DIR"
@@ -208,15 +209,15 @@ When you encounter a `[MANUAL]` test task:
    ```bash
    source .session/scripts/bash/session-common.sh
    SESSION_ID=$(get_active_session)
-   set_pause_state "$SESSION_ID" "manual_test" "execute" "{task-id}" "{task-description}" "{specific-action-to-test}" "invoke session.start --resume"
+   set_pause_state "$SESSION_ID" "manual_test" "execute" "[task-id]" "[task-description]" "[specific-action-to-test]" "session.start --resume"
    ```
 2. **Stop** automated execution and **prompt user**:
    ```
     🔍 Manual browser test required:
    
-   Task: {task-description}
-   Action: {specific-action-to-test}
-   Expected: {expected-result}
+   Task: [task-description]
+   Action: [specific-action-to-test]
+   Expected: [expected-result]
    
     Please test in browser and confirm:
     - [ ] Test passed (works as expected)
@@ -271,18 +272,18 @@ Track your context usage:
 
 **Then**: Suggest handoff:
 ```
-⚠️ Context window filling up ({percentage}%)
+⚠️ Context window filling up ([percentage]%)
 
-Completed: {count} tasks
-Remaining: {count} tasks
+Completed: [count] tasks
+Remaining: [count] tasks
 
 Recommend pausing now.
-You can resume with invoke session.execute in next session.
+You can resume with session.execute in next session.
 
 Options:
-- invoke session.execute --resume → Continue the next batch / patch cycle
-- invoke session.validate → Run quality checks then proceed to publish
-- invoke session.wrap → Skip validation and wrap directly
+- session.execute --resume → Continue the next batch / patch cycle
+- session.validate → Run quality checks then proceed to publish
+- session.wrap → Skip validation and wrap directly
 ```
 
 ### 7. Execution Completion
@@ -293,22 +294,34 @@ When all incomplete tasks are done (or pausing for context):
 ✅ Task execution complete
 
 Session: $SESSION_ID
-Completed: {count} tasks
-Commits: {count} commits made
+Completed: [count] tasks
+Commits: [count] commits made
 
 Execution complete — ready for validation and publishing.
 
-{If more tasks remain}:
-Remaining: {count} tasks
+[If more tasks remain]:
+Remaining: [count] tasks
 Can resume with session.execute
 ```
 
 ## Chaining & Handoff
 
-**First**, run postflight to mark execute complete:
+**MANDATORY**: Run postflight to mark this step complete and get next steps:
 ```bash
 .session/scripts/bash/session-postflight.sh --step execute --json
 ```
+
+### Transition Protocol
+1. Parse the `valid_next_steps` from the postflight JSON output.
+2. Announce completion and suggest the next command(s).
+3. **Ask your parent tool to trigger the next step** using your tool's native mechanism (e.g., slash command, `@agent`, or sub-agent task) if in `--auto` mode. Otherwise, guide the user to the next step.
+
+**Tool-Specific Invocation Examples:**
+- **GitHub Copilot**: `task(agent_type: "session.validate", prompt: "...")`
+- **Claude Code**: `/session.validate`
+- **Gemini CLI**: Activate sub-agent or skill `session.validate`
+
+⛔ Do NOT perform the work of the next agent yourself.
 
 **If [MANUAL] tasks remain:**
 - Report pending manual tasks and wait for user to complete them
@@ -319,9 +332,9 @@ Can resume with session.execute
 If your input (`$ARGUMENTS`) contains "Do NOT ask clarifying questions", you are running as a sub-agent:
 - **Return your results** — completed task count, commit count, and test results summary
 - The orchestrating agent (session.start) will invoke the next step
-- ⛔ Do NOT invoke session.validate, session.publish, or any other agent yourself
+- ⛔ Do NOT session.validate, session.publish, or any other agent yourself
 
-### Direct Invocation Mode (user ran `invoke session.execute`)
+### Direct Invocation Mode (user ran `session.execute`)
 
 If your input does NOT contain "Do NOT ask clarifying questions", you are the primary agent. Continue with **Phase 2 orchestration**.
 
@@ -339,29 +352,29 @@ Invoke the remaining Phase 2 agents as sub-agents (using the task tool with `age
 
 **validate** — Invoke `session.validate` agent:
 ```
-agent_type: "session.validate"
-prompt: "Validate work for session {session_id}. Dir: {session_dir}, stage: {stage}. Do NOT ask clarifying questions."
+agent: "session.validate"
+prompt: "Validate work for session [session_id]. Dir: [session_dir], stage: [stage]. Do NOT ask clarifying questions."
 ```
 
 **publish** — Invoke `session.publish` agent:
 ```
-agent_type: "session.publish"
-prompt: "Publish PR for session {session_id}. Dir: {session_dir}, repo: {owner/repo}, branch: {branch}. Do NOT ask clarifying questions."
+agent: "session.publish"
+prompt: "Publish PR for session [session_id]. Dir: [session_dir], repo: [owner/repo], branch: [branch]. Do NOT ask clarifying questions."
 ```
 
 After publish completes, output:
 ```
 ✅ Phase 2 (Implementation) complete
 
-Session: {session_id}
-Tasks completed: {count}
-PR: #{pr_number} created
+Session: [session_id]
+Tasks completed: [count]
+PR: #[pr_number] created
 
 Next:
-  1. Review the PR manually, OR run `invoke session.review` if you want the workflow to use the default or an overridden custom review agent
+  1. Review the PR manually, OR run `session.review` if you want the workflow to use the default or an overridden custom review agent
   2. Merge the PR
   3. Run:
-  invoke session.finalize
+  session.finalize
 ```
 
 #### Spike Workflow: → wrap → END
@@ -370,8 +383,8 @@ Invoke wrap directly (no validation or publishing):
 
 **wrap** — Invoke `session.wrap` agent:
 ```
-agent_type: "session.wrap"
-prompt: "Wrap session {session_id}. Dir: {session_dir}. Do NOT ask clarifying questions."
+agent: "session.wrap"
+prompt: "Wrap session [session_id]. Dir: [session_dir]. Do NOT ask clarifying questions."
 ```
 
 After wrap completes, output the session summary.
@@ -383,12 +396,12 @@ Do NOT auto-wrap maintenance sessions when invoked directly. After execute compl
 ```
 ✅ Maintenance execution complete
 
-Session: {session_id}
-Tasks completed: {count}
+Session: [session_id]
+Tasks completed: [count]
 
 Next:
   - Review the changes or report output
-  - Run `invoke session.wrap` when you want to close out the session
+  - Run `session.wrap` when you want to close out the session
 ```
 
 #### Debug Workflow: → STOP
@@ -398,12 +411,12 @@ Do NOT auto-wrap debug sessions when invoked directly. After execute completes, 
 ```
 ✅ Debug investigation complete
 
-Session: {session_id}
-Tasks completed: {count}
+Session: [session_id]
+Tasks completed: [count]
 
 Next:
   - Review the findings, reproduction notes, or fix verification results
-  - Run `invoke session.wrap` when you want to close out the session
+  - Run `session.wrap` when you want to close out the session
 ```
 
 #### Operational Workflow: → STOP
@@ -413,13 +426,13 @@ Do NOT auto-wrap operational sessions when invoked directly. After execute compl
 ```
 ✅ Operational execution pass complete
 
-Session: {session_id}
-Tasks completed: {count}
+Session: [session_id]
+Tasks completed: [count]
 
 Next:
   - Review the outputs, metrics, or logs from this pass
-  - Apply follow-up fixes, then run `invoke session.execute --resume` for the next batch
-  - Run `invoke session.wrap` when you want to close out the session
+  - Apply follow-up fixes, then run `session.execute --resume` for the next batch
+  - Run `session.wrap` when you want to close out the session
 ```
 
 ## Failure Modes to Avoid

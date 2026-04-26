@@ -1,4 +1,5 @@
 ---
+name: session-finalize
 description: Close GitHub issues and sync task progress after a pull request is merged — run after PR merge, before session.wrap
 tools: ["*"]
 ---
@@ -78,7 +79,7 @@ This typically happens when:
 - Process crashed during [step_name]
 
 REQUIRED ACTION:
-Run `invoke session.[step_name] --resume` to complete the interrupted step first.
+Run `session.[step_name] --resume` to complete the interrupted step first.
 
 Cannot proceed with finalize until previous step completes.
 ```
@@ -94,7 +95,7 @@ The workflow sequence is:
   start → plan → execute → validate → publish → [review] → finalize → wrap
 
 REQUIRED ACTION:
-Run the next step in sequence: invoke session.[next_step]
+Run the next step in sequence: session.[next_step]
 ```
 
 **Only proceed if:**
@@ -209,43 +210,29 @@ esac
 Work complete. All tasks finished.
 ```
 ...
-## Handoff
+## Chaining & Handoff
 
-**First**, run postflight to mark finalize complete:
+**MANDATORY**: Run postflight to mark this step complete and get next steps:
 ```bash
 .session/scripts/bash/session-postflight.sh --step finalize --json
 ```
 
-### Sub-agent Mode (invoked by session.start `--auto`)
+### Transition Protocol
+1. Parse the `valid_next_steps` from the postflight JSON output.
+2. Announce completion and suggest the next command(s).
+3. **Ask your parent tool to trigger the next step** using your tool's native mechanism (e.g., slash command, `@agent`, or sub-agent task) if in `--auto` mode. Otherwise, guide the user to the next step.
 
-If your input (`$ARGUMENTS`) contains "Do NOT ask clarifying questions", you are running as a sub-agent:
-- **Return your results** — issue closure status, task sync status, and branch cleanup status
-- The orchestrating agent (session.start) will invoke the next step
-- ⛔ Do NOT invoke session.retrospect or any other agent yourself
+**Tool-Specific Invocation Examples:**
+- **GitHub Copilot**: `task(agent_type: "session.retrospect", prompt: "...")`
+- **Claude Code**: `/session.retrospect`
+- **Gemini CLI**: Activate sub-agent or skill `session.retrospect`
 
-### Direct Invocation Mode (user ran `invoke session.finalize`)
-
-If your input does NOT contain "Do NOT ask clarifying questions", you are the primary agent. Continue with **Phase 3 completion**:
-
-**retrospect** — Invoke `session.retrospect` agent:
-```
-agent_type: "session.retrospect"
-prompt: "Analyze session {session_id}. Dir: {session_dir}. Do NOT ask clarifying questions."
-```
-
-After retrospect completes, the retrospect agent will handle triggering `session.wrap`.
-
-```
-✅ Phase 3 (Completion) in progress — finalize complete, handing off to retrospect.
-
-Session: {session_id}
-Issues closed: #{N}
-```
+⛔ Do NOT perform the work of the next agent yourself.
 
 ## Usage
 
 ```bash
-invoke session.finalize
+session.finalize
 ```
 
 Invoke after:

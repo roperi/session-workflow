@@ -1,4 +1,5 @@
 ---
+name: session-plan
 description: Create implementation plan and approach for session work
 tools: ["*"]
 ---
@@ -17,7 +18,7 @@ tools: ["*"]
 - ❌ Run validation or tests (that's `session.validate`)
 - ❌ Modify scope.md or spec.md
 
-**Output**: `{session_dir}/plan.md` — nothing else.
+**Output**: `[session_dir]/plan.md` — nothing else.
 
 ## ⚠️ CRITICAL: Workflow State Tracking
 
@@ -47,7 +48,7 @@ $ARGUMENTS
 
 **Behavior**:
 - **If `--resume` flag present**: 
-  - Load existing plan from `{session_dir}/plan.md`
+  - Load existing plan from `[session_dir]/plan.md`
   - Update/refine rather than replace
 - **If `--comment` provided**: 
   - Use as guidance for planning scope/focus
@@ -87,7 +88,7 @@ fi
 
 SESSION_ID=$(cat "$ACTIVE_SESSION_FILE")
 YEAR_MONTH=$(echo "$SESSION_ID" | cut -d'-' -f1,2)
-SESSION_DIR=".session/sessions/${YEAR_MONTH}/${SESSION_ID}"
+SESSION_DIR=".session/sessions/$[YEAR_MONTH]/$[SESSION_ID]"
 
 # Read session-info.json
 cat "$SESSION_DIR/session-info.json"
@@ -104,7 +105,7 @@ echo "Workflow: $WORKFLOW"
 
 ### 2.5. Check for Spec, Scope, and Brainstorm in Session Directory
 
-If `{session_dir}/spec.md` exists (development workflow), use it as the **primary** planning input (do not rewrite it).
+If `[session_dir]/spec.md` exists (development workflow), use it as the **primary** planning input (do not rewrite it).
 
 ```bash
 # Check for a specification produced earlier in this session
@@ -121,12 +122,12 @@ If a spec exists:
     cat >> "$SESSION_DIR/notes.md" << EOF
 
   ## Spec
-  - ${SESSION_DIR}/spec.md
+  - $[SESSION_DIR]/spec.md
   EOF
   fi
   ```
 
-If `{session_dir}/scope.md` exists, use it as planning input (do not rewrite it).
+If `[session_dir]/scope.md` exists, use it as planning input (do not rewrite it).
 
 ```bash
 # Check for a scope document produced earlier in this session
@@ -139,7 +140,7 @@ If a scope exists:
 - Add a reference in session notes (idempotent — skip if already present):
   ```markdown
   ## Scope
-  - {session_dir}/scope.md
+  - [session_dir]/scope.md
   ```
 
 **Priority**: When both spec.md and scope.md exist, spec.md takes precedence for requirements (it is derived from scope). Use scope.md for boundary validation.
@@ -148,11 +149,11 @@ If a previous-session `next.md` path is provided in your prompt:
 - Read it and use its **Suggested Next Steps**, **Suggested Workflow**, **Pending Human Actions**, **Blockers**, and **Carry Forward** sections as continuation context
 - Reconcile it with the current scope/spec instead of copying it blindly; it is handoff guidance, not a contract
 
-If `{session_dir}/brainstorm.md` exists, use it as planning input (do not rewrite it).
+If `[session_dir]/brainstorm.md` exists, use it as planning input (do not rewrite it).
 
 ```bash
 # Check for a brainstorm produced earlier in this session
-ls "{session_dir}/brainstorm.md" 2>/dev/null
+ls "[session_dir]/brainstorm.md" 2>/dev/null
 ```
 
 If a brainstorm exists:
@@ -160,7 +161,7 @@ If a brainstorm exists:
 - Add a reference in session notes:
   ```markdown
   ## Brainstorm
-  - {session_dir}/brainstorm.md
+  - [session_dir]/brainstorm.md
   ```
 
 If none exists, proceed normally (do NOT create one automatically).
@@ -177,7 +178,7 @@ If none exists, proceed normally (do NOT create one automatically).
 
 1. **Fetch issue details**:
    ```bash
-   gh issue view {issue-number} --json title,body,labels,assignees
+   gh issue view [issue-number] --json title,body,labels,assignees
    ```
 
 2. **Parse issue body** for:
@@ -190,32 +191,32 @@ If none exists, proceed normally (do NOT create one automatically).
    - `.session/project-context/technical-context.md` - Stack, commands
    - `.session/project-context/constitution-summary.md` - Quality standards
 
-4. **Create implementation plan** and write to `{session_dir}/plan.md`:
+4. **Create implementation plan** and write to `[session_dir]/plan.md`:
    ```bash
    cat > "$SESSION_DIR/plan.md" << EOF
 # Implementation Plan
 
-**Issue**: #{issue-number} - {title}
-**Type**: {bug|feature|improvement}
+**Issue**: #[issue-number] - [title]
+**Type**: [bug|feature|improvement]
 
 ### Problem Statement
-{extracted from issue body}
+[extracted from issue body]
 
 ### Acceptance Criteria
-{extracted from issue body}
+[extracted from issue body]
 
 ### Technical Approach
-{your analysis of how to implement}
+[your analysis of how to implement]
 
 ### Components Affected
-- {list of files/modules to modify}
+- [list of files/modules to modify]
 
 ### User Stories (if applicable)
-- US1: {story 1 - highest priority}
-- US2: {story 2}
+- US1: [story 1 - highest priority]
+- US2: [story 2]
 
 ### Risks/Considerations
-- {any risks or dependencies}
+- [any risks or dependencies]
 EOF
    ```
 
@@ -234,7 +235,7 @@ EOF
    ```
    ✅ Implementation plan created
 
-   Issue: #{issue-number} - {title}
+   Issue: #[issue-number] - [title]
    Plan saved to: $SESSION_DIR/plan.md
 
    Plan complete. Returning results to orchestrating agent.
@@ -262,26 +263,26 @@ EOF
    - What components are affected?
    - What's the technical approach?
 
-4. **Write plan to `{session_dir}/plan.md`**:
+4. **Write plan to `[session_dir]/plan.md`**:
    ```bash
    cat > "$SESSION_DIR/plan.md" << EOF
 # Implementation Plan
 
-**Goal**: {goal-description}
+**Goal**: [goal-description]
 
-**Tech Stack**: {user-provided tech / "Project default (technical-context.md)" if blank}  ← spike only; omit for non-spike
+**Tech Stack**: [user-provided tech / "Project default (technical-context.md)" if blank]  ← spike only; omit for non-spike
 
 ### Scope
-{what's in scope, what's out}
+[what's in scope, what's out]
 
 ### Technical Approach
-{how to implement}
+[how to implement]
 
 ### Components Affected
-- {list of files/modules}
+- [list of files/modules]
 
 ### Success Criteria
-- {how to verify completion}
+- [how to verify completion]
 EOF
    ```
 
@@ -308,7 +309,7 @@ Display final summary with handoff suggestion:
 ✅ Session planning complete
 
 Session: $SESSION_ID
-Type: {github_issue|unstructured}
+Type: [github_issue|unstructured]
 Plan: Written to plan.md
 
 Plan complete — proceeding to task generation.
@@ -316,14 +317,22 @@ Plan complete — proceeding to task generation.
 
 ## Chaining & Handoff
 
-**First**, run postflight to mark this step complete:
+**MANDATORY**: Run postflight to mark this step complete and get next steps:
 ```bash
 .session/scripts/bash/session-postflight.sh --step plan --json
 ```
 
-After postflight, **return your results** — plan.md location, component count, and key risks. The orchestrating agent (session.start) will invoke the next step.
+### Transition Protocol
+1. Parse the `valid_next_steps` from the postflight JSON output.
+2. Announce completion and suggest the next command(s).
+3. **Ask your parent tool to trigger the next step** using your tool's native mechanism (e.g., slash command, `@agent`, or sub-agent task) if in `--auto` mode. Otherwise, guide the user to the next step.
 
-⛔ Do NOT invoke session.task or any other agent yourself.
+**Tool-Specific Invocation Examples:**
+- **GitHub Copilot**: `task(agent_type: "session.task", prompt: "...")`
+- **Claude Code**: `/session.task`
+- **Gemini CLI**: Activate sub-agent or skill `session.task`
+
+⛔ Do NOT perform the work of the next agent yourself.
 
 ## Planning Guidelines
 

@@ -8,7 +8,8 @@ set -euo pipefail
 # Configuration
 # ============================================================================
 
-REPO_URL="https://raw.githubusercontent.com/roperi/session-workflow/main"
+REPO_URL="${SESSION_WORKFLOW_REPO_URL:-https://raw.githubusercontent.com/roperi/session-workflow/main}"
+SOURCE_DIR="${SESSION_WORKFLOW_SOURCE_DIR:-}"
 VERSION="2.0.0"
 MANIFEST_FILE=".session/install-manifest.json"
 MANAGED_FILES=()
@@ -27,7 +28,25 @@ DETECTED_STACK=""
 DETECTED_TEST_CMD=""
 DETECTED_BUILD_CMD=""
 DETECTED_LINT_CMD=""
-PROJECT_ROOT=""
+SKIP_HOOKS=false
+# Simple argument parsing
+for arg in "$@"; do
+    if [[ "$arg" == "--no-hooks" ]]; then
+        SKIP_HOOKS=true
+    fi
+done
+
+error() { echo -e "${RED}[ERROR]${NC} $1"; exit 1; }
+
+# Set project root and anchor all subsequent relative path checks/writes there
+if ! git rev-parse --is-inside-work-tree > /dev/null 2>&1; then
+    echo -e "${RED}[ERROR]${NC} Not in a git repository. Run 'git init' first."
+    exit 1
+fi
+PROJECT_ROOT=$(git rev-parse --show-toplevel)
+cd "$PROJECT_ROOT" || { echo -e "Failed to change directory to project root: $PROJECT_ROOT"; exit 1; }
+
+DETECTED_TOOLS=() # Array of detected AI tools
 
 # ============================================================================
 # Helper Functions
@@ -68,6 +87,39 @@ detect_environment() {
     else
         success "Detected: Local environment"
     fi
+
+    detect_ai_tools
+}
+
+detect_ai_tools() {
+    info "Detecting AI tools..."
+    
+    DETECTED_TOOLS=()
+    
+    # Claude Code
+    if [[ -d ".claude" ]]; then
+        DETECTED_TOOLS+=("claude")
+        success "Detected: Claude Code"
+    fi
+    
+    # Gemini CLI
+    if [[ -d ".gemini" ]] || [[ -d "${HOME}/.gemini" ]]; then
+        DETECTED_TOOLS+=("gemini")
+        success "Detected: Gemini CLI"
+    fi
+    
+    # GitHub Copilot
+    # Only default to copilot if .github exists or if NO other tools are detected
+    if [[ -d ".github" ]] || [[ ${#DETECTED_TOOLS[@]} -eq 0 ]]; then
+        DETECTED_TOOLS+=("copilot")
+        success "Detected: GitHub Copilot"
+    fi
+
+    # Cursor
+    if [[ -f ".cursorrules" ]]; then
+        DETECTED_TOOLS+=("cursor")
+        success "Detected: Cursor"
+    fi
 }
 
 detect_stack() {
@@ -86,7 +138,8 @@ detect_stack() {
                 if [[ "$DETECTED_ENV" == "containerized" ]]; then
                     DETECTED_TEST_CMD="# Run inside container or locally if node available\nnpm test"
                 else
-                    DETECTED_TEST_CMD="npm test"
+                    DETECTED_TEST_CMD="docker compose exec \"\$(docker compose ps --services | head -n 1)\" npm test"
+
                 fi
             fi
             
@@ -241,7 +294,13 @@ install_managed_file() {
     local dest="$2"
     local mode="${3:-}"
 
-    download_file "${REPO_URL}/${source_path}" "$dest"
+    if [[ -n "$SOURCE_DIR" ]]; then
+        mkdir -p "$(dirname "$dest")"
+        cp "${SOURCE_DIR}/${source_path}" "$dest"
+    else
+        download_file "${REPO_URL}/${source_path}" "$dest"
+    fi
+
     if [[ "$mode" == "executable" ]]; then
         chmod +x "$dest"
     fi
@@ -398,7 +457,6 @@ install_docs() {
     install_managed_file "session/docs/testing.md" ".session/docs/testing.md"
     install_managed_file "session/docs/shared-workflow.md" ".session/docs/shared-workflow.md"
     install_managed_file "session/docs/schema-versioning.md" ".session/docs/schema-versioning.md"
-    install_managed_file "session/docs/copilot-cli-mechanics.md" ".session/docs/copilot-cli-mechanics.md"
     install_managed_file "session/docs/reference.md" ".session/docs/reference.md"
     
     success "Session docs installed"
@@ -407,46 +465,51 @@ install_docs() {
 install_bootstrap() {
     info "Installing AI bootstrap files..."
     
-    # Create .github directory
-    mkdir -p .github
+    local has_any=false
     
-    # Install copilot-instructions.md if it doesn't exist
-    if [[ ! -f ".github/copilot-instructions.md" ]]; then
-        download_file "${REPO_URL}/stubs/copilot_instructions.md" ".github/copilot-instructions.md"
-        success "Created .github/copilot-instructions.md"
-    else
-        # Append session workflow section if not already present
-        if ! grep -q "Session Workflow" .github/copilot-instructions.md 2>/dev/null; then
-            echo "" >> .github/copilot-instructions.md
-            echo "## Session Workflow" >> .github/copilot-instructions.md
-            echo "" >> .github/copilot-instructions.md
-            echo "This project uses session workflow for AI context continuity." >> .github/copilot-instructions.md
-            echo "See \`.session/docs/README.md\` for quick reference." >> .github/copilot-instructions.md
-            echo "" >> .github/copilot-instructions.md
-            echo "**Agents:**" >> .github/copilot-instructions.md
-            echo "- \`invoke session.start --issue N\` — Development session from GitHub issue (planning phase by default)" >> .github/copilot-instructions.md
-            echo "- \`invoke session.start --brainstorm \"description\"\` — Start a development/spike session with an upfront brainstorm before scope/plan" >> .github/copilot-instructions.md
-            echo "- \`invoke session.start --auto --issue N\` — Auto until the next human gate; otherwise through \`publish\`, then stop for manual/custom review" >> .github/copilot-instructions.md
-            echo "- \`invoke session.start --auto --copilot-review --issue N\` — Full auto with Copilot review before merge" >> .github/copilot-instructions.md
-            echo "- \`invoke session.start \"description\"\` — Development session (positional description)" >> .github/copilot-instructions.md
-            echo "- \`invoke session.start --spike \"description\"\` — Spike/research (no PR)" >> .github/copilot-instructions.md
-            echo "- \`invoke session.start --debug \"description\"\` — Debug/troubleshooting session (no PR by default)" >> .github/copilot-instructions.md
-            echo "- \`invoke session.start --operational \"description\"\` — Operational batch/pipeline session (feature branch, no PR by default)" >> .github/copilot-instructions.md
-            echo "- \`invoke session.start --resume\` — Resume active session" >> .github/copilot-instructions.md
-            echo "- \`invoke session.review\` — Run the default or overridden custom review agent after publish" >> .github/copilot-instructions.md
-            echo "- \`invoke session.finalize\` — Post-merge cleanup (after PR merge)" >> .github/copilot-instructions.md
-            echo "- \`invoke session.wrap\` — End session" >> .github/copilot-instructions.md
-            echo "" >> .github/copilot-instructions.md
-            echo "**Utilities:**" >> .github/copilot-instructions.md
-            echo "- \`./.session/scripts/bash/session-audit.sh --all --summary\` — Deterministic post-session audit script; run it directly from the shell and share the report if you want AI help interpreting it" >> .github/copilot-instructions.md
-            echo "" >> .github/copilot-instructions.md
-            echo "**Project context:**" >> .github/copilot-instructions.md
-            echo "- \`.session/project-context/technical-context.md\` - Stack, build/test commands" >> .github/copilot-instructions.md
-            echo "- \`.session/project-context/constitution-summary.md\` - Quality standards" >> .github/copilot-instructions.md
-            success "Updated .github/copilot-instructions.md with session workflow section"
-        else
-            warn ".github/copilot-instructions.md already has session workflow section, skipping"
-        fi
+    for tool in "${DETECTED_TOOLS[@]}"; do
+        case $tool in
+            copilot)
+                mkdir -p .github
+                if [[ ! -f ".github/copilot-instructions.md" ]]; then
+                    install_managed_file "stubs/rules/claude-rules.md" ".github/copilot-instructions.md"
+                    success "Created .github/copilot-instructions.md"
+                else
+                    # Append session workflow section if not already present
+                    if ! grep -q "Session Workflow" .github/copilot-instructions.md 2>/dev/null; then
+                        echo -e "\n## Session Workflow\nUse agents in 'agents/' for SDD workflow." >> .github/copilot-instructions.md
+                        success "Updated .github/copilot-instructions.md"
+                    fi
+                fi
+                has_any=true
+                ;;
+            claude)
+                if [[ ! -f "CLAUDE.md" ]]; then
+                    install_managed_file "stubs/rules/claude-rules.md" "CLAUDE.md"
+                    success "Created CLAUDE.md"
+                fi
+                has_any=true
+                ;;
+            gemini)
+                mkdir -p .gemini
+                if [[ ! -f ".gemini/context.md" ]]; then
+                    install_managed_file "stubs/rules/gemini-rules.md" ".gemini/context.md"
+                    success "Created .gemini/context.md"
+                fi
+                has_any=true
+                ;;
+            cursor)
+                if [[ ! -f ".cursorrules" ]]; then
+                    install_managed_file "stubs/rules/cursor-rules.md" ".cursorrules"
+                    success "Created .cursorrules"
+                fi
+                has_any=true
+                ;;
+        esac
+    done
+
+    if ! $has_any; then
+        warn "No AI tools detected; skipping bootstrap files."
     fi
 }
 
@@ -693,74 +756,79 @@ EOF
     esac
 }
 
-install_agents() {
-    info "Installing GitHub Copilot agents..."
+project_agents() {
+    info "Projecting tool-agnostic agents to detected tools..."
     
     local agents=(
-        "session.start.agent.md"
-        "session.plan.agent.md"
-        "session.task.agent.md"
-        "session.execute.agent.md"
-        "session.validate.agent.md"
-        "session.publish.agent.md"
-        "session.finalize.agent.md"
-        "session.wrap.agent.md"
-        "session.clarify.agent.md"
-        "session.analyze.agent.md"
-        "session.checklist.agent.md"
-        "session.brainstorm.agent.md"
-        "session.compound.agent.md"
-        "session.scope.agent.md"
-        "session.spec.agent.md"
-        "session.review.agent.md"
+        "session.start.md"
+        "session.plan.md"
+        "session.task.md"
+        "session.execute.md"
+        "session.validate.md"
+        "session.publish.md"
+        "session.finalize.md"
+        "session.wrap.md"
+        "session.clarify.md"
+        "session.analyze.md"
+        "session.checklist.md"
+        "session.brainstorm.md"
+        "session.compound.md"
+        "session.scope.md"
+        "session.spec.md"
+        "session.review.md"
+        "session.retrospect.md"
     )
-    
-    mkdir -p .github/agents
-    
-    for agent in "${agents[@]}"; do
-        if [[ ! -f ".github/agents/${agent}" ]]; then
-            install_managed_file "github/agents/${agent}" ".github/agents/${agent}"
-        else
-            warn "${agent} already exists, skipping"
-        fi
-    done
-    
-    success "Agents installed"
-}
 
-install_prompts() {
-    info "Installing GitHub Copilot prompts..."
-    
-    local prompts=(
-        "session.start.prompt.md"
-        "session.plan.prompt.md"
-        "session.task.prompt.md"
-        "session.execute.prompt.md"
-        "session.validate.prompt.md"
-        "session.publish.prompt.md"
-        "session.finalize.prompt.md"
-        "session.wrap.prompt.md"
-        "session.clarify.prompt.md"
-        "session.analyze.prompt.md"
-        "session.checklist.prompt.md"
-        "session.brainstorm.prompt.md"
-        "session.compound.prompt.md"
-        "session.scope.prompt.md"
-        "session.spec.prompt.md"
-        "session.review.prompt.md"
-    )
-    
-    mkdir -p .github/prompts
-    
-    for prompt in "${prompts[@]}"; do
-        if [[ ! -f ".github/prompts/${prompt}" ]]; then
-            install_managed_file "github/prompts/${prompt}" ".github/prompts/${prompt}"
+    for agent in "${agents[@]}"; do
+        local source_path="agents/${agent}"
+        local content
+        
+        # Source the tool-agnostic content
+        local tmp_source
+        tmp_source=$(mktemp)
+        
+        if [[ -n "$SOURCE_DIR" ]]; then
+            cp "${SOURCE_DIR}/${source_path}" "$tmp_source"
         else
-            warn "${prompt} already exists, skipping"
+            download_file "${REPO_URL}/${source_path}" "$tmp_source"
         fi
+        
+        for tool in "${DETECTED_TOOLS[@]}"; do
+            case $tool in
+                claude)
+                    local dest=".claude/commands/${agent}"
+                    mkdir -p ".claude/commands"
+                    cp "$tmp_source" "$dest"
+                    register_managed_file "$source_path" "$dest"
+                    ;;
+                gemini)
+                    local dest=".gemini/agents/${agent}"
+                    mkdir -p ".gemini/agents"
+                    # Gemini CLI subagents need name/description in YAML
+                    # We'll transform the Copilot-style YAML to Gemini-style if needed
+                    # (Assuming agents/ source of truth will have both or common)
+                    cp "$tmp_source" "$dest"
+                    register_managed_file "$source_path" "$dest"
+                    ;;
+                copilot)
+                    local dest=".github/agents/${agent}"
+                    mkdir -p ".github/agents"
+                    cp "$tmp_source" "$dest"
+                    register_managed_file "$source_path" "$dest"
+                    ;;
+                cursor)
+                    # Cursor doesn't have a commands directory yet, so we'll just
+                    # ensure the .cursorrules file references the agents directory
+                    if ! grep -q "agents/" .cursorrules 2>/dev/null; then
+                        echo -e "\n## Session Workflow\nUse agents in 'agents/' for SDD workflow." >> .cursorrules
+                    fi
+                    ;;
+            esac
+        done
+        rm -f "$tmp_source"
     done
     
-    success "Prompts installed"
+    success "Agents projected to: ${DETECTED_TOOLS[*]}"
 }
 
 remove_exact_line() {
@@ -864,8 +932,7 @@ main() {
     install_docs
     install_bootstrap
     install_project_context
-    install_agents
-    install_prompts
+    project_agents
     write_install_manifest
     update_gitignore
     create_sessions_dir
@@ -899,10 +966,14 @@ main() {
 main "$@"
 
 # Install git hooks
-info "Installing git hooks..."
-REPO_ROOT="$(git rev-parse --show-toplevel)"
-HOOKS_DIR="$(git -C "$REPO_ROOT" rev-parse --path-format=absolute --git-path hooks)"
-mkdir -p "$HOOKS_DIR"
-cp "$REPO_ROOT/.git-hooks/pre-commit" "$HOOKS_DIR/pre-commit"
-chmod +x "$HOOKS_DIR/pre-commit"
-success "Git hooks installed to $HOOKS_DIR."
+if ! $SKIP_HOOKS; then
+    info "Installing git hooks..."
+    REPO_ROOT="$(git rev-parse --show-toplevel)"
+    HOOKS_DIR="$(git -C "$REPO_ROOT" rev-parse --path-format=absolute --git-path hooks)"
+    mkdir -p "$HOOKS_DIR"
+    cp "$REPO_ROOT/.git-hooks/pre-commit" "$HOOKS_DIR/pre-commit"
+    chmod +x "$HOOKS_DIR/pre-commit"
+    success "Git hooks installed to $HOOKS_DIR."
+else
+    info "Skipping git hooks installation (--no-hooks)."
+fi

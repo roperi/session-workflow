@@ -1,21 +1,23 @@
 # Session Workflow
 
-🤖 **Optimized for [GitHub Copilot CLI](https://docs.github.com/en/copilot)** — leverages Copilot's agent invocation, sub-agent orchestration, and code review tools. Works with all models available in Copilot CLI (GPT, Claude, Gemini).
+🤖 **AI-Assisted Development Workflow** — Provides a structured, spec-driven development (SDD) lifecycle with session tracking, context continuity, and multi-tool support.
+
+Session Workflow works with your preferred AI coding tool: Claude Code, Gemini CLI, GitHub Copilot, Cursor, and more.
 
 📝 **Changelog**: [CHANGELOG.md](CHANGELOG.md) | ⚖️ **License**: [MIT](LICENSE) | 🤝 **Contributing**: [CONTRIBUTING.md](CONTRIBUTING.md)
-
-> ⚠️ Other CLIs (Claude Code, Gemini CLI standalone) are unverified and may require adjustments.
 
 ---
 
 ## Overview
 
-When AI context windows reset, work continuity is lost. Session workflow solves this with:
+When AI context windows reset, work continuity is lost. Session Workflow solves this with:
 
 1. **Session tracking** — What's in progress, what's done
-2. **Handoff artifacts** — `notes.md` plus a dedicated `next.md` for the next AI session
-3. **Agent chain** — Structured workflow from scoping to delivery
-4. **Git hygiene** — Ensures clean state before session ends
+2. **GitHub Integration** — Link sessions directly to issues (`--issue 123`) and automate PR creation/reviews
+3. **Standardized Handoffs** — Unified workflow from scoping to delivery
+4. **Tool Agnosticism** — Projects workflow logic into native tool commands
+5. **Context Syncing** — Maintains cross-tool continuity
+6. **next.md Artifacts** — Primary handoff artifact for structured session continuity
 
 ---
 
@@ -44,7 +46,6 @@ sudo apt-get update && sudo apt-get install -y jq shellcheck git
 
 > **Human gates still apply in auto mode**: scope can ask focused clarifying questions, and manual-test checkpoints are recorded in `state.json.pause`. Resume with `invoke session.start --resume`.
 
-> **GitHub ecosystem integration**: `session.start` uses Copilot CLI's task tool for sub-agent orchestration and optionally uses `request_copilot_review` for automated PR reviews. See [Copilot CLI Mechanics](session/docs/copilot-cli-mechanics.md) for internals.
 
 ---
 
@@ -75,8 +76,7 @@ cd your-project
 ```
 
 **What gets installed:**
-- `.github/agents/session.*.agent.md` - AI agent definitions
-- `.github/prompts/session.*.prompt.md` - Prompt link files (IDE integration, e.g. VS Code)
+- `agents/session.*.md` - AI agent definitions
 - `.session/` - Scripts, templates, project context, and versioned session history
 - `AGENTS.md` - AI bootstrap file (created if missing)
 - `.github/copilot-instructions.md` - Copilot config (created if missing)
@@ -107,8 +107,7 @@ curl -sSL https://raw.githubusercontent.com/roperi/session-workflow/main/update.
 ```
 
 **What gets updated** (safe to re-run at any time):
-- All agent files (`.github/agents/session.*.agent.md`)
-- All prompt files (`.github/prompts/session.*.prompt.md`)
+- All agent files (`agents/session.*.md`)
 - All bash scripts (`.session/scripts/bash/`)
 - The stable updater wrapper (`.session/update.sh`)
 - Templates and documentation (`.session/templates/`, `.session/docs/`)
@@ -388,7 +387,6 @@ invoke session.[next-step] --force
 For detailed documentation:
 
 - **[Reference Guide](session/docs/reference.md)** — Agent responsibilities, arguments, project stages, lifecycle, file structure, workflow examples, SDD positioning
-- **[Copilot CLI Mechanics](session/docs/copilot-cli-mechanics.md)** — How the orchestration works under the hood
 - **[Shared Workflow Rules](session/docs/shared-workflow.md)** — State machine, scope boundaries, stage behavior
 - **[Schema Versioning](session/docs/schema-versioning.md)** — JSON schema for session-info.json and state.json
-- **[Testing Guide](session/docs/testing.md)** — Manual test cases and edge coverage
+- **[Next Step Artifacts](session/docs/reference.md#nextmd)** — Primary handoff artifact for structured session continuity

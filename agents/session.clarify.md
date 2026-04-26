@@ -1,6 +1,7 @@
 ---
+name: session-clarify
 description: Ask targeted questions to clarify underspecified requirements.
-tools: ["read", "search"]
+tools: ["*"]
 ---
 
 # session.clarify
@@ -46,7 +47,7 @@ Consider user input before proceeding.
    source .session/scripts/bash/session-common.sh
    SESSION_ID=$(get_active_session)
    ```
-2. If no active session, abort with: "No active session. invoke session.start first."
+2. If no active session, abort with: "No active session. session.start first."
 
 3. Load available context:
    - `.session/sessions/$SESSION_ID/session-info.json` - Session metadata
@@ -167,7 +168,7 @@ Output completion summary:
 | Dependencies | ✅ Clear |
 | Constraints | ✅ Clear |
 
-**Next step:** invoke session.task to generate detailed task breakdown.
+**Next step:** session.task to generate detailed task breakdown.
 ```
 
 ---
@@ -187,15 +188,15 @@ Output completion summary:
 
 ```bash
 # Before task generation
-invoke session.clarify
+session.clarify
 
 # With specific focus
-invoke session.clarify --comment "Focus on error handling and data model"
+session.clarify --comment "Focus on error handling and data model"
 
 # After planning
-invoke session.plan
-invoke session.clarify  # Optional: reduce ambiguity before tasks
-invoke session.task
+session.plan
+session.clarify  # Optional: reduce ambiguity before tasks
+session.task
 ```
 
 ---
@@ -205,6 +206,6 @@ invoke session.task
 This agent does not auto-handoff. After clarification:
 
 **Suggested next steps:**
-- invoke session.task - Generate detailed task breakdown (most common)
-- invoke session.plan - Refine plan based on clarifications
-- invoke session.execute - If tasks already exist and clarifications were minor
+- session.task - Generate detailed task breakdown (most common)
+- session.plan - Refine plan based on clarifications
+- session.execute - If tasks already exist and clarifications were minor

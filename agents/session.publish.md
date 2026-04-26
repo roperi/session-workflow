@@ -1,4 +1,5 @@
 ---
+name: session-publish
 description: Create or update pull request for session work
 tools: ["*"]
 ---
@@ -115,8 +116,8 @@ fi
 
 4. **Report Status**:
    - Provide PR URL
-   - Save PR URL to `{session_dir}/pr_url.txt` (single line, no trailing newline)
-   - Save PR summary to `{session_dir}/pr-summary.md`
+   - Save PR URL to `[session_dir]/pr_url.txt` (single line, no trailing newline)
+   - Save PR summary to `[session_dir]/pr-summary.md`
    - Summary of validation results
    - Next steps
 
@@ -146,16 +147,25 @@ fi
 4. Then wrap up: `session.wrap`
 ```
 
-## Next step
+## Chaining & Handoff
 
-**First**, run postflight to mark this step complete:
+**MANDATORY**: Run postflight to mark this step complete and get next steps:
 ```bash
 .session/scripts/bash/session-postflight.sh --step publish --json
 ```
 
-After postflight, **return your results** — PR number, URL, and status. The orchestrating agent will either stop here for manual/custom review or invoke `session.review` if automated review was explicitly requested.
+### Transition Protocol
+1. Parse the `valid_next_steps` from the postflight JSON output.
+2. Announce completion and suggest the next command(s).
+3. **⛔ CRITICAL STOP**: If a PR was created, you MUST stop here. Do NOT invoke `session-wrap`. The session cannot be finalized until the PR is merged.
+4. **Invoke the next step** only if explicitly in `--auto --copilot-review` mode (to trigger `session-review`).
 
-⛔ Do NOT invoke session.finalize or any other agent yourself.
+**Tool-Specific Invocation Examples:**
+- **GitHub Copilot**: `task(agent: "session-review", prompt: "...")`
+- **Claude Code**: `/session-review`
+- **Gemini CLI**: Activate sub-agent or skill `session-review`
+
+⛔ Do NOT perform the work of the next agent yourself.
 
 ## CRITICAL: PR Merge Rules
 
@@ -188,7 +198,7 @@ After postflight, **return your results** — PR number, URL, and status. The or
 ## Usage
 
 ```bash
-invoke session.publish
+session.publish
 ```
 
 

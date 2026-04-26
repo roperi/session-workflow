@@ -131,23 +131,26 @@ These are concrete violations that agents commonly make:
 
 ### Centralized Orchestration
 
-`session.start` is the **sole orchestrator** for automatic chain execution. It invokes each step's agent as a separate sub-agent, including the review step via `session.review` when automated review is explicitly requested.
+`session.start` is the **sole orchestrator** for automatic chain execution. It invokes each step's agent as a separate sub-agent or command, including the review step via `session.review` when automated review is explicitly requested.
 
 | Phase | Steps | Orchestrated by |
 |-------|-------|-----------------|
 | **Planning** | scope → spec → plan → task | `session.start` (via sub-agents) |
 | **Implementation** | execute → validate → publish | `session.start` (via sub-agents) |
-| **Review** | optional review (request review → address comments → summarize fixes) | `session.start` (via `session.review` sub-agent) or direct user invocation |
+| **Review** | optional review | `session.start` (via `session.review`) |
 | **Merge** | merge PR, clean up branches | `session.start` (directly) |
 | **Completion** | finalize → wrap | `session.start` (via sub-agents) |
 
-**Why centralized?** Each sub-agent loads its own instructions and scope boundaries, but session.start controls the sequence. Individual agents MUST NOT invoke the next agent — they return results to session.start after running postflight.
+**Why centralized?** Each sub-agent loads its own instructions and scope boundaries, but `session.start` controls the sequence. Individual agents MUST NOT invoke the next agent — they return results to `session.start` after running postflight.
 
 ### Invoking Agents During Chain Execution
 
-session.start invokes each step's agent as a **separate sub-agent** using the task tool with `agent_type` set to the agent name (e.g., `session.scope`, `session.spec`).
+Agents are invoked using the tool's native mechanism:
+- **GitHub Copilot**: Use the `task` tool with `agent_type` set to the agent name.
+- **Claude Code**: Use the slash command corresponding to the agent (e.g., `/session.scope`).
+- **Gemini CLI**: Use the sub-agent or skill name (e.g., `session.scope`).
 
-⛔ Sub-agents MUST NOT invoke other agents. After completing their work and running postflight, they return results to session.start.
+⛔ Sub-agents MUST NOT invoke other agents. After completing their work and running postflight, they return results to the orchestrator.
 
 ⛔ Do NOT `cat` agent files and do the work yourself — this bypasses proper agent loading and breaks state tracking.
 

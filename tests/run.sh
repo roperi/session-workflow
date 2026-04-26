@@ -1142,11 +1142,11 @@ EOF
 
   # 41) maintenance docs/agent contract reflect stop-after-execute default
   log "41) maintenance docs and agent contract reflect lightweight default"
-  grep -q "Maintenance Workflow: execute → STOP" "$ROOT_DIR/github/agents/session.start.agent.md" \
+  grep -q "#### Maintenance Workflow: execute → STOP" "$ROOT_DIR/agents/session.start.md" \
     || fail "session.start agent should document maintenance execute → STOP default"
-  grep -q "agent_type: \"session.execute\"" "$ROOT_DIR/github/agents/session.start.agent.md" \
+  grep -q "Use the \`session-execute\` agent" "$ROOT_DIR/agents/session.start.md" \
     || fail "session.start agent should include an explicit maintenance execute sub-agent block"
-  grep -q "Maintenance Workflow: → STOP" "$ROOT_DIR/github/agents/session.execute.agent.md" \
+  grep -q "Maintenance Workflow: → STOP" "$ROOT_DIR/agents/session.execute.md" \
     || fail "session.execute agent should document maintenance stop-after-execute direct mode"
   grep -q "Maintenance runs \`execute\` and then stops" "$ROOT_DIR/README.md" \
     || fail "README should describe maintenance stop-after-execute default"
@@ -1156,10 +1156,10 @@ EOF
     || fail "shared workflow docs should describe the lightweight maintenance default"
   grep -q "start → execute → STOP" "$ROOT_DIR/session/docs/shared-workflow.md" \
     || fail "shared workflow docs should show lightweight maintenance default"
-  grep -q "Maintenance workflow" "$ROOT_DIR/.github/copilot-instructions.md" \
-    || fail "copilot instructions should mention the maintenance workflow"
-  grep -q "start → execute → STOP" "$ROOT_DIR/.github/copilot-instructions.md" \
-    || fail "copilot instructions should show maintenance stop-after-execute default"
+  grep -q "Maintenance workflow" "$ROOT_DIR/AI.md" \
+    || fail "AI onboarding docs should mention the maintenance workflow"
+  grep -q "start → execute → STOP" "$ROOT_DIR/AI.md" \
+    || fail "AI onboarding docs should show maintenance stop-after-execute default"
   grep -q "Maintenance workflow is now lightweight by default" "$ROOT_DIR/CHANGELOG.md" \
     || fail "CHANGELOG should record the maintenance default change"
   ! grep -q "Maintenance workflow always auto-chains" "$ROOT_DIR/CHANGELOG.md" \
@@ -1221,17 +1221,17 @@ EOF
 
   # 45) auto-mode docs and agent contracts reflect human checkpoints
   log "45) auto-mode docs and agent contracts reflect human checkpoints"
-  grep -q "session.scope\` remains interactive" "$ROOT_DIR/github/agents/session.start.agent.md" \
+  grep -q "session.scope\` remains interactive" "$ROOT_DIR/agents/session.start.md" \
     || fail "session.start agent should keep scope interactive"
-  grep -q "Ask concise clarifying questions when needed" "$ROOT_DIR/github/agents/session.start.agent.md" \
+  grep -q "Ask concise clarifying questions when needed" "$ROOT_DIR/agents/session.start.md" \
     || fail "session.start agent should allow scope clarification prompts"
-  grep -q "required human checkpoint" "$ROOT_DIR/github/agents/session.start.agent.md" \
+  grep -q "required human checkpoint" "$ROOT_DIR/agents/session.start.md" \
     || fail "session.start agent should describe auto mode as stopping at human checkpoints"
-  grep -q "running in \`--auto\` mode" "$ROOT_DIR/github/agents/session.scope.agent.md" \
+  grep -q "running in \`--auto\` mode" "$ROOT_DIR/agents/session.scope.md" \
     || fail "session.scope agent should explicitly allow dialogue in auto mode"
-  grep -q "set_pause_state" "$ROOT_DIR/github/agents/session.execute.agent.md" \
+  grep -q "set_pause_state" "$ROOT_DIR/agents/session.execute.md" \
     || fail "session.execute agent should document pause recording"
-  grep -q "clear_pause_state" "$ROOT_DIR/github/agents/session.execute.agent.md" \
+  grep -q "clear_pause_state" "$ROOT_DIR/agents/session.execute.md" \
     || fail "session.execute agent should document pause clearing"
   grep -q "current version \`1.2\`" "$ROOT_DIR/session/docs/schema-versioning.md" \
     || fail "schema docs should show state version 1.2"
@@ -1267,13 +1267,13 @@ EOF
 
   # 48) debug docs and agent contracts reflect lightweight investigation workflow
   log "48) debug docs and agent contracts reflect lightweight investigation workflow"
-  grep -q "Debug Workflow: execute → STOP" "$ROOT_DIR/github/agents/session.start.agent.md" \
+  grep -q "Debug Workflow: execute → STOP" "$ROOT_DIR/agents/session.start.md" \
     || fail "session.start agent should document debug execute → STOP default"
-  grep -q "\`debug\`, \`troubleshoot\`, \`diagnose\`, \`trace\`, \`reproduce\`, \`investigate\`, \`why is\`" "$ROOT_DIR/github/agents/session.start.agent.md" \
+  grep -q "\`debug\`, \`troubleshoot\`, \`diagnose\`, \`trace\`, \`reproduce\`, \`investigate\`, \`why is\`" "$ROOT_DIR/agents/session.start.md" \
     || fail "session.start agent should include debug smart-routing signals"
-  grep -q "check_workflow_allowed \"\$SESSION_ID\" \"development\" \"spike\" \"maintenance\" \"debug\" \"operational\"" "$ROOT_DIR/github/agents/session.execute.agent.md" \
+  grep -q "check_workflow_allowed \"\$SESSION_ID\" \"development\" \"spike\" \"maintenance\" \"debug\" \"operational\"" "$ROOT_DIR/agents/session.execute.md" \
     || fail "session.execute agent should allow debug and operational workflows"
-  grep -q "Debug Workflow: → STOP" "$ROOT_DIR/github/agents/session.execute.agent.md" \
+  grep -q "Debug Workflow: → STOP" "$ROOT_DIR/agents/session.execute.md" \
     || fail "session.execute agent should document debug stop-after-execute direct mode"
   grep -q "invoke session.start --debug" "$ROOT_DIR/README.md" \
     || fail "README should include a debug workflow example"
@@ -1285,12 +1285,10 @@ EOF
     || fail "shared workflow docs should describe the debug workflow"
   grep -Fq "\`development\` \| \`spike\` \| \`maintenance\` \| \`debug\` \| \`operational\`" "$ROOT_DIR/session/docs/schema-versioning.md" \
     || fail "schema docs should include debug and operational as workflow values"
-  grep -q "Debug workflow" "$ROOT_DIR/.github/copilot-instructions.md" \
-    || fail "copilot instructions should mention the debug workflow"
+  grep -q "Debug workflow" "$ROOT_DIR/AI.md" \
+    || fail "AI onboarding docs should mention the debug workflow"
   grep -q "invoke session.start --debug" "$ROOT_DIR/stubs/copilot_instructions.md" \
-    || fail "copilot instructions stub should include the debug workflow"
-  grep -q "development/spike/maintenance/debug/operational" "$ROOT_DIR/session/docs/copilot-cli-mechanics.md" \
-    || fail "Copilot CLI mechanics docs should mention the debug and operational workflows"
+    || fail "AI onboarding docs stub should include the debug workflow"
   grep -q "dedicated \`debug\` workflow" "$ROOT_DIR/CHANGELOG.md" \
     || fail "CHANGELOG should record the new debug workflow"
 
@@ -1351,20 +1349,20 @@ EOF
     || fail "install.sh should install the next.md template"
   grep -q "next-template.md" "$ROOT_DIR/update.sh" \
     || fail "update.sh should update the next.md template"
-  grep -q "previous_session.next_file" "$ROOT_DIR/github/agents/session.start.agent.md" \
+  grep -q "previous_session.next_file" "$ROOT_DIR/agents/session.start.md" \
     || fail "session.start agent should mention previous_session.next_file"
-  grep -q "primary follow-up artifact" "$ROOT_DIR/github/agents/session.wrap.agent.md" \
+  grep -q "primary follow-up artifact" "$ROOT_DIR/agents/session.wrap.md" \
     || fail "session.wrap agent should treat next.md as the primary follow-up artifact"
-  grep -q "structured handoff" "$ROOT_DIR/github/agents/session.scope.agent.md" \
+  grep -q "structured handoff" "$ROOT_DIR/agents/session.scope.md" \
     || fail "session.scope agent should accept next.md continuation context"
-  grep -q "previous-session \`next.md\` path" "$ROOT_DIR/github/agents/session.plan.agent.md" \
+  grep -q "previous-session \`next.md\` path" "$ROOT_DIR/agents/session.plan.md" \
     || fail "session.plan agent should accept next.md continuation context"
   grep -q "next.md" "$ROOT_DIR/session/docs/reference.md" \
     || fail "reference docs should mention next.md"
-  grep -q "next.md" "$ROOT_DIR/.github/copilot-instructions.md" \
-    || fail "copilot instructions should mention next.md"
+  grep -q "next.md" "$ROOT_DIR/AI.md" \
+    || fail "AI onboarding docs should mention next.md"
   grep -q "next.md" "$ROOT_DIR/stubs/copilot_instructions.md" \
-    || fail "copilot instructions stub should mention next.md"
+    || fail "AI onboarding docs stub should mention next.md"
 
   log "All next.md artifact tests passed."
 
@@ -1540,11 +1538,11 @@ EOF
     || fail "reference docs should distinguish volatile state.json bookkeeping"
   grep -q "intentionally ignored from git" "$ROOT_DIR/session/docs/schema-versioning.md" \
     || fail "schema docs should classify state.json as local bookkeeping"
-  grep -q "Never stage \`.session/sessions.*/state.json\`" "$ROOT_DIR/github/agents/session.execute.agent.md" \
+  grep -q "Never stage \`.session/sessions.*/state.json\`" "$ROOT_DIR/agents/session.execute.md" \
     || fail "session.execute agent should forbid staging volatile state.json"
-  grep -q "excluding volatile session bookkeeping" "$ROOT_DIR/github/agents/session.validate.agent.md" \
+  grep -q "excluding volatile session bookkeeping" "$ROOT_DIR/agents/session.validate.md" \
     || fail "session.validate agent should exclude volatile state.json bookkeeping"
-  grep -q "not state.json" "$ROOT_DIR/github/agents/session.wrap.agent.md" \
+  grep -q "not state.json" "$ROOT_DIR/agents/session.wrap.md" \
     || fail "session.wrap agent should exclude state.json from archival artifacts"
   grep -q "FIX (#72)" "$ROOT_DIR/CHANGELOG.md" \
     || fail "CHANGELOG should record the state.json bookkeeping fix"
@@ -1598,18 +1596,18 @@ EOF
     || fail "session-start help should explain what --brainstorm does"
   grep -q "invoke session.start --brainstorm" "$ROOT_DIR/README.md" \
     || fail "README should document the recommended brainstorm entrypoint"
-  grep -q "orchestration.brainstorm" "$ROOT_DIR/github/agents/session.start.agent.md" \
+  grep -q "orchestration.brainstorm" "$ROOT_DIR/agents/session.start.md" \
     || fail "session.start agent should inspect the brainstorm orchestration flag"
-  grep -q "requires an active session already created by \`session.start\`" "$ROOT_DIR/github/agents/session.brainstorm.agent.md" \
+  grep -q "requires an active session already created by \`session.start\`" "$ROOT_DIR/agents/session.brainstorm.md" \
     || fail "session.brainstorm agent should say that session.start must run first"
   grep -q "Recommended entrypoint: \`invoke session.start --brainstorm" "$ROOT_DIR/session/docs/reference.md" \
     || fail "reference docs should recommend session.start --brainstorm"
   grep -q "session.start --brainstorm" "$ROOT_DIR/session/docs/shared-workflow.md" \
     || fail "shared workflow docs should mention the brainstorm entrypoint"
-  grep -q "session.start --brainstorm" "$ROOT_DIR/.github/copilot-instructions.md" \
-    || fail "copilot instructions should mention the brainstorm entrypoint"
+  grep -q "session.start --brainstorm" "$ROOT_DIR/AI.md" \
+    || fail "AI onboarding docs should mention the brainstorm entrypoint"
   grep -q "session.start --brainstorm" "$ROOT_DIR/stubs/copilot_instructions.md" \
-    || fail "copilot instructions stub should mention the brainstorm entrypoint"
+    || fail "AI onboarding docs stub should mention the brainstorm entrypoint"
   grep -q "session.start.*--brainstorm" "$ROOT_DIR/CHANGELOG.md" \
     || fail "CHANGELOG should record the brainstorm entrypoint change"
 
@@ -1636,15 +1634,15 @@ EOF
 
   # 58) operational docs and agent contracts reflect iterative runtime workflow
   log "58) operational docs and agent contracts reflect runtime workflow"
-  grep -q "Operational Workflow: execute → STOP" "$ROOT_DIR/github/agents/session.start.agent.md" \
+  grep -q "Operational Workflow: execute → STOP" "$ROOT_DIR/agents/session.start.md" \
     || fail "session.start agent should document operational execute → STOP default"
-  grep -q "\`batch\`, \`pipeline\`, \`backfill\`, \`ingest\`, \`scrape\`, \`transcode\`, \`reprocess\`, \`rerun\`" "$ROOT_DIR/github/agents/session.start.agent.md" \
+  grep -q "\`batch\`, \`pipeline\`, \`backfill\`, \`ingest\`, \`scrape\`, \`transcode\`, \`reprocess\`, \`rerun\`" "$ROOT_DIR/agents/session.start.md" \
     || fail "session.start agent should include operational smart-routing signals"
-  grep -q "workflow is \`development\`, \`spike\`, or \`operational\`" "$ROOT_DIR/github/agents/session.start.agent.md" \
+  grep -q "workflow is \`development\`, \`spike\`, or \`operational\`" "$ROOT_DIR/agents/session.start.md" \
     || fail "session.start agent should create a branch for operational workflow"
-  grep -q "check_workflow_allowed \"\$SESSION_ID\" \"development\" \"spike\" \"maintenance\" \"debug\" \"operational\"" "$ROOT_DIR/github/agents/session.execute.agent.md" \
+  grep -q "check_workflow_allowed \"\$SESSION_ID\" \"development\" \"spike\" \"maintenance\" \"debug\" \"operational\"" "$ROOT_DIR/agents/session.execute.md" \
     || fail "session.execute agent should allow operational workflow"
-  grep -q "Operational Workflow: → STOP" "$ROOT_DIR/github/agents/session.execute.agent.md" \
+  grep -q "Operational Workflow: → STOP" "$ROOT_DIR/agents/session.execute.md" \
     || fail "session.execute agent should document operational stop-after-execute direct mode"
   grep -q "invoke session.start --operational" "$ROOT_DIR/README.md" \
     || fail "README should include an operational workflow example"
@@ -1656,12 +1654,10 @@ EOF
     || fail "shared workflow docs should describe the operational workflow"
   grep -Fq "\`development\` \| \`spike\` \| \`maintenance\` \| \`debug\` \| \`operational\`" "$ROOT_DIR/session/docs/schema-versioning.md" \
     || fail "schema docs should include operational as a workflow value"
-  grep -q "Operational workflow" "$ROOT_DIR/.github/copilot-instructions.md" \
-    || fail "copilot instructions should mention the operational workflow"
+  grep -q "Operational workflow" "$ROOT_DIR/AI.md" \
+    || fail "AI onboarding docs should mention the operational workflow"
   grep -q "invoke session.start --operational" "$ROOT_DIR/stubs/copilot_instructions.md" \
-    || fail "copilot instructions stub should include the operational workflow"
-  grep -q "development/spike/maintenance/debug/operational" "$ROOT_DIR/session/docs/copilot-cli-mechanics.md" \
-    || fail "Copilot CLI mechanics docs should mention the operational workflow"
+    || fail "AI onboarding docs stub should include the operational workflow"
   grep -q "Added an \`operational\` workflow" "$ROOT_DIR/CHANGELOG.md" \
     || fail "CHANGELOG should record the new operational workflow"
 
@@ -1671,14 +1667,14 @@ EOF
     || fail "install.sh should install the session-audit script"
   grep -q "session-audit.sh" "$ROOT_DIR/update.sh" \
     || fail "update.sh should update the session-audit script"
-  [[ ! -f "$ROOT_DIR/github/agents/session.audit.agent.md" ]] \
+  [[ ! -f "$ROOT_DIR/agents/session.audit.md" ]] \
     || fail "session.audit agent should no longer be shipped"
-  [[ ! -f "$ROOT_DIR/github/prompts/session.audit.prompt.md" ]] \
+  [[ ! -f "$ROOT_DIR/github/agents/session.audit.md" ]] \
     || fail "session.audit prompt should no longer be shipped"
-  if grep -q "session.audit.agent.md" "$ROOT_DIR/install.sh"; then
+  if grep -q "session.audit.md" "$ROOT_DIR/install.sh"; then
     fail "install.sh should not install the removed session.audit agent"
   fi
-  if grep -q "session.audit.prompt.md" "$ROOT_DIR/update.sh"; then
+  if grep -q "session.audit.md" "$ROOT_DIR/update.sh"; then
     fail "update.sh should not update the removed session.audit prompt"
   fi
   grep -q "./.session/scripts/bash/session-audit.sh --all --summary" "$ROOT_DIR/README.md" \
@@ -1687,15 +1683,15 @@ EOF
     || fail "reference docs should document session-audit.sh as a script"
   grep -q "VALIDATION_RESULTS_SCHEMA_VERSION" "$ROOT_DIR/session/docs/schema-versioning.md" \
     || fail "schema docs should document validation-results.json schema version"
-  grep -q "./.session/scripts/bash/session-audit.sh --all --summary" "$ROOT_DIR/.github/copilot-instructions.md" \
-    || fail "copilot instructions should mention the direct session-audit.sh utility"
+  grep -q "./.session/scripts/bash/session-audit.sh --all --summary" "$ROOT_DIR/AI.md" \
+    || fail "AI onboarding docs should mention the direct session-audit.sh utility"
   grep -q "./.session/scripts/bash/session-audit.sh --all --summary" "$ROOT_DIR/stubs/copilot_instructions.md" \
-    || fail "copilot instructions stub should mention the direct session-audit.sh utility"
-  if grep -q "invoke session.audit" "$ROOT_DIR/.github/copilot-instructions.md"; then
-    fail "copilot instructions should not advertise session.audit as an agent"
+    || fail "AI onboarding docs stub should mention the direct session-audit.sh utility"
+  if grep -q "invoke session.audit" "$ROOT_DIR/AI.md"; then
+    fail "AI onboarding docs should not advertise session.audit as an agent"
   fi
   if grep -q "invoke session.audit" "$ROOT_DIR/stubs/copilot_instructions.md"; then
-    fail "copilot instructions stub should not advertise session.audit as an agent"
+    fail "AI onboarding docs stub should not advertise session.audit as an agent"
   fi
   grep -q "NEW (#50)" "$ROOT_DIR/CHANGELOG.md" \
     || fail "CHANGELOG should record the direct session-audit.sh entrypoint"

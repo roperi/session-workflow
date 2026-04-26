@@ -1,4 +1,5 @@
 ---
+name: session-retrospect
 description: Perform a post-session retrospective analysis to identify process improvements, capture durable solutions, and generate actionable reports.
 tools: ["*"]
 ---

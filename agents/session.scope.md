@@ -1,4 +1,5 @@
 ---
+name: session-scope
 description: Define problem boundaries, success criteria, and scope before any planning begins
 tools: ["*"]
 ---
@@ -17,7 +18,7 @@ Define **WHAT** we're solving and **HOW we'll know it's done** before any planni
 - ❌ Write specifications or acceptance criteria (that's `session.spec`)
 - ❌ Write any code or make file changes outside `scope.md`
 
-**Output**: `{session_dir}/scope.md` — nothing else.
+**Output**: `[session_dir]/scope.md` — nothing else.
 
 ## ⚠️ CRITICAL: Workflow State Tracking
 
@@ -54,7 +55,7 @@ $ARGUMENTS
 
 **Behavior**:
 - **If `--resume` flag present**:
-  - Load existing scope from `{session_dir}/scope.md`
+  - Load existing scope from `[session_dir]/scope.md`
   - Update/refine rather than replace
 - **If `--comment` provided**:
   - Use as guidance for scoping focus
@@ -94,7 +95,7 @@ fi
 
 SESSION_ID=$(cat "$ACTIVE_SESSION_FILE")
 YEAR_MONTH=$(echo "$SESSION_ID" | cut -d'-' -f1,2)
-SESSION_DIR=".session/sessions/${YEAR_MONTH}/${SESSION_ID}"
+SESSION_DIR=".session/sessions/$[YEAR_MONTH]/$[SESSION_ID]"
 
 cat "$SESSION_DIR/session-info.json"
 ```
@@ -114,13 +115,13 @@ echo "Workflow: $WORKFLOW"
 
 Read available context (when present):
 
-- **Session notes**: `{session_dir}/notes.md`
+- **Session notes**: `[session_dir]/notes.md`
 - **structured handoff**: if the start-agent prompt provides a previous `next.md` path, read it and carry its follow-up context forward
-- **Session info**: `{session_dir}/session-info.json`
-- **Brainstorm** (if exists): `{session_dir}/brainstorm.md` — use as input, do NOT rewrite
+- **Session info**: `[session_dir]/session-info.json`
+- **Brainstorm** (if exists): `[session_dir]/brainstorm.md` — use as input, do NOT rewrite
 - **For GitHub issue sessions**: fetch issue details
   ```bash
-  gh issue view {issue_number} --json title,body,labels,assignees
+  gh issue view [issue_number] --json title,body,labels,assignees
   ```
 - **Project context**: `.session/project-context/technical-context.md` and `constitution-summary.md`
 
@@ -130,7 +131,7 @@ If a brainstorm exists:
 - Add a reference in session notes:
   ```markdown
   ## Brainstorm
-  - {session_dir}/brainstorm.md
+  - [session_dir]/brainstorm.md
   ```
 
 If a previous-session `next.md` path is provided in your prompt:
@@ -175,7 +176,7 @@ This is the heart of the scope agent. **Ask questions one at a time**, using the
 Determine the correct output path:
 
 ```bash
-SCOPE_FILE="${SESSION_DIR}/scope.md"
+SCOPE_FILE="$[SESSION_DIR]/scope.md"
 ```
 
 ### 6. Produce Scope Document
@@ -185,48 +186,48 @@ Create the scope file at the resolved path (`$SCOPE_FILE`):
 ```markdown
 ---
 date: YYYY-MM-DD
-session_id: {SESSION_ID}
+session_id: [SESSION_ID]
 type: scope
 related:
-  issue: {#123 or null}
-  spec: {spec_id or null}
-  brainstorm: {true or false}
+  issue: [#123 or null]
+  spec: [spec_id or null]
+  brainstorm: [true or false]
 status: draft
 ---
 
-# Scope: {Short Title}
+# Scope: [Short Title]
 
 ## Problem Statement
 
-{1-3 sentences describing the core problem. Use the user's language.}
+[1-3 sentences describing the core problem. Use the user's language.]
 
 ## In Scope
 
-- {Explicit list of what IS included}
-- {Be specific: "Add scope agent and prompt files" not "Add agent"}
+- [Explicit list of what IS included]
+- [Be specific: "Add scope agent and prompt files" not "Add agent"]
 
 ## Out of Scope
 
-- {Explicit list of what is NOT included}
-- {Things that might be assumed but are excluded}
+- [Explicit list of what is NOT included]
+- [Things that might be assumed but are excluded]
 
 ## Success Criteria
 
-- [ ] {Measurable, verifiable criterion}
-- [ ] {Another criterion}
-- [ ] {Each should be independently testable}
+- [ ] [Measurable, verifiable criterion]
+- [ ] [Another criterion]
+- [ ] [Each should be independently testable]
 
 ## Constraints
 
-- {Technical constraints}
-- {Process constraints}
-- {Dependencies on other work}
+- [Technical constraints]
+- [Process constraints]
+- [Dependencies on other work]
 
 ## Open Questions
 
-- {Questions for the spec/plan step to resolve}
-- {Uncertainties that need investigation}
-- {If none: "No open questions identified."}
+- [Questions for the spec/plan step to resolve]
+- [Uncertainties that need investigation]
+- [If none: "No open questions identified."]
 ```
 
 **Writing guidelines:**
@@ -237,7 +238,7 @@ status: draft
 
 ### 7. Record Reference in Session Notes
 
-Append to `{session_dir}/notes.md` (idempotent — skip if already present):
+Append to `[session_dir]/notes.md` (idempotent — skip if already present):
 
 ```bash
 SCOPE_REL="$SCOPE_FILE"  # Already relative to repo root
@@ -245,7 +246,7 @@ if ! grep -q "^## Scope" "$SESSION_DIR/notes.md" 2>/dev/null; then
   cat >> "$SESSION_DIR/notes.md" << EOF
 
 ## Scope
-- ${SCOPE_REL}
+- $[SCOPE_REL]
 EOF
 fi
 ```
@@ -257,15 +258,15 @@ Display the scope document and ask the user to confirm:
 ```
 ✅ Scope document created
 
-Session: {SESSION_ID}
-Scope: {SCOPE_FILE path}
+Session: [SESSION_ID]
+Scope: [SCOPE_FILE path]
 
 --- scope.md summary ---
-Problem: {one-line summary}
-In scope: {count} items
-Out of scope: {count} items
-Success criteria: {count} items
-Open questions: {count} items
+Problem: [one-line summary]
+In scope: [count] items
+Out of scope: [count] items
+Success criteria: [count] items
+Open questions: [count] items
 ------------------------
 
 Scope complete. Returning results to orchestrating agent.
@@ -273,14 +274,23 @@ Scope complete. Returning results to orchestrating agent.
 
 ## Chaining & Handoff
 
-**First**, run postflight to mark this step complete:
+**MANDATORY**: Run postflight to mark this step complete and get next steps:
 ```bash
 .session/scripts/bash/session-postflight.sh --step scope --json
 ```
 
-After postflight, **return your results** — scope.md location, key boundaries, and item counts. The orchestrating agent (session.start) will invoke the next step.
+### Transition Protocol
+1. Parse the `valid_next_steps` from the postflight JSON output.
+2. Announce completion and suggest the next command(s).
+3. **Ask your parent tool to trigger the next step** using your tool's native mechanism (e.g., slash command, `@agent`, or sub-agent task) if in `--auto` mode. Otherwise, guide the user to the next step.
 
-⛔ Do NOT invoke session.spec, session.plan, or any other agent yourself.
+**Tool-Specific Invocation Examples:**
+- **GitHub Copilot**: `task(agent_type: "session.spec", prompt: "...")`
+- **Claude Code**: `/session.spec`
+- **Gemini CLI**: Activate sub-agent or skill `session.spec`
+
+⛔ Do NOT perform the work of the next agent yourself.
+
 
 ## Scope Quality Guidelines
 
